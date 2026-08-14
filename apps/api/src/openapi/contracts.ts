@@ -589,8 +589,11 @@ export class AlertRuleDto {
   @ApiProperty()
   isActive!: boolean;
 
-  @ApiProperty()
-  triggerType!: string;
+  @ApiProperty({ type: [String] })
+  triggerTypes!: string[];
+
+  @ApiPropertyOptional({ deprecated: true })
+  triggerType?: string;
 
   @ApiPropertyOptional({ type: Number, nullable: true })
   threshold?: number | null;
@@ -696,8 +699,11 @@ export class CreateAlertRuleBodyDto {
   @ApiProperty()
   name!: string;
 
-  @ApiProperty()
-  triggerType!: string;
+  @ApiProperty({ type: [String] })
+  triggerTypes!: string[];
+
+  @ApiPropertyOptional({ deprecated: true })
+  triggerType?: string;
 
   @ApiPropertyOptional({ type: Number, nullable: true })
   threshold?: number | null;
@@ -719,7 +725,10 @@ export class UpdateAlertRuleBodyDto {
   @ApiPropertyOptional({ type: Boolean })
   isActive?: boolean;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: [String] })
+  triggerTypes?: string[];
+
+  @ApiPropertyOptional({ deprecated: true })
   triggerType?: string;
 
   @ApiPropertyOptional({ type: Number, nullable: true })

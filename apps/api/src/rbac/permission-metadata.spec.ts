@@ -127,7 +127,7 @@ describe("HTTP endpoint security contract", () => {
 
   it("discovers the complete controller surface", () => {
     // This count makes parser regressions and unreviewed endpoint additions visible.
-    expect(routes).toHaveLength(116);
+    expect(routes).toHaveLength(117);
     expect(new Set(routes.map((route) => route.id)).size).toBe(routes.length);
   });
 

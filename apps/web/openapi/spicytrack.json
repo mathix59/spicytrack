@@ -212,6 +212,58 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/projects/{projectSlug}/alerts/{alertRuleId}/test": {
+      "post": {
+        "operationId": "testProjectAlert",
+        "parameters": [
+          {
+            "name": "alertRuleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertDeliveryDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
     "/organizations/{orgSlug}/projects/{projectSlug}/alerts/deliveries": {
       "get": {
         "operationId": "listProjectAlertDeliveries",
@@ -5112,8 +5164,15 @@
           "isActive": {
             "type": "boolean"
           },
+          "triggerTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "triggerType": {
-            "type": "string"
+            "type": "string",
+            "deprecated": true
           },
           "threshold": {
             "type": "number",
@@ -5145,7 +5204,7 @@
           "projectId",
           "name",
           "isActive",
-          "triggerType",
+          "triggerTypes",
           "cooldownMinutes",
           "destinationType",
           "destinationTarget",
@@ -5159,8 +5218,15 @@
           "name": {
             "type": "string"
           },
+          "triggerTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "triggerType": {
-            "type": "string"
+            "type": "string",
+            "deprecated": true
           },
           "threshold": {
             "type": "number",
@@ -5178,7 +5244,7 @@
         },
         "required": [
           "name",
-          "triggerType",
+          "triggerTypes",
           "destinationType",
           "destinationTarget"
         ]
@@ -5192,8 +5258,15 @@
           "isActive": {
             "type": "boolean"
           },
+          "triggerTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "triggerType": {
-            "type": "string"
+            "type": "string",
+            "deprecated": true
           },
           "threshold": {
             "type": "number",
@@ -5209,17 +5282,6 @@
             "type": "string"
           }
         }
-      },
-      "SuccessDto": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "success"
-        ]
       },
       "AlertDeliveryDto": {
         "type": "object",
@@ -5271,6 +5333,17 @@
           "status",
           "payload",
           "createdAt"
+        ]
+      },
+      "SuccessDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
         ]
       },
       "ProjectDto": {

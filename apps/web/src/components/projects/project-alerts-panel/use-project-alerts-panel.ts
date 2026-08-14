@@ -9,6 +9,7 @@ import {
   useDeleteProjectAlert,
   useListProjectAlertDeliveries,
   useListProjectAlerts,
+  useTestProjectAlert,
   useUpdateProjectAlert,
   type AlertDeliveryDto,
   type AlertRuleDto,
@@ -55,6 +56,11 @@ function useProjectAlertsPanel({
       onSuccess: invalidateAlerts,
     },
   });
+  const testAlertMutation = useTestProjectAlert({
+    mutation: {
+      onSuccess: invalidateAlerts,
+    },
+  });
 
   const rules = alertsQuery.data?.data ?? EMPTY_RULES;
   const deliveries = deliveriesQuery.data?.data ?? EMPTY_DELIVERIES;
@@ -63,7 +69,7 @@ function useProjectAlertsPanel({
     event.preventDefault();
     setError(null);
     const formData = new FormData(event.currentTarget);
-    const triggerType = String(formData.get("triggerType") ?? "new_issue");
+    const triggerTypes = formData.getAll("triggerTypes").map(String);
     const thresholdValue = String(formData.get("threshold") ?? "");
 
     try {
@@ -72,9 +78,9 @@ function useProjectAlertsPanel({
         projectSlug,
         data: {
           name: String(formData.get("name") ?? ""),
-          triggerType,
+          triggerTypes,
           threshold:
-            triggerType === "event_threshold" && thresholdValue.length > 0
+            triggerTypes.includes("event_threshold") && thresholdValue.length > 0
               ? Number(thresholdValue)
               : null,
           cooldownMinutes: Number(formData.get("cooldownMinutes") ?? 30) || 30,
@@ -93,7 +99,7 @@ function useProjectAlertsPanel({
     event.preventDefault();
     setError(null);
     const formData = new FormData(event.currentTarget);
-    const triggerType = String(formData.get("triggerType") ?? rule.triggerType);
+    const triggerTypes = formData.getAll("triggerTypes").map(String);
     const thresholdValue = String(formData.get("threshold") ?? "");
 
     try {
@@ -104,9 +110,9 @@ function useProjectAlertsPanel({
         data: {
           name: String(formData.get("name") ?? rule.name),
           isActive: String(formData.get("isActive") ?? "true") === "true",
-          triggerType,
+          triggerTypes,
           threshold:
-            triggerType === "event_threshold" && thresholdValue.length > 0
+            triggerTypes.includes("event_threshold") && thresholdValue.length > 0
               ? Number(thresholdValue)
               : null,
           cooldownMinutes: Number(formData.get("cooldownMinutes") ?? 30) || 30,
@@ -133,6 +139,16 @@ function useProjectAlertsPanel({
     }
   };
 
+  const testRule = async (ruleId: string) => {
+    setError(null);
+
+    try {
+      await testAlertMutation.mutateAsync({ orgSlug, projectSlug, alertRuleId: ruleId });
+    } catch (caughtError) {
+      setError(getErrorMessage(caughtError));
+    }
+  };
+
   return {
     error,
     createOpen,
@@ -142,11 +158,13 @@ function useProjectAlertsPanel({
     isCreating: createAlertMutation.isPending,
     isUpdating: updateAlertMutation.isPending,
     isDeleting: deleteAlertMutation.isPending,
+    testingRuleId: testAlertMutation.isPending ? testAlertMutation.variables?.alertRuleId : null,
     setCreateOpen,
     setCreateDestinationType,
     createRule,
     updateRule,
     removeRule,
+    testRule,
   };
 }
 

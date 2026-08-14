@@ -3,6 +3,7 @@ import { alertRules } from "../database/schema";
 type AlertPayload = {
   [key: string]: unknown;
   triggerType: string;
+  triggerTypes?: string[];
   projectId: string;
   issueId?: string;
   eventId?: string;

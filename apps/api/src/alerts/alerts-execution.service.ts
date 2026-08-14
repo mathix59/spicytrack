@@ -11,19 +11,33 @@ import type { AlertPayload } from "./alerts.types";
 export function shouldTriggerAlertRule(
   rule: Pick<
     typeof alertRules.$inferSelect,
-    "triggerType" | "threshold" | "cooldownMinutes" | "lastTriggeredAt"
+    "triggerTypes" | "threshold" | "cooldownMinutes" | "lastTriggeredAt"
+  >,
+  input: { issueWasCreated: boolean; issueRegressed: boolean; timesSeen: number },
+  now = new Date(),
+) {
+  return matchingTriggerTypes(rule, input, now).length > 0;
+}
+
+export function matchingTriggerTypes(
+  rule: Pick<
+    typeof alertRules.$inferSelect,
+    "triggerTypes" | "threshold" | "cooldownMinutes" | "lastTriggeredAt"
   >,
   input: { issueWasCreated: boolean; issueRegressed: boolean; timesSeen: number },
   now = new Date(),
 ) {
   const cooldownCutoff = new Date(now.getTime() - rule.cooldownMinutes * 60 * 1000);
-  if (rule.lastTriggeredAt && rule.lastTriggeredAt > cooldownCutoff) return false;
-  if (rule.triggerType === "new_issue") return input.issueWasCreated;
-  if (rule.triggerType === "regression") return input.issueRegressed;
-  if (rule.triggerType === "event_threshold") {
-    return Boolean(rule.threshold && input.timesSeen >= rule.threshold);
-  }
-  return false;
+  if (rule.lastTriggeredAt && rule.lastTriggeredAt > cooldownCutoff) return [];
+
+  return rule.triggerTypes.filter((triggerType) => {
+    if (triggerType === "new_issue") return input.issueWasCreated;
+    if (triggerType === "regression") return input.issueRegressed;
+    if (triggerType === "event_threshold") {
+      return Boolean(rule.threshold && input.timesSeen >= rule.threshold);
+    }
+    return false;
+  });
 }
 
 @Injectable()
@@ -50,12 +64,14 @@ export class AlertsExecutionService {
       .where(and(eq(alertRules.projectId, input.projectId), eq(alertRules.isActive, true)));
 
     for (const rule of activeRules) {
-      if (!shouldTriggerAlertRule(rule, input)) {
+      const triggerTypes = matchingTriggerTypes(rule, input);
+      if (triggerTypes.length === 0) {
         continue;
       }
 
       const payload: AlertPayload = {
-        triggerType: rule.triggerType,
+        triggerType: triggerTypes[0],
+        triggerTypes,
         projectId: input.projectId,
         issueId: input.issueId,
         eventId: input.eventId,
@@ -87,5 +103,8 @@ export class AlertsExecutionService {
         })
         .where(eq(alertRules.id, rule.id));
     }
+  }
+  async deliverTest(rule: typeof alertRules.$inferSelect, payload: AlertPayload) {
+    return this.alertsDeliveryService.deliverToDestination(rule, payload);
   }
 }

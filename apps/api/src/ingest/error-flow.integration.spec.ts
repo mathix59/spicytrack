@@ -54,7 +54,7 @@ describe("error ingestion to alert flow", () => {
     expect(
       shouldTriggerAlertRule(
         {
-          triggerType: "regression",
+          triggerTypes: ["new_issue", "regression"],
           threshold: null,
           cooldownMinutes: 30,
           lastTriggeredAt: null,

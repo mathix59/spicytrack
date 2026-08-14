@@ -445,7 +445,7 @@ export const alertRules = pgTable("alert_rules", {
   projectId: uuid("project_id").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   isActive: boolean("is_active").notNull().default(true),
-  triggerType: varchar("trigger_type", { length: 64 }).notNull(),
+  triggerTypes: text("trigger_types").array().notNull(),
   threshold: integer("threshold"),
   cooldownMinutes: integer("cooldown_minutes").notNull().default(30),
   destinationType: varchar("destination_type", { length: 32 }).notNull().default("webhook"),

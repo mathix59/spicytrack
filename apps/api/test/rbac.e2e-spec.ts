@@ -224,8 +224,8 @@ describe("RBAC authorization matrix (e2e)", () => {
     );
     await pool.query(
       `INSERT INTO alert_rules (
-         id, organization_id, project_id, name, trigger_type, destination_type, destination_target
-       ) VALUES ($1, $2, $3, 'Sibling alert', 'new_issue', 'webhook', 'https://example.test/hook')`,
+         id, organization_id, project_id, name, trigger_types, destination_type, destination_target
+       ) VALUES ($1, $2, $3, 'Sibling alert', ARRAY['new_issue'], 'webhook', 'https://example.test/hook')`,
       [siblingAlertRuleId, organizationId, siblingProjectId],
     );
     await pool.query(

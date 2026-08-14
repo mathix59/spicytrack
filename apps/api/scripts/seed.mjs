@@ -65,14 +65,14 @@ const PROJECTS = [
     alerts: [
       {
         name: "New issue to email",
-        triggerType: "new_issue",
+        triggerTypes: ["new_issue"],
         destinationType: "email",
         destinationTarget: "alerts@spicytrack.dev",
         cooldownMinutes: 15,
       },
       {
         name: "High volume webhook",
-        triggerType: "event_threshold",
+        triggerTypes: ["event_threshold"],
         threshold: 10,
         destinationType: "webhook",
         destinationTarget: `${BASE_URL}/api/health`,
@@ -93,7 +93,7 @@ const PROJECTS = [
     alerts: [
       {
         name: "Frontend regressions",
-        triggerType: "new_issue",
+        triggerTypes: ["new_issue"],
         destinationType: "slack",
         destinationTarget: "https://hooks.slack.com/services/T000/B000/demo",
         cooldownMinutes: 30,

@@ -7,13 +7,17 @@ function DestinationTypeSelect({
   name,
   defaultValue,
   onChange,
+  ...accessibilityProps
 }: {
   name: string;
   defaultValue: DestinationType;
   onChange?: (value: DestinationType) => void;
+  "aria-labelledby"?: string;
+  "aria-describedby"?: string;
 }) {
   return (
     <Select
+      {...accessibilityProps}
       defaultValue={defaultValue}
       name={name}
       onChange={(event) => onChange?.(event.target.value as DestinationType)}

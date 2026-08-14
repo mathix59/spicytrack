@@ -2,9 +2,15 @@ import { BellRing, Hash, Mail, Webhook } from "lucide-react";
 
 import { formatLocalDateTime } from "@/lib/utils";
 
-import type { DestinationType } from "./types";
+import type { DestinationType, TriggerType } from "./types";
 
 const DESTINATION_TYPES: DestinationType[] = ["webhook", "email", "slack", "teams", "discord"];
+const TRIGGER_TYPES: Array<{ value: TriggerType; label: string }> = [
+  { value: "new_issue", label: "New issue" },
+  { value: "regression", label: "Regression" },
+  { value: "event_threshold", label: "Event threshold" },
+  { value: "daily_digest", label: "Daily digest" },
+];
 
 function compactDate(value: string | null | undefined) {
   if (!value) {
@@ -84,6 +90,7 @@ function destinationIcon(destinationType: string) {
 export {
   BellRing,
   DESTINATION_TYPES,
+  TRIGGER_TYPES,
   compactDate,
   deliveryTitle,
   destinationIcon,

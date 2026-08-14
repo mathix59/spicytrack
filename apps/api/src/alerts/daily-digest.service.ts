@@ -19,7 +19,12 @@ export class DailyDigestService {
     const rules = await this.db
       .select()
       .from(alertRules)
-      .where(and(eq(alertRules.isActive, true), eq(alertRules.triggerType, "daily_digest")));
+      .where(
+        and(
+          eq(alertRules.isActive, true),
+          sql`${alertRules.triggerTypes} @> ARRAY['daily_digest']::text[]`,
+        ),
+      );
 
     for (const rule of rules) {
       if (rule.lastTriggeredAt && rule.lastTriggeredAt >= since) continue;
@@ -61,6 +66,7 @@ export class DailyDigestService {
 
       const payload: AlertPayload = {
         triggerType: "daily_digest",
+        triggerTypes: ["daily_digest"],
         projectId: rule.projectId,
         eventCount24h: eventCountRows[0]?.count ?? 0,
         newIssueCount24h: newIssueCountRows[0]?.count ?? 0,

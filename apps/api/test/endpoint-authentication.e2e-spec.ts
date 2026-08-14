@@ -54,7 +54,7 @@ describe("endpoint authentication boundary (e2e)", () => {
       );
 
     // Kept in sync with the source-level endpoint security contract.
-    expect(protectedRoutes).toHaveLength(106);
+    expect(protectedRoutes).toHaveLength(107);
 
     const violations: string[] = [];
     for (const route of protectedRoutes) {

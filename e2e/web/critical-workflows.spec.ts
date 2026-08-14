@@ -337,9 +337,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
     },
   });
   expect(allowedPreflight.status()).toBe(204);
-  expect(allowedPreflight.headers()["access-control-allow-origin"]).toBe(
-    "http://127.0.0.1:55880",
-  );
+  expect(allowedPreflight.headers()["access-control-allow-origin"]).toBe("http://127.0.0.1:55880");
 
   const rejectedPreflight = await api.fetch(`/api/${project!.publicId}/envelope/`, {
     method: "OPTIONS",
@@ -417,12 +415,34 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   for (const testId of ["release-list-card", "release-detail-card"]) {
     await expect
       .poll(() =>
-        page
-          .getByTestId(testId)
-          .evaluate((element) => element.scrollWidth <= element.clientWidth),
+        page.getByTestId(testId).evaluate((element) => element.scrollWidth <= element.clientWidth),
       )
       .toBe(true);
   }
+
+  await page.goto(`/orgs/${orgSlug}/projects/${projectSlug}?tab=alerting`);
+  await page.getByRole("button", { name: "New rule" }).click();
+  const alertDialog = page.getByRole("dialog", { name: "New alert rule" });
+  await alertDialog.locator('input[name="name"]').fill("E2E multi-trigger alert");
+  await alertDialog.getByLabel("Regression").check();
+  await alertDialog.getByLabel("Event threshold").check();
+  await alertDialog.locator('input[name="threshold"]').fill("2");
+  await alertDialog.locator('select[name="destinationType"]').selectOption("email");
+  await alertDialog.locator('input[name="destinationTarget"]').fill("alerts@example.test");
+  await alertDialog.getByRole("button", { name: "Create rule" }).click();
+  const alertRuleForm = page.locator("form").filter({ hasText: "E2E multi-trigger alert" });
+  await expect(alertRuleForm.getByText("E2E multi-trigger alert", { exact: true })).toBeVisible();
+  await expect(
+    alertRuleForm.locator("div.rounded-full").getByText("New issue", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    alertRuleForm.locator("div.rounded-full").getByText("Regression", { exact: true }),
+  ).toBeVisible();
+  await expect(alertRuleForm.getByText("Threshold 2", { exact: true })).toBeVisible();
+  await alertRuleForm.getByRole("button", { name: "Test", exact: true }).click();
+  await expect(
+    page.getByText("Test alert: E2E multi-trigger alert", { exact: true }),
+  ).toBeVisible();
 
   const limitedKey = await api.patch(
     `/api/organizations/${orgSlug}/projects/${projectSlug}/keys/${keys[0].id}`,

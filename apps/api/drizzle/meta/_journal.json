@@ -15,6 +15,13 @@
       "when": 1786716897075,
       "tag": "0001_eminent_next_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786722440637,
+      "tag": "0002_fresh_micromax",
+      "breakpoints": true
     }
   ]
 }

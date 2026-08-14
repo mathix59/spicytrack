@@ -5,7 +5,10 @@
  * SpicyTrack product and ingest API
  * OpenAPI spec version: 1.0.2
  */
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -18,18 +21,20 @@ import type {
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
+  UseQueryResult
+} from '@tanstack/react-query';
 
-import { orvalFetch } from "../lib/orval-fetch";
-import type { ErrorType, BodyType } from "../lib/orval-fetch";
+import { orvalFetch } from '../lib/orval-fetch';
+import type { ErrorType , BodyType } from '../lib/orval-fetch';
 export interface AlertRuleDto {
   id: string;
   organizationId: string;
   projectId: string;
   name: string;
   isActive: boolean;
-  triggerType: string;
+  triggerTypes: string[];
+  /** @deprecated */
+  triggerType?: string;
   /** @nullable */
   threshold?: number | null;
   cooldownMinutes: number;
@@ -43,7 +48,9 @@ export interface AlertRuleDto {
 
 export interface CreateAlertRuleBodyDto {
   name: string;
-  triggerType: string;
+  triggerTypes: string[];
+  /** @deprecated */
+  triggerType?: string;
   /** @nullable */
   threshold?: number | null;
   cooldownMinutes?: number;
@@ -54,16 +61,14 @@ export interface CreateAlertRuleBodyDto {
 export interface UpdateAlertRuleBodyDto {
   name?: string;
   isActive?: boolean;
+  triggerTypes?: string[];
+  /** @deprecated */
   triggerType?: string;
   /** @nullable */
   threshold?: number | null;
   cooldownMinutes?: number;
   destinationType?: string;
   destinationTarget?: string;
-}
-
-export interface SuccessDto {
-  success: boolean;
 }
 
 export type AlertDeliveryDtoPayload = { [key: string]: unknown };
@@ -84,6 +89,10 @@ export interface AlertDeliveryDto {
   responseBody?: string | null;
   payload: AlertDeliveryDtoPayload;
   createdAt: string;
+}
+
+export interface SuccessDto {
+  success: boolean;
 }
 
 export type ProjectDtoInboundRulesItem = { [key: string]: unknown };
@@ -201,13 +210,14 @@ export interface ProjectReleaseDto {
   updatedAt: string;
 }
 
-export type IssueDtoPriority = (typeof IssueDtoPriority)[keyof typeof IssueDtoPriority];
+export type IssueDtoPriority = typeof IssueDtoPriority[keyof typeof IssueDtoPriority];
+
 
 export const IssueDtoPriority = {
-  low: "low",
-  medium: "medium",
-  high: "high",
-  critical: "critical",
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
 } as const;
 
 export interface IssueDto {
@@ -278,7 +288,7 @@ export interface ReleaseArtifactDto {
   createdAt: string;
 }
 
-export type HealthDtoDependencies = { [key: string]: string };
+export type HealthDtoDependencies = {[key: string]: string};
 
 export type HealthDtoJobs = { [key: string]: unknown };
 
@@ -343,14 +353,14 @@ export interface PaginatedIssuesDto {
   pageSize: number;
 }
 
-export type ResolvedFrameDtoResolution =
-  (typeof ResolvedFrameDtoResolution)[keyof typeof ResolvedFrameDtoResolution];
+export type ResolvedFrameDtoResolution = typeof ResolvedFrameDtoResolution[keyof typeof ResolvedFrameDtoResolution];
+
 
 export const ResolvedFrameDtoResolution = {
-  sourcemap: "sourcemap",
-  proguard: "proguard",
-  dart_obfuscation: "dart_obfuscation",
-  original: "original",
+  sourcemap: 'sourcemap',
+  proguard: 'proguard',
+  dart_obfuscation: 'dart_obfuscation',
+  original: 'original',
 } as const;
 
 export interface ResolvedFrameDto {
@@ -422,14 +432,14 @@ export interface IssueAssigneeUpdateBodyDto {
   assignedUserId?: string | null;
 }
 
-export type IssuePriorityUpdateBodyDtoPriority =
-  (typeof IssuePriorityUpdateBodyDtoPriority)[keyof typeof IssuePriorityUpdateBodyDtoPriority];
+export type IssuePriorityUpdateBodyDtoPriority = typeof IssuePriorityUpdateBodyDtoPriority[keyof typeof IssuePriorityUpdateBodyDtoPriority];
+
 
 export const IssuePriorityUpdateBodyDtoPriority = {
-  low: "low",
-  medium: "medium",
-  high: "high",
-  critical: "critical",
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
 } as const;
 
 export interface IssuePriorityUpdateBodyDto {
@@ -455,14 +465,14 @@ export interface BulkOperationResultDto {
   updatedCount: number;
 }
 
-export type BulkIssuePriorityUpdateBodyDtoPriority =
-  (typeof BulkIssuePriorityUpdateBodyDtoPriority)[keyof typeof BulkIssuePriorityUpdateBodyDtoPriority];
+export type BulkIssuePriorityUpdateBodyDtoPriority = typeof BulkIssuePriorityUpdateBodyDtoPriority[keyof typeof BulkIssuePriorityUpdateBodyDtoPriority];
+
 
 export const BulkIssuePriorityUpdateBodyDtoPriority = {
-  low: "low",
-  medium: "medium",
-  high: "high",
-  critical: "critical",
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
 } as const;
 
 export interface BulkIssuePriorityUpdateBodyDto {
@@ -533,20 +543,22 @@ export interface UpdateAutofixConfigBodyDto {
   targetBranch?: UpdateAutofixConfigBodyDtoTargetBranch;
 }
 
-export type AutofixRunDtoStatus = (typeof AutofixRunDtoStatus)[keyof typeof AutofixRunDtoStatus];
+export type AutofixRunDtoStatus = typeof AutofixRunDtoStatus[keyof typeof AutofixRunDtoStatus];
+
 
 export const AutofixRunDtoStatus = {
-  queued: "queued",
-  running: "running",
-  succeeded: "succeeded",
-  failed: "failed",
+  queued: 'queued',
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
 } as const;
 
-export type AutofixRunDtoTrigger = (typeof AutofixRunDtoTrigger)[keyof typeof AutofixRunDtoTrigger];
+export type AutofixRunDtoTrigger = typeof AutofixRunDtoTrigger[keyof typeof AutofixRunDtoTrigger];
+
 
 export const AutofixRunDtoTrigger = {
-  manual: "manual",
-  auto: "auto",
+  manual: 'manual',
+  auto: 'auto',
 } as const;
 
 /**
@@ -583,13 +595,13 @@ export type AutofixRunDtoCacheReadTokens = { [key: string]: unknown };
 
 export type AutofixRunDtoCacheWriteTokens = { [key: string]: unknown };
 
-export type AutofixRunDtoReviewStatus =
-  (typeof AutofixRunDtoReviewStatus)[keyof typeof AutofixRunDtoReviewStatus];
+export type AutofixRunDtoReviewStatus = typeof AutofixRunDtoReviewStatus[keyof typeof AutofixRunDtoReviewStatus];
+
 
 export const AutofixRunDtoReviewStatus = {
-  pending: "pending",
-  approved: "approved",
-  rejected: "rejected",
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
 } as const;
 
 /**
@@ -640,12 +652,12 @@ export interface AutofixRunDto {
   createdAt: string;
 }
 
-export type ReviewAutofixBodyDtoStatus =
-  (typeof ReviewAutofixBodyDtoStatus)[keyof typeof ReviewAutofixBodyDtoStatus];
+export type ReviewAutofixBodyDtoStatus = typeof ReviewAutofixBodyDtoStatus[keyof typeof ReviewAutofixBodyDtoStatus];
+
 
 export const ReviewAutofixBodyDtoStatus = {
-  approved: "approved",
-  rejected: "rejected",
+  approved: 'approved',
+  rejected: 'rejected',
 } as const;
 
 export interface ReviewAutofixBodyDto {
@@ -654,13 +666,13 @@ export interface ReviewAutofixBodyDto {
   comment?: string;
 }
 
-export type OrganizationAiSettingsDtoProvider =
-  (typeof OrganizationAiSettingsDtoProvider)[keyof typeof OrganizationAiSettingsDtoProvider];
+export type OrganizationAiSettingsDtoProvider = typeof OrganizationAiSettingsDtoProvider[keyof typeof OrganizationAiSettingsDtoProvider];
+
 
 export const OrganizationAiSettingsDtoProvider = {
-  anthropic: "anthropic",
-  openai: "openai",
-  google: "google",
+  anthropic: 'anthropic',
+  openai: 'openai',
+  google: 'google',
 } as const;
 
 /**
@@ -677,22 +689,22 @@ export type OrganizationAiSettingsDtoMaskedKey = { [key: string]: unknown } | nu
 export interface OrganizationAiSettingsDto {
   provider: OrganizationAiSettingsDtoProvider;
   /**
-   * Model id. Null means the provider default.
-   * @nullable
-   */
+     * Model id. Null means the provider default.
+     * @nullable
+     */
   model?: OrganizationAiSettingsDtoModel;
   apiKeySet: boolean;
   /** @nullable */
   maskedKey?: OrganizationAiSettingsDtoMaskedKey;
 }
 
-export type UpdateOrganizationAiSettingsBodyDtoProvider =
-  (typeof UpdateOrganizationAiSettingsBodyDtoProvider)[keyof typeof UpdateOrganizationAiSettingsBodyDtoProvider];
+export type UpdateOrganizationAiSettingsBodyDtoProvider = typeof UpdateOrganizationAiSettingsBodyDtoProvider[keyof typeof UpdateOrganizationAiSettingsBodyDtoProvider];
+
 
 export const UpdateOrganizationAiSettingsBodyDtoProvider = {
-  anthropic: "anthropic",
-  openai: "openai",
-  google: "google",
+  anthropic: 'anthropic',
+  openai: 'openai',
+  google: 'google',
 } as const;
 
 /**
@@ -710,23 +722,23 @@ export type UpdateOrganizationAiSettingsBodyDtoApiKey = { [key: string]: unknown
 export interface UpdateOrganizationAiSettingsBodyDto {
   provider?: UpdateOrganizationAiSettingsBodyDtoProvider;
   /**
-   * Model id. Pass null to use the provider default.
-   * @nullable
-   */
+     * Model id. Pass null to use the provider default.
+     * @nullable
+     */
   model?: UpdateOrganizationAiSettingsBodyDtoModel;
   /**
-   * Provider API key. Pass null to clear.
-   * @nullable
-   */
+     * Provider API key. Pass null to clear.
+     * @nullable
+     */
   apiKey?: UpdateOrganizationAiSettingsBodyDtoApiKey;
 }
 
-export type RepoConnectionDtoProvider =
-  (typeof RepoConnectionDtoProvider)[keyof typeof RepoConnectionDtoProvider];
+export type RepoConnectionDtoProvider = typeof RepoConnectionDtoProvider[keyof typeof RepoConnectionDtoProvider];
+
 
 export const RepoConnectionDtoProvider = {
-  github: "github",
-  gitlab: "gitlab",
+  github: 'github',
+  gitlab: 'gitlab',
 } as const;
 
 /**
@@ -761,12 +773,12 @@ export interface RepoConnectionDto {
   updatedAt: string;
 }
 
-export type UpsertRepoConnectionBodyDtoProvider =
-  (typeof UpsertRepoConnectionBodyDtoProvider)[keyof typeof UpsertRepoConnectionBodyDtoProvider];
+export type UpsertRepoConnectionBodyDtoProvider = typeof UpsertRepoConnectionBodyDtoProvider[keyof typeof UpsertRepoConnectionBodyDtoProvider];
+
 
 export const UpsertRepoConnectionBodyDtoProvider = {
-  github: "github",
-  gitlab: "gitlab",
+  github: 'github',
+  gitlab: 'gitlab',
 } as const;
 
 /**
@@ -792,12 +804,12 @@ export interface UpsertRepoConnectionBodyDto {
   defaultBranch?: string;
 }
 
-export type TestRepoConnectionBodyDtoProvider =
-  (typeof TestRepoConnectionBodyDtoProvider)[keyof typeof TestRepoConnectionBodyDtoProvider];
+export type TestRepoConnectionBodyDtoProvider = typeof TestRepoConnectionBodyDtoProvider[keyof typeof TestRepoConnectionBodyDtoProvider];
+
 
 export const TestRepoConnectionBodyDtoProvider = {
-  github: "github",
-  gitlab: "gitlab",
+  github: 'github',
+  gitlab: 'gitlab',
 } as const;
 
 /**
@@ -839,12 +851,12 @@ export interface TestRepoConnectionResultDto {
   error?: TestRepoConnectionResultDtoError;
 }
 
-export type OrganizationGithubAppSettingsDtoMode =
-  (typeof OrganizationGithubAppSettingsDtoMode)[keyof typeof OrganizationGithubAppSettingsDtoMode];
+export type OrganizationGithubAppSettingsDtoMode = typeof OrganizationGithubAppSettingsDtoMode[keyof typeof OrganizationGithubAppSettingsDtoMode];
+
 
 export const OrganizationGithubAppSettingsDtoMode = {
-  cloud: "cloud",
-  enterprise: "enterprise",
+  cloud: 'cloud',
+  enterprise: 'enterprise',
 } as const;
 
 export interface OrganizationGithubAppSettingsDto {
@@ -918,12 +930,12 @@ export interface CompleteGithubAppInstallationBodyDto {
   state?: string;
 }
 
-export type UpdateOrganizationGithubAppSettingsBodyDtoMode =
-  (typeof UpdateOrganizationGithubAppSettingsBodyDtoMode)[keyof typeof UpdateOrganizationGithubAppSettingsBodyDtoMode];
+export type UpdateOrganizationGithubAppSettingsBodyDtoMode = typeof UpdateOrganizationGithubAppSettingsBodyDtoMode[keyof typeof UpdateOrganizationGithubAppSettingsBodyDtoMode];
+
 
 export const UpdateOrganizationGithubAppSettingsBodyDtoMode = {
-  cloud: "cloud",
-  enterprise: "enterprise",
+  cloud: 'cloud',
+  enterprise: 'enterprise',
 } as const;
 
 export interface UpdateOrganizationGithubAppSettingsBodyDto {
@@ -1164,9 +1176,9 @@ export interface AddTeamMemberBodyDto {
 }
 
 export type InstanceAdminControllerUsersParams = {
-  search: string;
-  page: string;
-  pageSize: string;
+search: string;
+page: string;
+pageSize: string;
 };
 
 export type UploadReleaseArtifactBody = {
@@ -1174,40 +1186,42 @@ export type UploadReleaseArtifactBody = {
 };
 
 export type ListIssuesParams = {
-  page?: number;
-  pageSize?: number;
-  q?: string;
-  level?: string;
-  priority?: string;
-  status?: string;
-  assignedUserId?: string;
-  isRegressed?: boolean;
-  environment?: string;
-  release?: string;
-  sortBy?: string;
-  sortDir?: string;
+page?: number;
+pageSize?: number;
+q?: string;
+level?: string;
+priority?: string;
+status?: string;
+assignedUserId?: string;
+isRegressed?: boolean;
+environment?: string;
+release?: string;
+sortBy?: string;
+sortDir?: string;
 };
 
 export type GetIssueParams = {
-  eventPage?: number;
-  eventPageSize?: number;
+eventPage?: number;
+eventPageSize?: number;
 };
 
 export type GetOrganizationJobQueueOverviewParams = {
-  limit?: string;
-  projectId?: string;
-  type?: string;
-  status?: string;
+limit?: string;
+projectId?: string;
+type?: string;
+status?: string;
 };
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
   const result = { queryKey } as T & { queryKey: K };
   for (const key of Object.keys(query)) {
     // The explicit queryKey always wins, matching the previous
     // `{ ...query, queryKey }` spread where it was set last.
-    if (key === "queryKey") continue;
+    if (key === 'queryKey') continue;
     Object.defineProperty(result, key, {
       enumerable: true,
       configurable: true,
@@ -1218,13017 +1232,10619 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 };
 
 export type listProjectAlertsResponse200 = {
-  data: AlertRuleDto[];
-  status: 200;
-};
+  data: AlertRuleDto[]
+  status: 200
+}
 
-export type listProjectAlertsResponseSuccess = listProjectAlertsResponse200 & {
+export type listProjectAlertsResponseSuccess = (listProjectAlertsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listProjectAlertsResponse = listProjectAlertsResponseSuccess;
+export type listProjectAlertsResponse = (listProjectAlertsResponseSuccess)
 
-export const getListProjectAlertsUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts`;
-};
+export const getListProjectAlertsUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const listProjectAlerts = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listProjectAlertsResponse> => {
-  return orvalFetch<listProjectAlertsResponse>(getListProjectAlertsUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts`
+}
+
+export const listProjectAlerts = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectAlertsResponse> => {
+
+  return orvalFetch<listProjectAlertsResponse>(getListProjectAlertsUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListProjectAlertsQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/alerts`] as const;
-};
 
-export const getListProjectAlertsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listProjectAlerts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListProjectAlertsQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/alerts`
+    ] as const;
+    }
+
+
+export const getListProjectAlertsQueryOptions = <TData = Awaited<ReturnType<typeof listProjectAlerts>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListProjectAlertsQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectAlerts>>> = ({ signal }) =>
-    listProjectAlerts(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListProjectAlertsQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListProjectAlertsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listProjectAlerts>>
->;
-export type ListProjectAlertsQueryError = ErrorType<unknown>;
 
-export function useListProjectAlerts<
-  TData = Awaited<ReturnType<typeof listProjectAlerts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectAlerts>>> = ({ signal }) => listProjectAlerts(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListProjectAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectAlerts>>>
+export type ListProjectAlertsQueryError = ErrorType<unknown>
+
+
+export function useListProjectAlerts<TData = Awaited<ReturnType<typeof listProjectAlerts>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectAlerts>>,
           TError,
           Awaited<ReturnType<typeof listProjectAlerts>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectAlerts<
-  TData = Awaited<ReturnType<typeof listProjectAlerts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectAlerts<TData = Awaited<ReturnType<typeof listProjectAlerts>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectAlerts>>,
           TError,
           Awaited<ReturnType<typeof listProjectAlerts>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectAlerts<
-  TData = Awaited<ReturnType<typeof listProjectAlerts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectAlerts<TData = Awaited<ReturnType<typeof listProjectAlerts>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListProjectAlerts<
-  TData = Awaited<ReturnType<typeof listProjectAlerts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListProjectAlertsQueryOptions(orgSlug, projectSlug, options);
+export function useListProjectAlerts<TData = Awaited<ReturnType<typeof listProjectAlerts>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlerts>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListProjectAlertsQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createProjectAlertResponse200 = {
-  data: AlertRuleDto;
-  status: 200;
-};
+  data: AlertRuleDto
+  status: 200
+}
 
-export type createProjectAlertResponseSuccess = createProjectAlertResponse200 & {
+export type createProjectAlertResponseSuccess = (createProjectAlertResponse200) & {
   headers: Headers;
 };
+;
 
-export type createProjectAlertResponse = createProjectAlertResponseSuccess;
+export type createProjectAlertResponse = (createProjectAlertResponseSuccess)
 
-export const getCreateProjectAlertUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts`;
-};
+export const getCreateProjectAlertUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const createProjectAlert = async (
-  orgSlug: string,
-  projectSlug: string,
-  createAlertRuleBodyDto: CreateAlertRuleBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createProjectAlertResponse> => {
-  return orvalFetch<createProjectAlertResponse>(getCreateProjectAlertUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts`
+}
+
+export const createProjectAlert = async (orgSlug: string,
+    projectSlug: string,
+    createAlertRuleBodyDto: CreateAlertRuleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createProjectAlertResponse> => {
+
+  return orvalFetch<createProjectAlertResponse>(getCreateProjectAlertUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createAlertRuleBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createAlertRuleBodyDto)
+  }
+);}
 
-export const getCreateProjectAlertMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createProjectAlert>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<CreateAlertRuleBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createProjectAlert>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<CreateAlertRuleBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createProjectAlert"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createProjectAlert>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<CreateAlertRuleBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return createProjectAlert(orgSlug, projectSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type CreateProjectAlertMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createProjectAlert>>
->;
-export type CreateProjectAlertMutationBody = BodyType<CreateAlertRuleBodyDto>;
-export type CreateProjectAlertMutationError = ErrorType<unknown>;
+export const getCreateProjectAlertMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectAlert>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProjectAlert>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>}, TContext> => {
 
-export const useCreateProjectAlert = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createProjectAlert>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<CreateAlertRuleBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createProjectAlert>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<CreateAlertRuleBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateProjectAlertMutationOptions(options), queryClient);
-};
+const mutationKey = ['createProjectAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectAlert>>, {orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  createProjectAlert(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateProjectAlertMutationResult = NonNullable<Awaited<ReturnType<typeof createProjectAlert>>>
+    export type CreateProjectAlertMutationBody = BodyType<CreateAlertRuleBodyDto>
+    export type CreateProjectAlertMutationError = ErrorType<unknown>
+
+    export const useCreateProjectAlert = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectAlert>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createProjectAlert>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateProjectAlertMutationOptions(options), queryClient);
+    }
 
 export type updateProjectAlertResponse200 = {
-  data: AlertRuleDto;
-  status: 200;
-};
+  data: AlertRuleDto
+  status: 200
+}
 
-export type updateProjectAlertResponseSuccess = updateProjectAlertResponse200 & {
+export type updateProjectAlertResponseSuccess = (updateProjectAlertResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateProjectAlertResponse = updateProjectAlertResponseSuccess;
+export type updateProjectAlertResponse = (updateProjectAlertResponseSuccess)
 
-export const getUpdateProjectAlertUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  alertRuleId: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts/${alertRuleId}`;
-};
+export const getUpdateProjectAlertUrl = (orgSlug: string,
+    projectSlug: string,
+    alertRuleId: string,) => {
 
-export const updateProjectAlert = async (
-  orgSlug: string,
-  projectSlug: string,
-  alertRuleId: string,
-  updateAlertRuleBodyDto: UpdateAlertRuleBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateProjectAlertResponse> => {
-  return orvalFetch<updateProjectAlertResponse>(
-    getUpdateProjectAlertUrl(orgSlug, projectSlug, alertRuleId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateAlertRuleBodyDto),
-    },
-  );
-};
 
-export const getUpdateProjectAlertMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateProjectAlert>>,
-    TError,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      alertRuleId: string;
-      data: BodyType<UpdateAlertRuleBodyDto>;
-    },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateProjectAlert>>,
-  TError,
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts/${alertRuleId}`
+}
+
+export const updateProjectAlert = async (orgSlug: string,
+    projectSlug: string,
+    alertRuleId: string,
+    updateAlertRuleBodyDto: UpdateAlertRuleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateProjectAlertResponse> => {
+
+  return orvalFetch<updateProjectAlertResponse>(getUpdateProjectAlertUrl(orgSlug,projectSlug,alertRuleId),
   {
-    orgSlug: string;
-    projectSlug: string;
-    alertRuleId: string;
-    data: BodyType<UpdateAlertRuleBodyDto>;
-  },
-  TContext
-> => {
-  const mutationKey = ["updateProjectAlert"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateAlertRuleBodyDto)
+  }
+);}
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateProjectAlert>>,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      alertRuleId: string;
-      data: BodyType<UpdateAlertRuleBodyDto>;
+
+
+
+
+export const getUpdateProjectAlertMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>}, TContext> => {
+
+const mutationKey = ['updateProjectAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProjectAlert>>, {orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,alertRuleId,data} = props ?? {};
+
+          return  updateProjectAlert(orgSlug,projectSlug,alertRuleId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateProjectAlertMutationResult = NonNullable<Awaited<ReturnType<typeof updateProjectAlert>>>
+    export type UpdateProjectAlertMutationBody = BodyType<UpdateAlertRuleBodyDto>
+    export type UpdateProjectAlertMutationError = ErrorType<unknown>
+
+    export const useUpdateProjectAlert = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateProjectAlert>>,
+        TError,
+        {orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateProjectAlertMutationOptions(options), queryClient);
     }
-  > = (props) => {
-    const { orgSlug, projectSlug, alertRuleId, data } = props ?? {};
-
-    return updateProjectAlert(orgSlug, projectSlug, alertRuleId, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateProjectAlertMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateProjectAlert>>
->;
-export type UpdateProjectAlertMutationBody = BodyType<UpdateAlertRuleBodyDto>;
-export type UpdateProjectAlertMutationError = ErrorType<unknown>;
-
-export const useUpdateProjectAlert = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateProjectAlert>>,
-      TError,
-      {
-        orgSlug: string;
-        projectSlug: string;
-        alertRuleId: string;
-        data: BodyType<UpdateAlertRuleBodyDto>;
-      },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateProjectAlert>>,
-  TError,
-  {
-    orgSlug: string;
-    projectSlug: string;
-    alertRuleId: string;
-    data: BodyType<UpdateAlertRuleBodyDto>;
-  },
-  TContext
-> => {
-  return useMutation(getUpdateProjectAlertMutationOptions(options), queryClient);
-};
 
 export type deleteProjectAlertResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type deleteProjectAlertResponseSuccess = deleteProjectAlertResponse200 & {
+export type deleteProjectAlertResponseSuccess = (deleteProjectAlertResponse200) & {
   headers: Headers;
 };
+;
 
-export type deleteProjectAlertResponse = deleteProjectAlertResponseSuccess;
+export type deleteProjectAlertResponse = (deleteProjectAlertResponseSuccess)
 
-export const getDeleteProjectAlertUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  alertRuleId: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts/${alertRuleId}`;
+export const getDeleteProjectAlertUrl = (orgSlug: string,
+    projectSlug: string,
+    alertRuleId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts/${alertRuleId}`
+}
+
+export const deleteProjectAlert = async (orgSlug: string,
+    projectSlug: string,
+    alertRuleId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteProjectAlertResponse> => {
+
+  return orvalFetch<deleteProjectAlertResponse>(getDeleteProjectAlertUrl(orgSlug,projectSlug,alertRuleId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteProjectAlertMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext> => {
+
+const mutationKey = ['deleteProjectAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProjectAlert>>, {orgSlug: string;projectSlug: string;alertRuleId: string}> = (props) => {
+          const {orgSlug,projectSlug,alertRuleId} = props ?? {};
+
+          return  deleteProjectAlert(orgSlug,projectSlug,alertRuleId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteProjectAlertMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProjectAlert>>>
+
+    export type DeleteProjectAlertMutationError = ErrorType<unknown>
+
+    export const useDeleteProjectAlert = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteProjectAlert>>,
+        TError,
+        {orgSlug: string;projectSlug: string;alertRuleId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteProjectAlertMutationOptions(options), queryClient);
+    }
+
+export type testProjectAlertResponse200 = {
+  data: AlertDeliveryDto
+  status: 200
+}
+
+export type testProjectAlertResponseSuccess = (testProjectAlertResponse200) & {
+  headers: Headers;
 };
+;
 
-export const deleteProjectAlert = async (
-  orgSlug: string,
-  projectSlug: string,
-  alertRuleId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<deleteProjectAlertResponse> => {
-  return orvalFetch<deleteProjectAlertResponse>(
-    getDeleteProjectAlertUrl(orgSlug, projectSlug, alertRuleId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
-};
+export type testProjectAlertResponse = (testProjectAlertResponseSuccess)
 
-export const getDeleteProjectAlertMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteProjectAlert>>,
-    TError,
-    { orgSlug: string; projectSlug: string; alertRuleId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteProjectAlert>>,
-  TError,
-  { orgSlug: string; projectSlug: string; alertRuleId: string },
-  TContext
-> => {
-  const mutationKey = ["deleteProjectAlert"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
+export const getTestProjectAlertUrl = (orgSlug: string,
+    projectSlug: string,
+    alertRuleId: string,) => {
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteProjectAlert>>,
-    { orgSlug: string; projectSlug: string; alertRuleId: string }
-  > = (props) => {
-    const { orgSlug, projectSlug, alertRuleId } = props ?? {};
 
-    return deleteProjectAlert(orgSlug, projectSlug, alertRuleId, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type DeleteProjectAlertMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteProjectAlert>>
->;
+  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts/${alertRuleId}/test`
+}
 
-export type DeleteProjectAlertMutationError = ErrorType<unknown>;
+export const testProjectAlert = async (orgSlug: string,
+    projectSlug: string,
+    alertRuleId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<testProjectAlertResponse> => {
 
-export const useDeleteProjectAlert = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deleteProjectAlert>>,
-      TError,
-      { orgSlug: string; projectSlug: string; alertRuleId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof deleteProjectAlert>>,
-  TError,
-  { orgSlug: string; projectSlug: string; alertRuleId: string },
-  TContext
-> => {
-  return useMutation(getDeleteProjectAlertMutationOptions(options), queryClient);
-};
+  return orvalFetch<testProjectAlertResponse>(getTestProjectAlertUrl(orgSlug,projectSlug,alertRuleId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getTestProjectAlertMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext> => {
+
+const mutationKey = ['testProjectAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testProjectAlert>>, {orgSlug: string;projectSlug: string;alertRuleId: string}> = (props) => {
+          const {orgSlug,projectSlug,alertRuleId} = props ?? {};
+
+          return  testProjectAlert(orgSlug,projectSlug,alertRuleId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestProjectAlertMutationResult = NonNullable<Awaited<ReturnType<typeof testProjectAlert>>>
+
+    export type TestProjectAlertMutationError = ErrorType<unknown>
+
+    export const useTestProjectAlert = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testProjectAlert>>,
+        TError,
+        {orgSlug: string;projectSlug: string;alertRuleId: string},
+        TContext
+      > => {
+      return useMutation(getTestProjectAlertMutationOptions(options), queryClient);
+    }
 
 export type listProjectAlertDeliveriesResponse200 = {
-  data: AlertDeliveryDto[];
-  status: 200;
-};
+  data: AlertDeliveryDto[]
+  status: 200
+}
 
-export type listProjectAlertDeliveriesResponseSuccess = listProjectAlertDeliveriesResponse200 & {
+export type listProjectAlertDeliveriesResponseSuccess = (listProjectAlertDeliveriesResponse200) & {
   headers: Headers;
 };
+;
 
-export type listProjectAlertDeliveriesResponse = listProjectAlertDeliveriesResponseSuccess;
+export type listProjectAlertDeliveriesResponse = (listProjectAlertDeliveriesResponseSuccess)
 
-export const getListProjectAlertDeliveriesUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts/deliveries`;
-};
+export const getListProjectAlertDeliveriesUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const listProjectAlertDeliveries = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listProjectAlertDeliveriesResponse> => {
-  return orvalFetch<listProjectAlertDeliveriesResponse>(
-    getListProjectAlertDeliveriesUrl(orgSlug, projectSlug),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getListProjectAlertDeliveriesQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/alerts/deliveries`] as const;
-};
 
-export const getListProjectAlertDeliveriesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts/deliveries`
+}
+
+export const listProjectAlertDeliveries = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectAlertDeliveriesResponse> => {
+
+  return orvalFetch<listProjectAlertDeliveriesResponse>(getListProjectAlertDeliveriesUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProjectAlertDeliveriesQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/alerts/deliveries`
+    ] as const;
+    }
+
+
+export const getListProjectAlertDeliveriesQueryOptions = <TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListProjectAlertDeliveriesQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectAlertDeliveries>>> = ({
-    signal,
-  }) => listProjectAlertDeliveries(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListProjectAlertDeliveriesQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListProjectAlertDeliveriesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listProjectAlertDeliveries>>
->;
-export type ListProjectAlertDeliveriesQueryError = ErrorType<unknown>;
 
-export function useListProjectAlertDeliveries<
-  TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectAlertDeliveries>>> = ({ signal }) => listProjectAlertDeliveries(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListProjectAlertDeliveriesQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectAlertDeliveries>>>
+export type ListProjectAlertDeliveriesQueryError = ErrorType<unknown>
+
+
+export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectAlertDeliveries>>,
           TError,
           Awaited<ReturnType<typeof listProjectAlertDeliveries>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectAlertDeliveries<
-  TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectAlertDeliveries>>,
           TError,
           Awaited<ReturnType<typeof listProjectAlertDeliveries>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectAlertDeliveries<
-  TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListProjectAlertDeliveries<
-  TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListProjectAlertDeliveriesQueryOptions(orgSlug, projectSlug, options);
+export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListProjectAlertDeliveriesQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type listProjectsResponse200 = {
-  data: ProjectDto[];
-  status: 200;
-};
+  data: ProjectDto[]
+  status: 200
+}
 
-export type listProjectsResponseSuccess = listProjectsResponse200 & {
+export type listProjectsResponseSuccess = (listProjectsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listProjectsResponse = listProjectsResponseSuccess;
+export type listProjectsResponse = (listProjectsResponseSuccess)
 
-export const getListProjectsUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/projects`;
-};
+export const getListProjectsUrl = (orgSlug: string,) => {
 
-export const listProjects = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listProjectsResponse> => {
-  return orvalFetch<listProjectsResponse>(getListProjectsUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects`
+}
+
+export const listProjects = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectsResponse> => {
+
+  return orvalFetch<listProjectsResponse>(getListProjectsUrl(orgSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListProjectsQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/projects`] as const;
-};
 
-export const getListProjectsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listProjects>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListProjectsQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects`
+    ] as const;
+    }
+
+
+export const getListProjectsQueryOptions = <TData = Awaited<ReturnType<typeof listProjects>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListProjectsQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjects>>> = ({ signal }) =>
-    listProjects(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListProjectsQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListProjectsQueryResult = NonNullable<Awaited<ReturnType<typeof listProjects>>>;
-export type ListProjectsQueryError = ErrorType<unknown>;
 
-export function useListProjects<
-  TData = Awaited<ReturnType<typeof listProjects>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjects>>> = ({ signal }) => listProjects(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListProjectsQueryResult = NonNullable<Awaited<ReturnType<typeof listProjects>>>
+export type ListProjectsQueryError = ErrorType<unknown>
+
+
+export function useListProjects<TData = Awaited<ReturnType<typeof listProjects>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjects>>,
           TError,
           Awaited<ReturnType<typeof listProjects>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjects<
-  TData = Awaited<ReturnType<typeof listProjects>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjects<TData = Awaited<ReturnType<typeof listProjects>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjects>>,
           TError,
           Awaited<ReturnType<typeof listProjects>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjects<
-  TData = Awaited<ReturnType<typeof listProjects>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjects<TData = Awaited<ReturnType<typeof listProjects>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListProjects<
-  TData = Awaited<ReturnType<typeof listProjects>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListProjectsQueryOptions(orgSlug, options);
+export function useListProjects<TData = Awaited<ReturnType<typeof listProjects>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjects>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListProjectsQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createProjectResponse200 = {
-  data: ProjectDto;
-  status: 200;
-};
+  data: ProjectDto
+  status: 200
+}
 
-export type createProjectResponseSuccess = createProjectResponse200 & {
+export type createProjectResponseSuccess = (createProjectResponse200) & {
   headers: Headers;
 };
+;
 
-export type createProjectResponse = createProjectResponseSuccess;
+export type createProjectResponse = (createProjectResponseSuccess)
 
-export const getCreateProjectUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/projects`;
-};
+export const getCreateProjectUrl = (orgSlug: string,) => {
 
-export const createProject = async (
-  orgSlug: string,
-  createProjectBodyDto: CreateProjectBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createProjectResponse> => {
-  return orvalFetch<createProjectResponse>(getCreateProjectUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects`
+}
+
+export const createProject = async (orgSlug: string,
+    createProjectBodyDto: CreateProjectBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createProjectResponse> => {
+
+  return orvalFetch<createProjectResponse>(getCreateProjectUrl(orgSlug),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createProjectBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createProjectBodyDto)
+  }
+);}
 
-export const getCreateProjectMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createProject>>,
-    TError,
-    { orgSlug: string; data: BodyType<CreateProjectBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createProject>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateProjectBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createProject"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createProject>>,
-    { orgSlug: string; data: BodyType<CreateProjectBodyDto> }
-  > = (props) => {
-    const { orgSlug, data } = props ?? {};
 
-    return createProject(orgSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type CreateProjectMutationResult = NonNullable<Awaited<ReturnType<typeof createProject>>>;
-export type CreateProjectMutationBody = BodyType<CreateProjectBodyDto>;
-export type CreateProjectMutationError = ErrorType<unknown>;
+export const getCreateProjectMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProject>>, TError,{orgSlug: string;data: BodyType<CreateProjectBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProject>>, TError,{orgSlug: string;data: BodyType<CreateProjectBodyDto>}, TContext> => {
 
-export const useCreateProject = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createProject>>,
-      TError,
-      { orgSlug: string; data: BodyType<CreateProjectBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createProject>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateProjectBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateProjectMutationOptions(options), queryClient);
-};
+const mutationKey = ['createProject'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProject>>, {orgSlug: string;data: BodyType<CreateProjectBodyDto>}> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  createProject(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateProjectMutationResult = NonNullable<Awaited<ReturnType<typeof createProject>>>
+    export type CreateProjectMutationBody = BodyType<CreateProjectBodyDto>
+    export type CreateProjectMutationError = ErrorType<unknown>
+
+    export const useCreateProject = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProject>>, TError,{orgSlug: string;data: BodyType<CreateProjectBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createProject>>,
+        TError,
+        {orgSlug: string;data: BodyType<CreateProjectBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateProjectMutationOptions(options), queryClient);
+    }
 
 export type getProjectResponse200 = {
-  data: ProjectDto;
-  status: 200;
-};
+  data: ProjectDto
+  status: 200
+}
 
-export type getProjectResponseSuccess = getProjectResponse200 & {
+export type getProjectResponseSuccess = (getProjectResponse200) & {
   headers: Headers;
 };
+;
 
-export type getProjectResponse = getProjectResponseSuccess;
+export type getProjectResponse = (getProjectResponseSuccess)
 
-export const getGetProjectUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}`;
-};
+export const getGetProjectUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const getProject = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getProjectResponse> => {
-  return orvalFetch<getProjectResponse>(getGetProjectUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}`
+}
+
+export const getProject = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getProjectResponse> => {
+
+  return orvalFetch<getProjectResponse>(getGetProjectUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetProjectQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}`] as const;
-};
 
-export const getGetProjectQueryOptions = <
-  TData = Awaited<ReturnType<typeof getProject>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetProjectQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}`
+    ] as const;
+    }
+
+
+export const getGetProjectQueryOptions = <TData = Awaited<ReturnType<typeof getProject>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetProjectQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProject>>> = ({ signal }) =>
-    getProject(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetProjectQueryResult = NonNullable<Awaited<ReturnType<typeof getProject>>>;
-export type GetProjectQueryError = ErrorType<unknown>;
 
-export function useGetProject<
-  TData = Awaited<ReturnType<typeof getProject>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProject>>> = ({ signal }) => getProject(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectQueryResult = NonNullable<Awaited<ReturnType<typeof getProject>>>
+export type GetProjectQueryError = ErrorType<unknown>
+
+
+export function useGetProject<TData = Awaited<ReturnType<typeof getProject>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getProject>>,
           TError,
           Awaited<ReturnType<typeof getProject>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetProject<
-  TData = Awaited<ReturnType<typeof getProject>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProject<TData = Awaited<ReturnType<typeof getProject>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getProject>>,
           TError,
           Awaited<ReturnType<typeof getProject>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetProject<
-  TData = Awaited<ReturnType<typeof getProject>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProject<TData = Awaited<ReturnType<typeof getProject>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetProject<
-  TData = Awaited<ReturnType<typeof getProject>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetProjectQueryOptions(orgSlug, projectSlug, options);
+export function useGetProject<TData = Awaited<ReturnType<typeof getProject>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProject>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetProjectQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type updateProjectResponse200 = {
-  data: ProjectDto;
-  status: 200;
-};
+  data: ProjectDto
+  status: 200
+}
 
-export type updateProjectResponseSuccess = updateProjectResponse200 & {
+export type updateProjectResponseSuccess = (updateProjectResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateProjectResponse = updateProjectResponseSuccess;
+export type updateProjectResponse = (updateProjectResponseSuccess)
 
-export const getUpdateProjectUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}`;
-};
+export const getUpdateProjectUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const updateProject = async (
-  orgSlug: string,
-  projectSlug: string,
-  updateProjectBodyDto: UpdateProjectBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateProjectResponse> => {
-  return orvalFetch<updateProjectResponse>(getUpdateProjectUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}`
+}
+
+export const updateProject = async (orgSlug: string,
+    projectSlug: string,
+    updateProjectBodyDto: UpdateProjectBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateProjectResponse> => {
+
+  return orvalFetch<updateProjectResponse>(getUpdateProjectUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateProjectBodyDto),
-  });
-};
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateProjectBodyDto)
+  }
+);}
 
-export const getUpdateProjectMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateProject>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<UpdateProjectBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateProject>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<UpdateProjectBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["updateProject"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateProject>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<UpdateProjectBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return updateProject(orgSlug, projectSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type UpdateProjectMutationResult = NonNullable<Awaited<ReturnType<typeof updateProject>>>;
-export type UpdateProjectMutationBody = BodyType<UpdateProjectBodyDto>;
-export type UpdateProjectMutationError = ErrorType<unknown>;
+export const getUpdateProjectMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProject>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateProject>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>}, TContext> => {
 
-export const useUpdateProject = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateProject>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<UpdateProjectBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateProject>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<UpdateProjectBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpdateProjectMutationOptions(options), queryClient);
-};
+const mutationKey = ['updateProject'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProject>>, {orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  updateProject(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateProjectMutationResult = NonNullable<Awaited<ReturnType<typeof updateProject>>>
+    export type UpdateProjectMutationBody = BodyType<UpdateProjectBodyDto>
+    export type UpdateProjectMutationError = ErrorType<unknown>
+
+    export const useUpdateProject = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProject>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateProject>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateProjectMutationOptions(options), queryClient);
+    }
 
 export type listProjectKeysResponse200 = {
-  data: ProjectKeyDto[];
-  status: 200;
-};
+  data: ProjectKeyDto[]
+  status: 200
+}
 
-export type listProjectKeysResponseSuccess = listProjectKeysResponse200 & {
+export type listProjectKeysResponseSuccess = (listProjectKeysResponse200) & {
   headers: Headers;
 };
+;
 
-export type listProjectKeysResponse = listProjectKeysResponseSuccess;
+export type listProjectKeysResponse = (listProjectKeysResponseSuccess)
 
-export const getListProjectKeysUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/keys`;
-};
+export const getListProjectKeysUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const listProjectKeys = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listProjectKeysResponse> => {
-  return orvalFetch<listProjectKeysResponse>(getListProjectKeysUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/keys`
+}
+
+export const listProjectKeys = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectKeysResponse> => {
+
+  return orvalFetch<listProjectKeysResponse>(getListProjectKeysUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListProjectKeysQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/keys`] as const;
-};
 
-export const getListProjectKeysQueryOptions = <
-  TData = Awaited<ReturnType<typeof listProjectKeys>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListProjectKeysQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/keys`
+    ] as const;
+    }
+
+
+export const getListProjectKeysQueryOptions = <TData = Awaited<ReturnType<typeof listProjectKeys>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListProjectKeysQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectKeys>>> = ({ signal }) =>
-    listProjectKeys(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListProjectKeysQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListProjectKeysQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectKeys>>>;
-export type ListProjectKeysQueryError = ErrorType<unknown>;
 
-export function useListProjectKeys<
-  TData = Awaited<ReturnType<typeof listProjectKeys>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectKeys>>> = ({ signal }) => listProjectKeys(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListProjectKeysQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectKeys>>>
+export type ListProjectKeysQueryError = ErrorType<unknown>
+
+
+export function useListProjectKeys<TData = Awaited<ReturnType<typeof listProjectKeys>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectKeys>>,
           TError,
           Awaited<ReturnType<typeof listProjectKeys>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectKeys<
-  TData = Awaited<ReturnType<typeof listProjectKeys>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectKeys<TData = Awaited<ReturnType<typeof listProjectKeys>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectKeys>>,
           TError,
           Awaited<ReturnType<typeof listProjectKeys>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectKeys<
-  TData = Awaited<ReturnType<typeof listProjectKeys>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectKeys<TData = Awaited<ReturnType<typeof listProjectKeys>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListProjectKeys<
-  TData = Awaited<ReturnType<typeof listProjectKeys>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListProjectKeysQueryOptions(orgSlug, projectSlug, options);
+export function useListProjectKeys<TData = Awaited<ReturnType<typeof listProjectKeys>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectKeys>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListProjectKeysQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createProjectKeyResponse200 = {
-  data: ProjectKeyDto;
-  status: 200;
-};
+  data: ProjectKeyDto
+  status: 200
+}
 
-export type createProjectKeyResponseSuccess = createProjectKeyResponse200 & {
+export type createProjectKeyResponseSuccess = (createProjectKeyResponse200) & {
   headers: Headers;
 };
+;
 
-export type createProjectKeyResponse = createProjectKeyResponseSuccess;
+export type createProjectKeyResponse = (createProjectKeyResponseSuccess)
 
-export const getCreateProjectKeyUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/keys`;
-};
+export const getCreateProjectKeyUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const createProjectKey = async (
-  orgSlug: string,
-  projectSlug: string,
-  createProjectKeyBodyDto: CreateProjectKeyBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createProjectKeyResponse> => {
-  return orvalFetch<createProjectKeyResponse>(getCreateProjectKeyUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/keys`
+}
+
+export const createProjectKey = async (orgSlug: string,
+    projectSlug: string,
+    createProjectKeyBodyDto: CreateProjectKeyBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createProjectKeyResponse> => {
+
+  return orvalFetch<createProjectKeyResponse>(getCreateProjectKeyUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createProjectKeyBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createProjectKeyBodyDto)
+  }
+);}
 
-export const getCreateProjectKeyMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createProjectKey>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectKeyBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createProjectKey>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectKeyBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createProjectKey"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createProjectKey>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectKeyBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return createProjectKey(orgSlug, projectSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type CreateProjectKeyMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createProjectKey>>
->;
-export type CreateProjectKeyMutationBody = BodyType<CreateProjectKeyBodyDto>;
-export type CreateProjectKeyMutationError = ErrorType<unknown>;
+export const getCreateProjectKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectKey>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProjectKey>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>}, TContext> => {
 
-export const useCreateProjectKey = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createProjectKey>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectKeyBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createProjectKey>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectKeyBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateProjectKeyMutationOptions(options), queryClient);
-};
+const mutationKey = ['createProjectKey'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectKey>>, {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  createProjectKey(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateProjectKeyMutationResult = NonNullable<Awaited<ReturnType<typeof createProjectKey>>>
+    export type CreateProjectKeyMutationBody = BodyType<CreateProjectKeyBodyDto>
+    export type CreateProjectKeyMutationError = ErrorType<unknown>
+
+    export const useCreateProjectKey = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectKey>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createProjectKey>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateProjectKeyMutationOptions(options), queryClient);
+    }
 
 export type listProjectSavedSearchesResponse200 = {
-  data: ProjectSavedSearchDto[];
-  status: 200;
-};
+  data: ProjectSavedSearchDto[]
+  status: 200
+}
 
-export type listProjectSavedSearchesResponseSuccess = listProjectSavedSearchesResponse200 & {
+export type listProjectSavedSearchesResponseSuccess = (listProjectSavedSearchesResponse200) & {
   headers: Headers;
 };
+;
 
-export type listProjectSavedSearchesResponse = listProjectSavedSearchesResponseSuccess;
+export type listProjectSavedSearchesResponse = (listProjectSavedSearchesResponseSuccess)
 
-export const getListProjectSavedSearchesUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/saved-searches`;
-};
+export const getListProjectSavedSearchesUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const listProjectSavedSearches = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listProjectSavedSearchesResponse> => {
-  return orvalFetch<listProjectSavedSearchesResponse>(
-    getListProjectSavedSearchesUrl(orgSlug, projectSlug),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getListProjectSavedSearchesQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/saved-searches`] as const;
-};
 
-export const getListProjectSavedSearchesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listProjectSavedSearches>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/saved-searches`
+}
+
+export const listProjectSavedSearches = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectSavedSearchesResponse> => {
+
+  return orvalFetch<listProjectSavedSearchesResponse>(getListProjectSavedSearchesUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProjectSavedSearchesQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/saved-searches`
+    ] as const;
+    }
+
+
+export const getListProjectSavedSearchesQueryOptions = <TData = Awaited<ReturnType<typeof listProjectSavedSearches>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListProjectSavedSearchesQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectSavedSearches>>> = ({
-    signal,
-  }) => listProjectSavedSearches(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListProjectSavedSearchesQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListProjectSavedSearchesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listProjectSavedSearches>>
->;
-export type ListProjectSavedSearchesQueryError = ErrorType<unknown>;
 
-export function useListProjectSavedSearches<
-  TData = Awaited<ReturnType<typeof listProjectSavedSearches>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectSavedSearches>>> = ({ signal }) => listProjectSavedSearches(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListProjectSavedSearchesQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectSavedSearches>>>
+export type ListProjectSavedSearchesQueryError = ErrorType<unknown>
+
+
+export function useListProjectSavedSearches<TData = Awaited<ReturnType<typeof listProjectSavedSearches>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectSavedSearches>>,
           TError,
           Awaited<ReturnType<typeof listProjectSavedSearches>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectSavedSearches<
-  TData = Awaited<ReturnType<typeof listProjectSavedSearches>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectSavedSearches<TData = Awaited<ReturnType<typeof listProjectSavedSearches>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectSavedSearches>>,
           TError,
           Awaited<ReturnType<typeof listProjectSavedSearches>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectSavedSearches<
-  TData = Awaited<ReturnType<typeof listProjectSavedSearches>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectSavedSearches<TData = Awaited<ReturnType<typeof listProjectSavedSearches>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListProjectSavedSearches<
-  TData = Awaited<ReturnType<typeof listProjectSavedSearches>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListProjectSavedSearchesQueryOptions(orgSlug, projectSlug, options);
+export function useListProjectSavedSearches<TData = Awaited<ReturnType<typeof listProjectSavedSearches>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectSavedSearches>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListProjectSavedSearchesQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createProjectSavedSearchResponse200 = {
-  data: ProjectSavedSearchDto;
-  status: 200;
-};
+  data: ProjectSavedSearchDto
+  status: 200
+}
 
-export type createProjectSavedSearchResponseSuccess = createProjectSavedSearchResponse200 & {
+export type createProjectSavedSearchResponseSuccess = (createProjectSavedSearchResponse200) & {
   headers: Headers;
 };
+;
 
-export type createProjectSavedSearchResponse = createProjectSavedSearchResponseSuccess;
+export type createProjectSavedSearchResponse = (createProjectSavedSearchResponseSuccess)
 
-export const getCreateProjectSavedSearchUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/saved-searches`;
-};
+export const getCreateProjectSavedSearchUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const createProjectSavedSearch = async (
-  orgSlug: string,
-  projectSlug: string,
-  createProjectSavedSearchBodyDto: CreateProjectSavedSearchBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createProjectSavedSearchResponse> => {
-  return orvalFetch<createProjectSavedSearchResponse>(
-    getCreateProjectSavedSearchUrl(orgSlug, projectSlug),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createProjectSavedSearchBodyDto),
-    },
-  );
-};
 
-export const getCreateProjectSavedSearchMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createProjectSavedSearch>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectSavedSearchBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createProjectSavedSearch>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectSavedSearchBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createProjectSavedSearch"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createProjectSavedSearch>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectSavedSearchBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return createProjectSavedSearch(orgSlug, projectSlug, data, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/saved-searches`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const createProjectSavedSearch = async (orgSlug: string,
+    projectSlug: string,
+    createProjectSavedSearchBodyDto: CreateProjectSavedSearchBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createProjectSavedSearchResponse> => {
 
-export type CreateProjectSavedSearchMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createProjectSavedSearch>>
->;
-export type CreateProjectSavedSearchMutationBody = BodyType<CreateProjectSavedSearchBodyDto>;
-export type CreateProjectSavedSearchMutationError = ErrorType<unknown>;
+  return orvalFetch<createProjectSavedSearchResponse>(getCreateProjectSavedSearchUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createProjectSavedSearchBodyDto)
+  }
+);}
 
-export const useCreateProjectSavedSearch = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createProjectSavedSearch>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectSavedSearchBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createProjectSavedSearch>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<CreateProjectSavedSearchBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateProjectSavedSearchMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getCreateProjectSavedSearchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>}, TContext> => {
+
+const mutationKey = ['createProjectSavedSearch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectSavedSearch>>, {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  createProjectSavedSearch(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateProjectSavedSearchMutationResult = NonNullable<Awaited<ReturnType<typeof createProjectSavedSearch>>>
+    export type CreateProjectSavedSearchMutationBody = BodyType<CreateProjectSavedSearchBodyDto>
+    export type CreateProjectSavedSearchMutationError = ErrorType<unknown>
+
+    export const useCreateProjectSavedSearch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createProjectSavedSearch>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateProjectSavedSearchMutationOptions(options), queryClient);
+    }
 
 export type deleteProjectSavedSearchResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type deleteProjectSavedSearchResponseSuccess = deleteProjectSavedSearchResponse200 & {
+export type deleteProjectSavedSearchResponseSuccess = (deleteProjectSavedSearchResponse200) & {
   headers: Headers;
 };
+;
 
-export type deleteProjectSavedSearchResponse = deleteProjectSavedSearchResponseSuccess;
+export type deleteProjectSavedSearchResponse = (deleteProjectSavedSearchResponseSuccess)
 
-export const getDeleteProjectSavedSearchUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  savedSearchId: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/saved-searches/${savedSearchId}`;
-};
+export const getDeleteProjectSavedSearchUrl = (orgSlug: string,
+    projectSlug: string,
+    savedSearchId: string,) => {
 
-export const deleteProjectSavedSearch = async (
-  orgSlug: string,
-  projectSlug: string,
-  savedSearchId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<deleteProjectSavedSearchResponse> => {
-  return orvalFetch<deleteProjectSavedSearchResponse>(
-    getDeleteProjectSavedSearchUrl(orgSlug, projectSlug, savedSearchId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
-};
 
-export const getDeleteProjectSavedSearchMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteProjectSavedSearch>>,
-    TError,
-    { orgSlug: string; projectSlug: string; savedSearchId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteProjectSavedSearch>>,
-  TError,
-  { orgSlug: string; projectSlug: string; savedSearchId: string },
-  TContext
-> => {
-  const mutationKey = ["deleteProjectSavedSearch"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteProjectSavedSearch>>,
-    { orgSlug: string; projectSlug: string; savedSearchId: string }
-  > = (props) => {
-    const { orgSlug, projectSlug, savedSearchId } = props ?? {};
 
-    return deleteProjectSavedSearch(orgSlug, projectSlug, savedSearchId, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/saved-searches/${savedSearchId}`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const deleteProjectSavedSearch = async (orgSlug: string,
+    projectSlug: string,
+    savedSearchId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteProjectSavedSearchResponse> => {
 
-export type DeleteProjectSavedSearchMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteProjectSavedSearch>>
->;
+  return orvalFetch<deleteProjectSavedSearchResponse>(getDeleteProjectSavedSearchUrl(orgSlug,projectSlug,savedSearchId),
+  {
+    ...options,
+    method: 'DELETE'
 
-export type DeleteProjectSavedSearchMutationError = ErrorType<unknown>;
 
-export const useDeleteProjectSavedSearch = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deleteProjectSavedSearch>>,
-      TError,
-      { orgSlug: string; projectSlug: string; savedSearchId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof deleteProjectSavedSearch>>,
-  TError,
-  { orgSlug: string; projectSlug: string; savedSearchId: string },
-  TContext
-> => {
-  return useMutation(getDeleteProjectSavedSearchMutationOptions(options), queryClient);
-};
+  }
+);}
+
+
+
+
+
+export const getDeleteProjectSavedSearchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;savedSearchId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;savedSearchId: string}, TContext> => {
+
+const mutationKey = ['deleteProjectSavedSearch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, {orgSlug: string;projectSlug: string;savedSearchId: string}> = (props) => {
+          const {orgSlug,projectSlug,savedSearchId} = props ?? {};
+
+          return  deleteProjectSavedSearch(orgSlug,projectSlug,savedSearchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteProjectSavedSearchMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProjectSavedSearch>>>
+
+    export type DeleteProjectSavedSearchMutationError = ErrorType<unknown>
+
+    export const useDeleteProjectSavedSearch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;savedSearchId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteProjectSavedSearch>>,
+        TError,
+        {orgSlug: string;projectSlug: string;savedSearchId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteProjectSavedSearchMutationOptions(options), queryClient);
+    }
 
 export type listProjectEnvironmentsResponse200 = {
-  data: ProjectEnvironmentDto[];
-  status: 200;
-};
+  data: ProjectEnvironmentDto[]
+  status: 200
+}
 
-export type listProjectEnvironmentsResponseSuccess = listProjectEnvironmentsResponse200 & {
+export type listProjectEnvironmentsResponseSuccess = (listProjectEnvironmentsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listProjectEnvironmentsResponse = listProjectEnvironmentsResponseSuccess;
+export type listProjectEnvironmentsResponse = (listProjectEnvironmentsResponseSuccess)
 
-export const getListProjectEnvironmentsUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/environments`;
-};
+export const getListProjectEnvironmentsUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const listProjectEnvironments = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listProjectEnvironmentsResponse> => {
-  return orvalFetch<listProjectEnvironmentsResponse>(
-    getListProjectEnvironmentsUrl(orgSlug, projectSlug),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getListProjectEnvironmentsQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/environments`] as const;
-};
 
-export const getListProjectEnvironmentsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listProjectEnvironments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/environments`
+}
+
+export const listProjectEnvironments = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectEnvironmentsResponse> => {
+
+  return orvalFetch<listProjectEnvironmentsResponse>(getListProjectEnvironmentsUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProjectEnvironmentsQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/environments`
+    ] as const;
+    }
+
+
+export const getListProjectEnvironmentsQueryOptions = <TData = Awaited<ReturnType<typeof listProjectEnvironments>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListProjectEnvironmentsQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectEnvironments>>> = ({
-    signal,
-  }) => listProjectEnvironments(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListProjectEnvironmentsQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListProjectEnvironmentsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listProjectEnvironments>>
->;
-export type ListProjectEnvironmentsQueryError = ErrorType<unknown>;
 
-export function useListProjectEnvironments<
-  TData = Awaited<ReturnType<typeof listProjectEnvironments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectEnvironments>>> = ({ signal }) => listProjectEnvironments(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListProjectEnvironmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectEnvironments>>>
+export type ListProjectEnvironmentsQueryError = ErrorType<unknown>
+
+
+export function useListProjectEnvironments<TData = Awaited<ReturnType<typeof listProjectEnvironments>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectEnvironments>>,
           TError,
           Awaited<ReturnType<typeof listProjectEnvironments>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectEnvironments<
-  TData = Awaited<ReturnType<typeof listProjectEnvironments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectEnvironments<TData = Awaited<ReturnType<typeof listProjectEnvironments>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectEnvironments>>,
           TError,
           Awaited<ReturnType<typeof listProjectEnvironments>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectEnvironments<
-  TData = Awaited<ReturnType<typeof listProjectEnvironments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectEnvironments<TData = Awaited<ReturnType<typeof listProjectEnvironments>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListProjectEnvironments<
-  TData = Awaited<ReturnType<typeof listProjectEnvironments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListProjectEnvironmentsQueryOptions(orgSlug, projectSlug, options);
+export function useListProjectEnvironments<TData = Awaited<ReturnType<typeof listProjectEnvironments>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectEnvironments>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListProjectEnvironmentsQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type listProjectReleasesResponse200 = {
-  data: ProjectReleaseDto[];
-  status: 200;
-};
+  data: ProjectReleaseDto[]
+  status: 200
+}
 
-export type listProjectReleasesResponseSuccess = listProjectReleasesResponse200 & {
+export type listProjectReleasesResponseSuccess = (listProjectReleasesResponse200) & {
   headers: Headers;
 };
+;
 
-export type listProjectReleasesResponse = listProjectReleasesResponseSuccess;
+export type listProjectReleasesResponse = (listProjectReleasesResponseSuccess)
 
-export const getListProjectReleasesUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/releases`;
-};
+export const getListProjectReleasesUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const listProjectReleases = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listProjectReleasesResponse> => {
-  return orvalFetch<listProjectReleasesResponse>(getListProjectReleasesUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/releases`
+}
+
+export const listProjectReleases = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectReleasesResponse> => {
+
+  return orvalFetch<listProjectReleasesResponse>(getListProjectReleasesUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListProjectReleasesQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/releases`] as const;
-};
 
-export const getListProjectReleasesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listProjectReleases>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListProjectReleasesQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/releases`
+    ] as const;
+    }
+
+
+export const getListProjectReleasesQueryOptions = <TData = Awaited<ReturnType<typeof listProjectReleases>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListProjectReleasesQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectReleases>>> = ({ signal }) =>
-    listProjectReleases(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListProjectReleasesQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListProjectReleasesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listProjectReleases>>
->;
-export type ListProjectReleasesQueryError = ErrorType<unknown>;
 
-export function useListProjectReleases<
-  TData = Awaited<ReturnType<typeof listProjectReleases>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectReleases>>> = ({ signal }) => listProjectReleases(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListProjectReleasesQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectReleases>>>
+export type ListProjectReleasesQueryError = ErrorType<unknown>
+
+
+export function useListProjectReleases<TData = Awaited<ReturnType<typeof listProjectReleases>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectReleases>>,
           TError,
           Awaited<ReturnType<typeof listProjectReleases>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectReleases<
-  TData = Awaited<ReturnType<typeof listProjectReleases>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectReleases<TData = Awaited<ReturnType<typeof listProjectReleases>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectReleases>>,
           TError,
           Awaited<ReturnType<typeof listProjectReleases>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectReleases<
-  TData = Awaited<ReturnType<typeof listProjectReleases>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectReleases<TData = Awaited<ReturnType<typeof listProjectReleases>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListProjectReleases<
-  TData = Awaited<ReturnType<typeof listProjectReleases>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListProjectReleasesQueryOptions(orgSlug, projectSlug, options);
+export function useListProjectReleases<TData = Awaited<ReturnType<typeof listProjectReleases>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListProjectReleasesQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getProjectReleaseResponse200 = {
-  data: ProjectReleaseDetailDto;
-  status: 200;
-};
+  data: ProjectReleaseDetailDto
+  status: 200
+}
 
-export type getProjectReleaseResponseSuccess = getProjectReleaseResponse200 & {
+export type getProjectReleaseResponseSuccess = (getProjectReleaseResponse200) & {
   headers: Headers;
 };
+;
 
-export type getProjectReleaseResponse = getProjectReleaseResponseSuccess;
+export type getProjectReleaseResponse = (getProjectReleaseResponseSuccess)
 
-export const getGetProjectReleaseUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
+export const getGetProjectReleaseUrl = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}`
+}
+
+export const getProjectRelease = async (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getProjectReleaseResponse> => {
+
+  return orvalFetch<getProjectReleaseResponse>(getGetProjectReleaseUrl(orgSlug,projectSlug,releaseVersion),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectReleaseQueryKey = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}`
+    ] as const;
+    }
+
+
+export const getGetProjectReleaseQueryOptions = <TData = Awaited<ReturnType<typeof getProjectRelease>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}`;
-};
 
-export const getProjectRelease = async (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getProjectReleaseResponse> => {
-  return orvalFetch<getProjectReleaseResponse>(
-    getGetProjectReleaseUrl(orgSlug, projectSlug, releaseVersion),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-export const getGetProjectReleaseQueryKey = (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}`] as const;
-};
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectReleaseQueryKey(orgSlug,projectSlug,releaseVersion);
 
-export const getGetProjectReleaseQueryOptions = <
-  TData = Awaited<ReturnType<typeof getProjectRelease>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetProjectReleaseQueryKey(orgSlug, projectSlug, releaseVersion);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectRelease>>> = ({ signal }) =>
-    getProjectRelease(orgSlug, projectSlug, releaseVersion, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectRelease>>> = ({ signal }) => getProjectRelease(orgSlug,projectSlug,releaseVersion, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined &&
-      releaseVersion !== null &&
-      releaseVersion !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetProjectReleaseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getProjectRelease>>
->;
-export type GetProjectReleaseQueryError = ErrorType<unknown>;
 
-export function useGetProjectRelease<
-  TData = Awaited<ReturnType<typeof getProjectRelease>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>> &
-      Pick<
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && releaseVersion !== null && releaseVersion !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectReleaseQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectRelease>>>
+export type GetProjectReleaseQueryError = ErrorType<unknown>
+
+
+export function useGetProjectRelease<TData = Awaited<ReturnType<typeof getProjectRelease>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getProjectRelease>>,
           TError,
           Awaited<ReturnType<typeof getProjectRelease>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetProjectRelease<
-  TData = Awaited<ReturnType<typeof getProjectRelease>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectRelease<TData = Awaited<ReturnType<typeof getProjectRelease>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getProjectRelease>>,
           TError,
           Awaited<ReturnType<typeof getProjectRelease>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetProjectRelease<
-  TData = Awaited<ReturnType<typeof getProjectRelease>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectRelease<TData = Awaited<ReturnType<typeof getProjectRelease>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetProjectRelease<
-  TData = Awaited<ReturnType<typeof getProjectRelease>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetProjectReleaseQueryOptions(
-    orgSlug,
-    projectSlug,
-    releaseVersion,
-    options,
-  );
+export function useGetProjectRelease<TData = Awaited<ReturnType<typeof getProjectRelease>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectRelease>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetProjectReleaseQueryOptions(orgSlug,projectSlug,releaseVersion,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type upsertProjectReleaseResponse200 = {
-  data: ProjectReleaseDto;
-  status: 200;
-};
+  data: ProjectReleaseDto
+  status: 200
+}
 
-export type upsertProjectReleaseResponseSuccess = upsertProjectReleaseResponse200 & {
+export type upsertProjectReleaseResponseSuccess = (upsertProjectReleaseResponse200) & {
   headers: Headers;
 };
+;
 
-export type upsertProjectReleaseResponse = upsertProjectReleaseResponseSuccess;
+export type upsertProjectReleaseResponse = (upsertProjectReleaseResponseSuccess)
 
-export const getUpsertProjectReleaseUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}`;
-};
+export const getUpsertProjectReleaseUrl = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,) => {
 
-export const upsertProjectRelease = async (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<upsertProjectReleaseResponse> => {
-  return orvalFetch<upsertProjectReleaseResponse>(
-    getUpsertProjectReleaseUrl(orgSlug, projectSlug, releaseVersion),
-    {
-      ...options,
-      method: "PUT",
-    },
-  );
-};
 
-export const getUpsertProjectReleaseMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof upsertProjectRelease>>,
-    TError,
-    { orgSlug: string; projectSlug: string; releaseVersion: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof upsertProjectRelease>>,
-  TError,
-  { orgSlug: string; projectSlug: string; releaseVersion: string },
-  TContext
-> => {
-  const mutationKey = ["upsertProjectRelease"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof upsertProjectRelease>>,
-    { orgSlug: string; projectSlug: string; releaseVersion: string }
-  > = (props) => {
-    const { orgSlug, projectSlug, releaseVersion } = props ?? {};
 
-    return upsertProjectRelease(orgSlug, projectSlug, releaseVersion, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const upsertProjectRelease = async (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: Parameters<typeof orvalFetch>[1]): Promise<upsertProjectReleaseResponse> => {
 
-export type UpsertProjectReleaseMutationResult = NonNullable<
-  Awaited<ReturnType<typeof upsertProjectRelease>>
->;
+  return orvalFetch<upsertProjectReleaseResponse>(getUpsertProjectReleaseUrl(orgSlug,projectSlug,releaseVersion),
+  {
+    ...options,
+    method: 'PUT'
 
-export type UpsertProjectReleaseMutationError = ErrorType<unknown>;
 
-export const useUpsertProjectRelease = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof upsertProjectRelease>>,
-      TError,
-      { orgSlug: string; projectSlug: string; releaseVersion: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof upsertProjectRelease>>,
-  TError,
-  { orgSlug: string; projectSlug: string; releaseVersion: string },
-  TContext
-> => {
-  return useMutation(getUpsertProjectReleaseMutationOptions(options), queryClient);
-};
+  }
+);}
+
+
+
+
+
+export const getUpsertProjectReleaseMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string}, TContext> => {
+
+const mutationKey = ['upsertProjectRelease'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertProjectRelease>>, {orgSlug: string;projectSlug: string;releaseVersion: string}> = (props) => {
+          const {orgSlug,projectSlug,releaseVersion} = props ?? {};
+
+          return  upsertProjectRelease(orgSlug,projectSlug,releaseVersion,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertProjectReleaseMutationResult = NonNullable<Awaited<ReturnType<typeof upsertProjectRelease>>>
+
+    export type UpsertProjectReleaseMutationError = ErrorType<unknown>
+
+    export const useUpsertProjectRelease = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof upsertProjectRelease>>,
+        TError,
+        {orgSlug: string;projectSlug: string;releaseVersion: string},
+        TContext
+      > => {
+      return useMutation(getUpsertProjectReleaseMutationOptions(options), queryClient);
+    }
 
 export type updateProjectKeyResponse200 = {
-  data: ProjectKeyDto;
-  status: 200;
-};
+  data: ProjectKeyDto
+  status: 200
+}
 
-export type updateProjectKeyResponseSuccess = updateProjectKeyResponse200 & {
+export type updateProjectKeyResponseSuccess = (updateProjectKeyResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateProjectKeyResponse = updateProjectKeyResponseSuccess;
+export type updateProjectKeyResponse = (updateProjectKeyResponseSuccess)
 
-export const getUpdateProjectKeyUrl = (orgSlug: string, projectSlug: string, keyId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/keys/${keyId}`;
-};
+export const getUpdateProjectKeyUrl = (orgSlug: string,
+    projectSlug: string,
+    keyId: string,) => {
 
-export const updateProjectKey = async (
-  orgSlug: string,
-  projectSlug: string,
-  keyId: string,
-  updateProjectKeyBodyDto: UpdateProjectKeyBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateProjectKeyResponse> => {
-  return orvalFetch<updateProjectKeyResponse>(getUpdateProjectKeyUrl(orgSlug, projectSlug, keyId), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/keys/${keyId}`
+}
+
+export const updateProjectKey = async (orgSlug: string,
+    projectSlug: string,
+    keyId: string,
+    updateProjectKeyBodyDto: UpdateProjectKeyBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateProjectKeyResponse> => {
+
+  return orvalFetch<updateProjectKeyResponse>(getUpdateProjectKeyUrl(orgSlug,projectSlug,keyId),
+  {
     ...options,
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateProjectKeyBodyDto),
-  });
-};
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateProjectKeyBodyDto)
+  }
+);}
 
-export const getUpdateProjectKeyMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateProjectKey>>,
-    TError,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      keyId: string;
-      data: BodyType<UpdateProjectKeyBodyDto>;
-    },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateProjectKey>>,
-  TError,
-  { orgSlug: string; projectSlug: string; keyId: string; data: BodyType<UpdateProjectKeyBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["updateProjectKey"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateProjectKey>>,
-    { orgSlug: string; projectSlug: string; keyId: string; data: BodyType<UpdateProjectKeyBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, keyId, data } = props ?? {};
 
-    return updateProjectKey(orgSlug, projectSlug, keyId, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type UpdateProjectKeyMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateProjectKey>>
->;
-export type UpdateProjectKeyMutationBody = BodyType<UpdateProjectKeyBodyDto>;
-export type UpdateProjectKeyMutationError = ErrorType<unknown>;
+export const getUpdateProjectKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>}, TContext> => {
 
-export const useUpdateProjectKey = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateProjectKey>>,
-      TError,
-      {
-        orgSlug: string;
-        projectSlug: string;
-        keyId: string;
-        data: BodyType<UpdateProjectKeyBodyDto>;
-      },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateProjectKey>>,
-  TError,
-  { orgSlug: string; projectSlug: string; keyId: string; data: BodyType<UpdateProjectKeyBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpdateProjectKeyMutationOptions(options), queryClient);
-};
+const mutationKey = ['updateProjectKey'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProjectKey>>, {orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,keyId,data} = props ?? {};
+
+          return  updateProjectKey(orgSlug,projectSlug,keyId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateProjectKeyMutationResult = NonNullable<Awaited<ReturnType<typeof updateProjectKey>>>
+    export type UpdateProjectKeyMutationBody = BodyType<UpdateProjectKeyBodyDto>
+    export type UpdateProjectKeyMutationError = ErrorType<unknown>
+
+    export const useUpdateProjectKey = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateProjectKey>>,
+        TError,
+        {orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateProjectKeyMutationOptions(options), queryClient);
+    }
 
 export type rotateProjectKeyResponse200 = {
-  data: ProjectKeyDto;
-  status: 200;
-};
+  data: ProjectKeyDto
+  status: 200
+}
 
-export type rotateProjectKeyResponseSuccess = rotateProjectKeyResponse200 & {
+export type rotateProjectKeyResponseSuccess = (rotateProjectKeyResponse200) & {
   headers: Headers;
 };
+;
 
-export type rotateProjectKeyResponse = rotateProjectKeyResponseSuccess;
+export type rotateProjectKeyResponse = (rotateProjectKeyResponseSuccess)
 
-export const getRotateProjectKeyUrl = (orgSlug: string, projectSlug: string, keyId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/keys/${keyId}/rotate`;
-};
+export const getRotateProjectKeyUrl = (orgSlug: string,
+    projectSlug: string,
+    keyId: string,) => {
 
-export const rotateProjectKey = async (
-  orgSlug: string,
-  projectSlug: string,
-  keyId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<rotateProjectKeyResponse> => {
-  return orvalFetch<rotateProjectKeyResponse>(getRotateProjectKeyUrl(orgSlug, projectSlug, keyId), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/keys/${keyId}/rotate`
+}
+
+export const rotateProjectKey = async (orgSlug: string,
+    projectSlug: string,
+    keyId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<rotateProjectKeyResponse> => {
+
+  return orvalFetch<rotateProjectKeyResponse>(getRotateProjectKeyUrl(orgSlug,projectSlug,keyId),
+  {
     ...options,
-    method: "POST",
-  });
-};
+    method: 'POST'
 
-export const getRotateProjectKeyMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rotateProjectKey>>,
-    TError,
-    { orgSlug: string; projectSlug: string; keyId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rotateProjectKey>>,
-  TError,
-  { orgSlug: string; projectSlug: string; keyId: string },
-  TContext
-> => {
-  const mutationKey = ["rotateProjectKey"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rotateProjectKey>>,
-    { orgSlug: string; projectSlug: string; keyId: string }
-  > = (props) => {
-    const { orgSlug, projectSlug, keyId } = props ?? {};
+  }
+);}
 
-    return rotateProjectKey(orgSlug, projectSlug, keyId, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type RotateProjectKeyMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rotateProjectKey>>
->;
 
-export type RotateProjectKeyMutationError = ErrorType<unknown>;
 
-export const useRotateProjectKey = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rotateProjectKey>>,
-      TError,
-      { orgSlug: string; projectSlug: string; keyId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rotateProjectKey>>,
-  TError,
-  { orgSlug: string; projectSlug: string; keyId: string },
-  TContext
-> => {
-  return useMutation(getRotateProjectKeyMutationOptions(options), queryClient);
-};
+export const getRotateProjectKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rotateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string}, TContext> => {
+
+const mutationKey = ['rotateProjectKey'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rotateProjectKey>>, {orgSlug: string;projectSlug: string;keyId: string}> = (props) => {
+          const {orgSlug,projectSlug,keyId} = props ?? {};
+
+          return  rotateProjectKey(orgSlug,projectSlug,keyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RotateProjectKeyMutationResult = NonNullable<Awaited<ReturnType<typeof rotateProjectKey>>>
+
+    export type RotateProjectKeyMutationError = ErrorType<unknown>
+
+    export const useRotateProjectKey = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rotateProjectKey>>,
+        TError,
+        {orgSlug: string;projectSlug: string;keyId: string},
+        TContext
+      > => {
+      return useMutation(getRotateProjectKeyMutationOptions(options), queryClient);
+    }
 
 export type listProjectAuditResponse200 = {
-  data: AuditLogDto[];
-  status: 200;
-};
+  data: AuditLogDto[]
+  status: 200
+}
 
-export type listProjectAuditResponseSuccess = listProjectAuditResponse200 & {
+export type listProjectAuditResponseSuccess = (listProjectAuditResponse200) & {
   headers: Headers;
 };
+;
 
-export type listProjectAuditResponse = listProjectAuditResponseSuccess;
+export type listProjectAuditResponse = (listProjectAuditResponseSuccess)
 
-export const getListProjectAuditUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/audit`;
-};
+export const getListProjectAuditUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const listProjectAudit = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listProjectAuditResponse> => {
-  return orvalFetch<listProjectAuditResponse>(getListProjectAuditUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/audit`
+}
+
+export const listProjectAudit = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectAuditResponse> => {
+
+  return orvalFetch<listProjectAuditResponse>(getListProjectAuditUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListProjectAuditQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/audit`] as const;
-};
 
-export const getListProjectAuditQueryOptions = <
-  TData = Awaited<ReturnType<typeof listProjectAudit>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListProjectAuditQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/audit`
+    ] as const;
+    }
+
+
+export const getListProjectAuditQueryOptions = <TData = Awaited<ReturnType<typeof listProjectAudit>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListProjectAuditQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectAudit>>> = ({ signal }) =>
-    listProjectAudit(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListProjectAuditQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListProjectAuditQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectAudit>>>;
-export type ListProjectAuditQueryError = ErrorType<unknown>;
 
-export function useListProjectAudit<
-  TData = Awaited<ReturnType<typeof listProjectAudit>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectAudit>>> = ({ signal }) => listProjectAudit(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListProjectAuditQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectAudit>>>
+export type ListProjectAuditQueryError = ErrorType<unknown>
+
+
+export function useListProjectAudit<TData = Awaited<ReturnType<typeof listProjectAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectAudit>>,
           TError,
           Awaited<ReturnType<typeof listProjectAudit>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectAudit<
-  TData = Awaited<ReturnType<typeof listProjectAudit>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectAudit<TData = Awaited<ReturnType<typeof listProjectAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectAudit>>,
           TError,
           Awaited<ReturnType<typeof listProjectAudit>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListProjectAudit<
-  TData = Awaited<ReturnType<typeof listProjectAudit>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectAudit<TData = Awaited<ReturnType<typeof listProjectAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListProjectAudit<
-  TData = Awaited<ReturnType<typeof listProjectAudit>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListProjectAuditQueryOptions(orgSlug, projectSlug, options);
+export function useListProjectAudit<TData = Awaited<ReturnType<typeof listProjectAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListProjectAuditQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type instanceAdminControllerGetResponse200 = {
-  data: void;
-  status: 200;
-};
+  data: void
+  status: 200
+}
 
-export type instanceAdminControllerGetResponseSuccess = instanceAdminControllerGetResponse200 & {
+export type instanceAdminControllerGetResponseSuccess = (instanceAdminControllerGetResponse200) & {
   headers: Headers;
 };
+;
 
-export type instanceAdminControllerGetResponse = instanceAdminControllerGetResponseSuccess;
+export type instanceAdminControllerGetResponse = (instanceAdminControllerGetResponseSuccess)
 
 export const getInstanceAdminControllerGetUrl = () => {
-  return `/instance-admin/settings`;
-};
 
-export const instanceAdminControllerGet = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<instanceAdminControllerGetResponse> => {
-  return orvalFetch<instanceAdminControllerGetResponse>(getInstanceAdminControllerGetUrl(), {
+
+
+
+  return `/instance-admin/settings`
+}
+
+export const instanceAdminControllerGet = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerGetResponse> => {
+
+  return orvalFetch<instanceAdminControllerGetResponse>(getInstanceAdminControllerGetUrl(),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getInstanceAdminControllerGetQueryKey = () => {
-  return [`/instance-admin/settings`] as const;
-};
+    return [
+    `/instance-admin/settings`
+    ] as const;
+    }
 
-export const getInstanceAdminControllerGetQueryOptions = <
-  TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getInstanceAdminControllerGetQueryKey();
+export const getInstanceAdminControllerGetQueryOptions = <TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof instanceAdminControllerGet>>> = ({
-    signal,
-  }) => instanceAdminControllerGet({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof instanceAdminControllerGet>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getInstanceAdminControllerGetQueryKey();
 
-export type InstanceAdminControllerGetQueryResult = NonNullable<
-  Awaited<ReturnType<typeof instanceAdminControllerGet>>
->;
-export type InstanceAdminControllerGetQueryError = ErrorType<unknown>;
 
-export function useInstanceAdminControllerGet<
-  TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>,
-  TError = ErrorType<unknown>,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>
-    > &
-      Pick<
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof instanceAdminControllerGet>>> = ({ signal }) => instanceAdminControllerGet({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InstanceAdminControllerGetQueryResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerGet>>>
+export type InstanceAdminControllerGetQueryError = ErrorType<unknown>
+
+
+export function useInstanceAdminControllerGet<TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof instanceAdminControllerGet>>,
           TError,
           Awaited<ReturnType<typeof instanceAdminControllerGet>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useInstanceAdminControllerGet<
-  TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerGet<TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof instanceAdminControllerGet>>,
           TError,
           Awaited<ReturnType<typeof instanceAdminControllerGet>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useInstanceAdminControllerGet<
-  TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerGet<TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useInstanceAdminControllerGet<
-  TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getInstanceAdminControllerGetQueryOptions(options);
+export function useInstanceAdminControllerGet<TData = Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerGet>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getInstanceAdminControllerGetQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type instanceAdminControllerUpdateResponse200 = {
-  data: void;
-  status: 200;
+  data: void
+  status: 200
+}
+
+export type instanceAdminControllerUpdateResponseSuccess = (instanceAdminControllerUpdateResponse200) & {
+  headers: Headers;
 };
+;
 
-export type instanceAdminControllerUpdateResponseSuccess =
-  instanceAdminControllerUpdateResponse200 & {
-    headers: Headers;
-  };
-
-export type instanceAdminControllerUpdateResponse = instanceAdminControllerUpdateResponseSuccess;
+export type instanceAdminControllerUpdateResponse = (instanceAdminControllerUpdateResponseSuccess)
 
 export const getInstanceAdminControllerUpdateUrl = () => {
-  return `/instance-admin/settings`;
-};
 
-export const instanceAdminControllerUpdate = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<instanceAdminControllerUpdateResponse> => {
-  return orvalFetch<instanceAdminControllerUpdateResponse>(getInstanceAdminControllerUpdateUrl(), {
+
+
+
+  return `/instance-admin/settings`
+}
+
+export const instanceAdminControllerUpdate = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerUpdateResponse> => {
+
+  return orvalFetch<instanceAdminControllerUpdateResponse>(getInstanceAdminControllerUpdateUrl(),
+  {
     ...options,
-    method: "PATCH",
-  });
-};
+    method: 'PATCH'
 
-export const getInstanceAdminControllerUpdateMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof instanceAdminControllerUpdate>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof instanceAdminControllerUpdate>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = ["instanceAdminControllerUpdate"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof instanceAdminControllerUpdate>>,
-    void
-  > = () => {
-    return instanceAdminControllerUpdate(requestOptions);
-  };
+  }
+);}
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type InstanceAdminControllerUpdateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof instanceAdminControllerUpdate>>
->;
 
-export type InstanceAdminControllerUpdateMutationError = ErrorType<unknown>;
 
-export const useInstanceAdminControllerUpdate = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof instanceAdminControllerUpdate>>,
-      TError,
-      void,
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof instanceAdminControllerUpdate>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(getInstanceAdminControllerUpdateMutationOptions(options), queryClient);
-};
+
+export const getInstanceAdminControllerUpdateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdate>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdate>>, TError,void, TContext> => {
+
+const mutationKey = ['instanceAdminControllerUpdate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof instanceAdminControllerUpdate>>, void> = () => {
+
+
+          return  instanceAdminControllerUpdate(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InstanceAdminControllerUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerUpdate>>>
+
+    export type InstanceAdminControllerUpdateMutationError = ErrorType<unknown>
+
+    export const useInstanceAdminControllerUpdate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdate>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof instanceAdminControllerUpdate>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getInstanceAdminControllerUpdateMutationOptions(options), queryClient);
+    }
 
 export type instanceAdminControllerUsersResponse200 = {
-  data: void;
-  status: 200;
+  data: void
+  status: 200
+}
+
+export type instanceAdminControllerUsersResponseSuccess = (instanceAdminControllerUsersResponse200) & {
+  headers: Headers;
 };
+;
 
-export type instanceAdminControllerUsersResponseSuccess =
-  instanceAdminControllerUsersResponse200 & {
-    headers: Headers;
-  };
+export type instanceAdminControllerUsersResponse = (instanceAdminControllerUsersResponseSuccess)
 
-export type instanceAdminControllerUsersResponse = instanceAdminControllerUsersResponseSuccess;
-
-export const getInstanceAdminControllerUsersUrl = (params: InstanceAdminControllerUsersParams) => {
+export const getInstanceAdminControllerUsersUrl = (params: InstanceAdminControllerUsersParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : String(value));
+      normalizedParams.append(key, value === null ? 'null' : String(value))
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/instance-admin/users?${stringifiedParams}`
-    : `/instance-admin/users`;
-};
+  return stringifiedParams.length > 0 ? `/instance-admin/users?${stringifiedParams}` : `/instance-admin/users`
+}
 
-export const instanceAdminControllerUsers = async (
-  params: InstanceAdminControllerUsersParams,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<instanceAdminControllerUsersResponse> => {
-  return orvalFetch<instanceAdminControllerUsersResponse>(
-    getInstanceAdminControllerUsersUrl(params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+export const instanceAdminControllerUsers = async (params: InstanceAdminControllerUsersParams, options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerUsersResponse> => {
 
-export const getInstanceAdminControllerUsersQueryKey = (
-  params?: InstanceAdminControllerUsersParams,
+  return orvalFetch<instanceAdminControllerUsersResponse>(getInstanceAdminControllerUsersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getInstanceAdminControllerUsersQueryKey = (params?: InstanceAdminControllerUsersParams,) => {
+    return [
+    `/instance-admin/users`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getInstanceAdminControllerUsersQueryOptions = <TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError = ErrorType<unknown>>(params: InstanceAdminControllerUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return [`/instance-admin/users`, ...(params ? [params] : [])] as const;
-};
 
-export const getInstanceAdminControllerUsersQueryOptions = <
-  TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>,
-  TError = ErrorType<unknown>,
->(
-  params: InstanceAdminControllerUsersParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getInstanceAdminControllerUsersQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getInstanceAdminControllerUsersQueryKey(params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof instanceAdminControllerUsers>>> = ({
-    signal,
-  }) => instanceAdminControllerUsers(params, { signal, ...requestOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof instanceAdminControllerUsers>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type InstanceAdminControllerUsersQueryResult = NonNullable<
-  Awaited<ReturnType<typeof instanceAdminControllerUsers>>
->;
-export type InstanceAdminControllerUsersQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof instanceAdminControllerUsers>>> = ({ signal }) => instanceAdminControllerUsers(params, { signal, ...requestOptions });
 
-export function useInstanceAdminControllerUsers<
-  TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>,
-  TError = ErrorType<unknown>,
->(
-  params: InstanceAdminControllerUsersParams,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>
-    > &
-      Pick<
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InstanceAdminControllerUsersQueryResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerUsers>>>
+export type InstanceAdminControllerUsersQueryError = ErrorType<unknown>
+
+
+export function useInstanceAdminControllerUsers<TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError = ErrorType<unknown>>(
+ params: InstanceAdminControllerUsersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof instanceAdminControllerUsers>>,
           TError,
           Awaited<ReturnType<typeof instanceAdminControllerUsers>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useInstanceAdminControllerUsers<
-  TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>,
-  TError = ErrorType<unknown>,
->(
-  params: InstanceAdminControllerUsersParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerUsers<TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError = ErrorType<unknown>>(
+ params: InstanceAdminControllerUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof instanceAdminControllerUsers>>,
           TError,
           Awaited<ReturnType<typeof instanceAdminControllerUsers>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useInstanceAdminControllerUsers<
-  TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>,
-  TError = ErrorType<unknown>,
->(
-  params: InstanceAdminControllerUsersParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerUsers<TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError = ErrorType<unknown>>(
+ params: InstanceAdminControllerUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useInstanceAdminControllerUsers<
-  TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>,
-  TError = ErrorType<unknown>,
->(
-  params: InstanceAdminControllerUsersParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getInstanceAdminControllerUsersQueryOptions(params, options);
+export function useInstanceAdminControllerUsers<TData = Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError = ErrorType<unknown>>(
+ params: InstanceAdminControllerUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUsers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getInstanceAdminControllerUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type instanceAdminControllerUpdateUserResponse200 = {
-  data: void;
-  status: 200;
+  data: void
+  status: 200
+}
+
+export type instanceAdminControllerUpdateUserResponseSuccess = (instanceAdminControllerUpdateUserResponse200) & {
+  headers: Headers;
 };
+;
 
-export type instanceAdminControllerUpdateUserResponseSuccess =
-  instanceAdminControllerUpdateUserResponse200 & {
-    headers: Headers;
-  };
+export type instanceAdminControllerUpdateUserResponse = (instanceAdminControllerUpdateUserResponseSuccess)
 
-export type instanceAdminControllerUpdateUserResponse =
-  instanceAdminControllerUpdateUserResponseSuccess;
+export const getInstanceAdminControllerUpdateUserUrl = (userId: string,) => {
 
-export const getInstanceAdminControllerUpdateUserUrl = (userId: string) => {
-  return `/instance-admin/users/${userId}`;
-};
 
-export const instanceAdminControllerUpdateUser = async (
-  userId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<instanceAdminControllerUpdateUserResponse> => {
-  return orvalFetch<instanceAdminControllerUpdateUserResponse>(
-    getInstanceAdminControllerUpdateUserUrl(userId),
-    {
-      ...options,
-      method: "PATCH",
-    },
-  );
-};
 
-export const getInstanceAdminControllerUpdateUserMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>,
-    TError,
-    { userId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>,
-  TError,
-  { userId: string },
-  TContext
-> => {
-  const mutationKey = ["instanceAdminControllerUpdateUser"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>,
-    { userId: string }
-  > = (props) => {
-    const { userId } = props ?? {};
+  return `/instance-admin/users/${userId}`
+}
 
-    return instanceAdminControllerUpdateUser(userId, requestOptions);
-  };
+export const instanceAdminControllerUpdateUser = async (userId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerUpdateUserResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<instanceAdminControllerUpdateUserResponse>(getInstanceAdminControllerUpdateUserUrl(userId),
+  {
+    ...options,
+    method: 'PATCH'
 
-export type InstanceAdminControllerUpdateUserMutationResult = NonNullable<
-  Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>
->;
 
-export type InstanceAdminControllerUpdateUserMutationError = ErrorType<unknown>;
+  }
+);}
 
-export const useInstanceAdminControllerUpdateUser = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>,
-      TError,
-      { userId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>,
-  TError,
-  { userId: string },
-  TContext
-> => {
-  return useMutation(getInstanceAdminControllerUpdateUserMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getInstanceAdminControllerUpdateUserMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['instanceAdminControllerUpdateUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  instanceAdminControllerUpdateUser(userId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InstanceAdminControllerUpdateUserMutationResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>>
+
+    export type InstanceAdminControllerUpdateUserMutationError = ErrorType<unknown>
+
+    export const useInstanceAdminControllerUpdateUser = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+      return useMutation(getInstanceAdminControllerUpdateUserMutationOptions(options), queryClient);
+    }
 
 export type uploadReleaseArtifactResponse200 = {
-  data: ReleaseArtifactDto;
-  status: 200;
-};
+  data: ReleaseArtifactDto
+  status: 200
+}
 
-export type uploadReleaseArtifactResponseSuccess = uploadReleaseArtifactResponse200 & {
+export type uploadReleaseArtifactResponseSuccess = (uploadReleaseArtifactResponse200) & {
   headers: Headers;
 };
+;
 
-export type uploadReleaseArtifactResponse = uploadReleaseArtifactResponseSuccess;
+export type uploadReleaseArtifactResponse = (uploadReleaseArtifactResponseSuccess)
 
-export const getUploadReleaseArtifactUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts`;
-};
+export const getUploadReleaseArtifactUrl = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,) => {
 
-export const uploadReleaseArtifact = async (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  uploadReleaseArtifactBody: UploadReleaseArtifactBody,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<uploadReleaseArtifactResponse> => {
-  const formData = new FormData();
-  if (uploadReleaseArtifactBody.file !== undefined) {
-    formData.append(`file`, uploadReleaseArtifactBody.file);
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts`
+}
+
+export const uploadReleaseArtifact = async (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    uploadReleaseArtifactBody: UploadReleaseArtifactBody, options?: Parameters<typeof orvalFetch>[1]): Promise<uploadReleaseArtifactResponse> => {
+    const formData = new FormData();
+if(uploadReleaseArtifactBody.file !== undefined) {
+ formData.append(`file`, uploadReleaseArtifactBody.file);
+ }
+
+  return orvalFetch<uploadReleaseArtifactResponse>(getUploadReleaseArtifactUrl(orgSlug,projectSlug,releaseVersion),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
   }
+);}
 
-  return orvalFetch<uploadReleaseArtifactResponse>(
-    getUploadReleaseArtifactUrl(orgSlug, projectSlug, releaseVersion),
-    {
-      ...options,
-      method: "POST",
-      body: formData,
-    },
-  );
-};
 
-export const getUploadReleaseArtifactMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof uploadReleaseArtifact>>,
-    TError,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      releaseVersion: string;
-      data: BodyType<UploadReleaseArtifactBody>;
-    },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof uploadReleaseArtifact>>,
-  TError,
-  {
-    orgSlug: string;
-    projectSlug: string;
-    releaseVersion: string;
-    data: BodyType<UploadReleaseArtifactBody>;
-  },
-  TContext
-> => {
-  const mutationKey = ["uploadReleaseArtifact"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof uploadReleaseArtifact>>,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      releaseVersion: string;
-      data: BodyType<UploadReleaseArtifactBody>;
+
+
+export const getUploadReleaseArtifactMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>}, TContext> => {
+
+const mutationKey = ['uploadReleaseArtifact'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadReleaseArtifact>>, {orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>}> = (props) => {
+          const {orgSlug,projectSlug,releaseVersion,data} = props ?? {};
+
+          return  uploadReleaseArtifact(orgSlug,projectSlug,releaseVersion,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadReleaseArtifactMutationResult = NonNullable<Awaited<ReturnType<typeof uploadReleaseArtifact>>>
+    export type UploadReleaseArtifactMutationBody = BodyType<UploadReleaseArtifactBody>
+    export type UploadReleaseArtifactMutationError = ErrorType<unknown>
+
+    export const useUploadReleaseArtifact = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof uploadReleaseArtifact>>,
+        TError,
+        {orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>},
+        TContext
+      > => {
+      return useMutation(getUploadReleaseArtifactMutationOptions(options), queryClient);
     }
-  > = (props) => {
-    const { orgSlug, projectSlug, releaseVersion, data } = props ?? {};
-
-    return uploadReleaseArtifact(orgSlug, projectSlug, releaseVersion, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UploadReleaseArtifactMutationResult = NonNullable<
-  Awaited<ReturnType<typeof uploadReleaseArtifact>>
->;
-export type UploadReleaseArtifactMutationBody = BodyType<UploadReleaseArtifactBody>;
-export type UploadReleaseArtifactMutationError = ErrorType<unknown>;
-
-export const useUploadReleaseArtifact = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof uploadReleaseArtifact>>,
-      TError,
-      {
-        orgSlug: string;
-        projectSlug: string;
-        releaseVersion: string;
-        data: BodyType<UploadReleaseArtifactBody>;
-      },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof uploadReleaseArtifact>>,
-  TError,
-  {
-    orgSlug: string;
-    projectSlug: string;
-    releaseVersion: string;
-    data: BodyType<UploadReleaseArtifactBody>;
-  },
-  TContext
-> => {
-  return useMutation(getUploadReleaseArtifactMutationOptions(options), queryClient);
-};
 
 export type listReleaseArtifactsResponse200 = {
-  data: ReleaseArtifactDto[];
-  status: 200;
-};
+  data: ReleaseArtifactDto[]
+  status: 200
+}
 
-export type listReleaseArtifactsResponseSuccess = listReleaseArtifactsResponse200 & {
+export type listReleaseArtifactsResponseSuccess = (listReleaseArtifactsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listReleaseArtifactsResponse = listReleaseArtifactsResponseSuccess;
+export type listReleaseArtifactsResponse = (listReleaseArtifactsResponseSuccess)
 
-export const getListReleaseArtifactsUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
+export const getListReleaseArtifactsUrl = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts`
+}
+
+export const listReleaseArtifacts = async (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listReleaseArtifactsResponse> => {
+
+  return orvalFetch<listReleaseArtifactsResponse>(getListReleaseArtifactsUrl(orgSlug,projectSlug,releaseVersion),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListReleaseArtifactsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts`
+    ] as const;
+    }
+
+
+export const getListReleaseArtifactsQueryOptions = <TData = Awaited<ReturnType<typeof listReleaseArtifacts>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts`;
-};
 
-export const listReleaseArtifacts = async (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listReleaseArtifactsResponse> => {
-  return orvalFetch<listReleaseArtifactsResponse>(
-    getListReleaseArtifactsUrl(orgSlug, projectSlug, releaseVersion),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-export const getListReleaseArtifactsQueryKey = (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-) => {
-  return [
-    `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts`,
-  ] as const;
-};
+  const queryKey =  queryOptions?.queryKey ?? getListReleaseArtifactsQueryKey(orgSlug,projectSlug,releaseVersion);
 
-export const getListReleaseArtifactsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listReleaseArtifacts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListReleaseArtifactsQueryKey(orgSlug, projectSlug, releaseVersion);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listReleaseArtifacts>>> = ({ signal }) =>
-    listReleaseArtifacts(orgSlug, projectSlug, releaseVersion, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listReleaseArtifacts>>> = ({ signal }) => listReleaseArtifacts(orgSlug,projectSlug,releaseVersion, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined &&
-      releaseVersion !== null &&
-      releaseVersion !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListReleaseArtifactsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listReleaseArtifacts>>
->;
-export type ListReleaseArtifactsQueryError = ErrorType<unknown>;
 
-export function useListReleaseArtifacts<
-  TData = Awaited<ReturnType<typeof listReleaseArtifacts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>
-    > &
-      Pick<
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && releaseVersion !== null && releaseVersion !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListReleaseArtifactsQueryResult = NonNullable<Awaited<ReturnType<typeof listReleaseArtifacts>>>
+export type ListReleaseArtifactsQueryError = ErrorType<unknown>
+
+
+export function useListReleaseArtifacts<TData = Awaited<ReturnType<typeof listReleaseArtifacts>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listReleaseArtifacts>>,
           TError,
           Awaited<ReturnType<typeof listReleaseArtifacts>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListReleaseArtifacts<
-  TData = Awaited<ReturnType<typeof listReleaseArtifacts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListReleaseArtifacts<TData = Awaited<ReturnType<typeof listReleaseArtifacts>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listReleaseArtifacts>>,
           TError,
           Awaited<ReturnType<typeof listReleaseArtifacts>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListReleaseArtifacts<
-  TData = Awaited<ReturnType<typeof listReleaseArtifacts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListReleaseArtifacts<TData = Awaited<ReturnType<typeof listReleaseArtifacts>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListReleaseArtifacts<
-  TData = Awaited<ReturnType<typeof listReleaseArtifacts>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListReleaseArtifactsQueryOptions(
-    orgSlug,
-    projectSlug,
-    releaseVersion,
-    options,
-  );
+export function useListReleaseArtifacts<TData = Awaited<ReturnType<typeof listReleaseArtifacts>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseArtifacts>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListReleaseArtifactsQueryOptions(orgSlug,projectSlug,releaseVersion,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type deleteReleaseArtifactResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type deleteReleaseArtifactResponseSuccess = deleteReleaseArtifactResponse200 & {
+export type deleteReleaseArtifactResponseSuccess = (deleteReleaseArtifactResponse200) & {
   headers: Headers;
 };
+;
 
-export type deleteReleaseArtifactResponse = deleteReleaseArtifactResponseSuccess;
+export type deleteReleaseArtifactResponse = (deleteReleaseArtifactResponseSuccess)
 
-export const getDeleteReleaseArtifactUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  artifactId: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts/${artifactId}`;
-};
+export const getDeleteReleaseArtifactUrl = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    artifactId: string,) => {
 
-export const deleteReleaseArtifact = async (
-  orgSlug: string,
-  projectSlug: string,
-  releaseVersion: string,
-  artifactId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<deleteReleaseArtifactResponse> => {
-  return orvalFetch<deleteReleaseArtifactResponse>(
-    getDeleteReleaseArtifactUrl(orgSlug, projectSlug, releaseVersion, artifactId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
-};
 
-export const getDeleteReleaseArtifactMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteReleaseArtifact>>,
-    TError,
-    { orgSlug: string; projectSlug: string; releaseVersion: string; artifactId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteReleaseArtifact>>,
-  TError,
-  { orgSlug: string; projectSlug: string; releaseVersion: string; artifactId: string },
-  TContext
-> => {
-  const mutationKey = ["deleteReleaseArtifact"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteReleaseArtifact>>,
-    { orgSlug: string; projectSlug: string; releaseVersion: string; artifactId: string }
-  > = (props) => {
-    const { orgSlug, projectSlug, releaseVersion, artifactId } = props ?? {};
 
-    return deleteReleaseArtifact(orgSlug, projectSlug, releaseVersion, artifactId, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts/${artifactId}`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const deleteReleaseArtifact = async (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    artifactId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteReleaseArtifactResponse> => {
 
-export type DeleteReleaseArtifactMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteReleaseArtifact>>
->;
+  return orvalFetch<deleteReleaseArtifactResponse>(getDeleteReleaseArtifactUrl(orgSlug,projectSlug,releaseVersion,artifactId),
+  {
+    ...options,
+    method: 'DELETE'
 
-export type DeleteReleaseArtifactMutationError = ErrorType<unknown>;
 
-export const useDeleteReleaseArtifact = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deleteReleaseArtifact>>,
-      TError,
-      { orgSlug: string; projectSlug: string; releaseVersion: string; artifactId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof deleteReleaseArtifact>>,
-  TError,
-  { orgSlug: string; projectSlug: string; releaseVersion: string; artifactId: string },
-  TContext
-> => {
-  return useMutation(getDeleteReleaseArtifactMutationOptions(options), queryClient);
-};
+  }
+);}
+
+
+
+
+
+export const getDeleteReleaseArtifactMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string}, TContext> => {
+
+const mutationKey = ['deleteReleaseArtifact'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteReleaseArtifact>>, {orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string}> = (props) => {
+          const {orgSlug,projectSlug,releaseVersion,artifactId} = props ?? {};
+
+          return  deleteReleaseArtifact(orgSlug,projectSlug,releaseVersion,artifactId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteReleaseArtifactMutationResult = NonNullable<Awaited<ReturnType<typeof deleteReleaseArtifact>>>
+
+    export type DeleteReleaseArtifactMutationError = ErrorType<unknown>
+
+    export const useDeleteReleaseArtifact = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteReleaseArtifact>>,
+        TError,
+        {orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteReleaseArtifactMutationOptions(options), queryClient);
+    }
 
 export type appControllerGetHelloResponse200 = {
-  data: void;
-  status: 200;
-};
+  data: void
+  status: 200
+}
 
-export type appControllerGetHelloResponseSuccess = appControllerGetHelloResponse200 & {
+export type appControllerGetHelloResponseSuccess = (appControllerGetHelloResponse200) & {
   headers: Headers;
 };
+;
 
-export type appControllerGetHelloResponse = appControllerGetHelloResponseSuccess;
+export type appControllerGetHelloResponse = (appControllerGetHelloResponseSuccess)
 
 export const getAppControllerGetHelloUrl = () => {
-  return `/`;
-};
 
-export const appControllerGetHello = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<appControllerGetHelloResponse> => {
-  return orvalFetch<appControllerGetHelloResponse>(getAppControllerGetHelloUrl(), {
+
+
+
+  return `/`
+}
+
+export const appControllerGetHello = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<appControllerGetHelloResponse> => {
+
+  return orvalFetch<appControllerGetHelloResponse>(getAppControllerGetHelloUrl(),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getAppControllerGetHelloQueryKey = () => {
-  return [`/`] as const;
-};
+    return [
+    `/`
+    ] as const;
+    }
 
-export const getAppControllerGetHelloQueryOptions = <
-  TData = Awaited<ReturnType<typeof appControllerGetHello>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getAppControllerGetHelloQueryKey();
+export const getAppControllerGetHelloQueryOptions = <TData = Awaited<ReturnType<typeof appControllerGetHello>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof appControllerGetHello>>> = ({ signal }) =>
-    appControllerGetHello({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof appControllerGetHello>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getAppControllerGetHelloQueryKey();
 
-export type AppControllerGetHelloQueryResult = NonNullable<
-  Awaited<ReturnType<typeof appControllerGetHello>>
->;
-export type AppControllerGetHelloQueryError = ErrorType<unknown>;
 
-export function useAppControllerGetHello<
-  TData = Awaited<ReturnType<typeof appControllerGetHello>>,
-  TError = ErrorType<unknown>,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>
-    > &
-      Pick<
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof appControllerGetHello>>> = ({ signal }) => appControllerGetHello({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AppControllerGetHelloQueryResult = NonNullable<Awaited<ReturnType<typeof appControllerGetHello>>>
+export type AppControllerGetHelloQueryError = ErrorType<unknown>
+
+
+export function useAppControllerGetHello<TData = Awaited<ReturnType<typeof appControllerGetHello>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof appControllerGetHello>>,
           TError,
           Awaited<ReturnType<typeof appControllerGetHello>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useAppControllerGetHello<
-  TData = Awaited<ReturnType<typeof appControllerGetHello>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAppControllerGetHello<TData = Awaited<ReturnType<typeof appControllerGetHello>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof appControllerGetHello>>,
           TError,
           Awaited<ReturnType<typeof appControllerGetHello>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useAppControllerGetHello<
-  TData = Awaited<ReturnType<typeof appControllerGetHello>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAppControllerGetHello<TData = Awaited<ReturnType<typeof appControllerGetHello>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useAppControllerGetHello<
-  TData = Awaited<ReturnType<typeof appControllerGetHello>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getAppControllerGetHelloQueryOptions(options);
+export function useAppControllerGetHello<TData = Awaited<ReturnType<typeof appControllerGetHello>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetHello>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getAppControllerGetHelloQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getHealthResponse200 = {
-  data: HealthDto;
-  status: 200;
-};
+  data: HealthDto
+  status: 200
+}
 
-export type getHealthResponseSuccess = getHealthResponse200 & {
+export type getHealthResponseSuccess = (getHealthResponse200) & {
   headers: Headers;
 };
+;
 
-export type getHealthResponse = getHealthResponseSuccess;
+export type getHealthResponse = (getHealthResponseSuccess)
 
 export const getGetHealthUrl = () => {
-  return `/health`;
-};
 
-export const getHealth = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getHealthResponse> => {
-  return orvalFetch<getHealthResponse>(getGetHealthUrl(), {
+
+
+
+  return `/health`
+}
+
+export const getHealth = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<getHealthResponse> => {
+
+  return orvalFetch<getHealthResponse>(getGetHealthUrl(),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getGetHealthQueryKey = () => {
-  return [`/health`] as const;
-};
+    return [
+    `/health`
+    ] as const;
+    }
 
-export const getGetHealthQueryOptions = <
-  TData = Awaited<ReturnType<typeof getHealth>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetHealthQueryKey();
+export const getGetHealthQueryOptions = <TData = Awaited<ReturnType<typeof getHealth>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getHealth>>> = ({ signal }) =>
-    getHealth({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getHealth>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getGetHealthQueryKey();
 
-export type GetHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getHealth>>>;
-export type GetHealthQueryError = ErrorType<unknown>;
 
-export function useGetHealth<
-  TData = Awaited<ReturnType<typeof getHealth>>,
-  TError = ErrorType<unknown>,
->(
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>> &
-      Pick<
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHealth>>> = ({ signal }) => getHealth({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getHealth>>>
+export type GetHealthQueryError = ErrorType<unknown>
+
+
+export function useGetHealth<TData = Awaited<ReturnType<typeof getHealth>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getHealth>>,
           TError,
           Awaited<ReturnType<typeof getHealth>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetHealth<
-  TData = Awaited<ReturnType<typeof getHealth>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetHealth<TData = Awaited<ReturnType<typeof getHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getHealth>>,
           TError,
           Awaited<ReturnType<typeof getHealth>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetHealth<
-  TData = Awaited<ReturnType<typeof getHealth>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetHealth<TData = Awaited<ReturnType<typeof getHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetHealth<
-  TData = Awaited<ReturnType<typeof getHealth>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetHealthQueryOptions(options);
+export function useGetHealth<TData = Awaited<ReturnType<typeof getHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getLivenessResponse200 = {
-  data: HealthDto;
-  status: 200;
-};
+  data: HealthDto
+  status: 200
+}
 
-export type getLivenessResponseSuccess = getLivenessResponse200 & {
+export type getLivenessResponseSuccess = (getLivenessResponse200) & {
   headers: Headers;
 };
+;
 
-export type getLivenessResponse = getLivenessResponseSuccess;
+export type getLivenessResponse = (getLivenessResponseSuccess)
 
 export const getGetLivenessUrl = () => {
-  return `/health/live`;
-};
 
-export const getLiveness = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getLivenessResponse> => {
-  return orvalFetch<getLivenessResponse>(getGetLivenessUrl(), {
+
+
+
+  return `/health/live`
+}
+
+export const getLiveness = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<getLivenessResponse> => {
+
+  return orvalFetch<getLivenessResponse>(getGetLivenessUrl(),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getGetLivenessQueryKey = () => {
-  return [`/health/live`] as const;
-};
+    return [
+    `/health/live`
+    ] as const;
+    }
 
-export const getGetLivenessQueryOptions = <
-  TData = Awaited<ReturnType<typeof getLiveness>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>>;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetLivenessQueryKey();
+export const getGetLivenessQueryOptions = <TData = Awaited<ReturnType<typeof getLiveness>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLiveness>>> = ({ signal }) =>
-    getLiveness({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getLiveness>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getGetLivenessQueryKey();
 
-export type GetLivenessQueryResult = NonNullable<Awaited<ReturnType<typeof getLiveness>>>;
-export type GetLivenessQueryError = ErrorType<unknown>;
 
-export function useGetLiveness<
-  TData = Awaited<ReturnType<typeof getLiveness>>,
-  TError = ErrorType<unknown>,
->(
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>> &
-      Pick<
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLiveness>>> = ({ signal }) => getLiveness({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetLivenessQueryResult = NonNullable<Awaited<ReturnType<typeof getLiveness>>>
+export type GetLivenessQueryError = ErrorType<unknown>
+
+
+export function useGetLiveness<TData = Awaited<ReturnType<typeof getLiveness>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getLiveness>>,
           TError,
           Awaited<ReturnType<typeof getLiveness>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetLiveness<
-  TData = Awaited<ReturnType<typeof getLiveness>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLiveness<TData = Awaited<ReturnType<typeof getLiveness>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getLiveness>>,
           TError,
           Awaited<ReturnType<typeof getLiveness>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetLiveness<
-  TData = Awaited<ReturnType<typeof getLiveness>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLiveness<TData = Awaited<ReturnType<typeof getLiveness>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetLiveness<
-  TData = Awaited<ReturnType<typeof getLiveness>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetLivenessQueryOptions(options);
+export function useGetLiveness<TData = Awaited<ReturnType<typeof getLiveness>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLiveness>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetLivenessQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getReadinessResponse200 = {
-  data: HealthDto;
-  status: 200;
-};
+  data: HealthDto
+  status: 200
+}
 
-export type getReadinessResponseSuccess = getReadinessResponse200 & {
+export type getReadinessResponseSuccess = (getReadinessResponse200) & {
   headers: Headers;
 };
+;
 
-export type getReadinessResponse = getReadinessResponseSuccess;
+export type getReadinessResponse = (getReadinessResponseSuccess)
 
 export const getGetReadinessUrl = () => {
-  return `/health/ready`;
-};
 
-export const getReadiness = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getReadinessResponse> => {
-  return orvalFetch<getReadinessResponse>(getGetReadinessUrl(), {
+
+
+
+  return `/health/ready`
+}
+
+export const getReadiness = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<getReadinessResponse> => {
+
+  return orvalFetch<getReadinessResponse>(getGetReadinessUrl(),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getGetReadinessQueryKey = () => {
-  return [`/health/ready`] as const;
-};
+    return [
+    `/health/ready`
+    ] as const;
+    }
 
-export const getGetReadinessQueryOptions = <
-  TData = Awaited<ReturnType<typeof getReadiness>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>>;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetReadinessQueryKey();
+export const getGetReadinessQueryOptions = <TData = Awaited<ReturnType<typeof getReadiness>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReadiness>>> = ({ signal }) =>
-    getReadiness({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getReadiness>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getGetReadinessQueryKey();
 
-export type GetReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getReadiness>>>;
-export type GetReadinessQueryError = ErrorType<unknown>;
 
-export function useGetReadiness<
-  TData = Awaited<ReturnType<typeof getReadiness>>,
-  TError = ErrorType<unknown>,
->(
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>> &
-      Pick<
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReadiness>>> = ({ signal }) => getReadiness({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getReadiness>>>
+export type GetReadinessQueryError = ErrorType<unknown>
+
+
+export function useGetReadiness<TData = Awaited<ReturnType<typeof getReadiness>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getReadiness>>,
           TError,
           Awaited<ReturnType<typeof getReadiness>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetReadiness<
-  TData = Awaited<ReturnType<typeof getReadiness>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReadiness<TData = Awaited<ReturnType<typeof getReadiness>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getReadiness>>,
           TError,
           Awaited<ReturnType<typeof getReadiness>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetReadiness<
-  TData = Awaited<ReturnType<typeof getReadiness>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReadiness<TData = Awaited<ReturnType<typeof getReadiness>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetReadiness<
-  TData = Awaited<ReturnType<typeof getReadiness>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetReadinessQueryOptions(options);
+export function useGetReadiness<TData = Awaited<ReturnType<typeof getReadiness>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadiness>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetReadinessQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getMetricsResponse200 = {
-  data: string;
-  status: 200;
-};
+  data: string
+  status: 200
+}
 
-export type getMetricsResponseSuccess = getMetricsResponse200 & {
+export type getMetricsResponseSuccess = (getMetricsResponse200) & {
   headers: Headers;
 };
+;
 
-export type getMetricsResponse = getMetricsResponseSuccess;
+export type getMetricsResponse = (getMetricsResponseSuccess)
 
 export const getGetMetricsUrl = () => {
-  return `/metrics`;
-};
 
-export const getMetrics = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getMetricsResponse> => {
-  return orvalFetch<getMetricsResponse>(getGetMetricsUrl(), {
+
+
+
+  return `/metrics`
+}
+
+export const getMetrics = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<getMetricsResponse> => {
+
+  return orvalFetch<getMetricsResponse>(getGetMetricsUrl(),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getGetMetricsQueryKey = () => {
-  return [`/metrics`] as const;
-};
+    return [
+    `/metrics`
+    ] as const;
+    }
 
-export const getGetMetricsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getMetrics>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetMetricsQueryKey();
+export const getGetMetricsQueryOptions = <TData = Awaited<ReturnType<typeof getMetrics>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMetrics>>> = ({ signal }) =>
-    getMetrics({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getMetrics>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getGetMetricsQueryKey();
 
-export type GetMetricsQueryResult = NonNullable<Awaited<ReturnType<typeof getMetrics>>>;
-export type GetMetricsQueryError = ErrorType<unknown>;
 
-export function useGetMetrics<
-  TData = Awaited<ReturnType<typeof getMetrics>>,
-  TError = ErrorType<unknown>,
->(
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>> &
-      Pick<
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMetrics>>> = ({ signal }) => getMetrics({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMetricsQueryResult = NonNullable<Awaited<ReturnType<typeof getMetrics>>>
+export type GetMetricsQueryError = ErrorType<unknown>
+
+
+export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMetrics>>,
           TError,
           Awaited<ReturnType<typeof getMetrics>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetMetrics<
-  TData = Awaited<ReturnType<typeof getMetrics>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMetrics>>,
           TError,
           Awaited<ReturnType<typeof getMetrics>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetMetrics<
-  TData = Awaited<ReturnType<typeof getMetrics>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetMetrics<
-  TData = Awaited<ReturnType<typeof getMetrics>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetMetricsQueryOptions(options);
+export function useGetMetrics<TData = Awaited<ReturnType<typeof getMetrics>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMetrics>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetMetricsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type authControllerRegistrationStatusResponse200 = {
-  data: void;
-  status: 200;
+  data: void
+  status: 200
+}
+
+export type authControllerRegistrationStatusResponseSuccess = (authControllerRegistrationStatusResponse200) & {
+  headers: Headers;
 };
+;
 
-export type authControllerRegistrationStatusResponseSuccess =
-  authControllerRegistrationStatusResponse200 & {
-    headers: Headers;
-  };
-
-export type authControllerRegistrationStatusResponse =
-  authControllerRegistrationStatusResponseSuccess;
+export type authControllerRegistrationStatusResponse = (authControllerRegistrationStatusResponseSuccess)
 
 export const getAuthControllerRegistrationStatusUrl = () => {
-  return `/auth/registration-status`;
-};
 
-export const authControllerRegistrationStatus = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<authControllerRegistrationStatusResponse> => {
-  return orvalFetch<authControllerRegistrationStatusResponse>(
-    getAuthControllerRegistrationStatusUrl(),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+
+
+
+  return `/auth/registration-status`
+}
+
+export const authControllerRegistrationStatus = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<authControllerRegistrationStatusResponse> => {
+
+  return orvalFetch<authControllerRegistrationStatusResponse>(getAuthControllerRegistrationStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getAuthControllerRegistrationStatusQueryKey = () => {
-  return [`/auth/registration-status`] as const;
-};
+    return [
+    `/auth/registration-status`
+    ] as const;
+    }
 
-export const getAuthControllerRegistrationStatusQueryOptions = <
-  TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getAuthControllerRegistrationStatusQueryKey();
+export const getAuthControllerRegistrationStatusQueryOptions = <TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof authControllerRegistrationStatus>>> = ({
-    signal,
-  }) => authControllerRegistrationStatus({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof authControllerRegistrationStatus>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getAuthControllerRegistrationStatusQueryKey();
 
-export type AuthControllerRegistrationStatusQueryResult = NonNullable<
-  Awaited<ReturnType<typeof authControllerRegistrationStatus>>
->;
-export type AuthControllerRegistrationStatusQueryError = ErrorType<unknown>;
 
-export function useAuthControllerRegistrationStatus<
-  TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>,
-  TError = ErrorType<unknown>,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>
-    > &
-      Pick<
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof authControllerRegistrationStatus>>> = ({ signal }) => authControllerRegistrationStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AuthControllerRegistrationStatusQueryResult = NonNullable<Awaited<ReturnType<typeof authControllerRegistrationStatus>>>
+export type AuthControllerRegistrationStatusQueryError = ErrorType<unknown>
+
+
+export function useAuthControllerRegistrationStatus<TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof authControllerRegistrationStatus>>,
           TError,
           Awaited<ReturnType<typeof authControllerRegistrationStatus>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useAuthControllerRegistrationStatus<
-  TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthControllerRegistrationStatus<TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof authControllerRegistrationStatus>>,
           TError,
           Awaited<ReturnType<typeof authControllerRegistrationStatus>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useAuthControllerRegistrationStatus<
-  TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthControllerRegistrationStatus<TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useAuthControllerRegistrationStatus<
-  TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getAuthControllerRegistrationStatusQueryOptions(options);
+export function useAuthControllerRegistrationStatus<TData = Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRegistrationStatus>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getAuthControllerRegistrationStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getMeResponse200 = {
-  data: MeResponseDto;
-  status: 200;
-};
+  data: MeResponseDto
+  status: 200
+}
 
-export type getMeResponseSuccess = getMeResponse200 & {
+export type getMeResponseSuccess = (getMeResponse200) & {
   headers: Headers;
 };
+;
 
-export type getMeResponse = getMeResponseSuccess;
+export type getMeResponse = (getMeResponseSuccess)
 
 export const getGetMeUrl = () => {
-  return `/auth/me`;
-};
 
-export const getMe = async (options?: Parameters<typeof orvalFetch>[1]): Promise<getMeResponse> => {
-  return orvalFetch<getMeResponse>(getGetMeUrl(), {
+
+
+
+  return `/auth/me`
+}
+
+export const getMe = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<getMeResponse> => {
+
+  return orvalFetch<getMeResponse>(getGetMeUrl(),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getGetMeQueryKey = () => {
-  return [`/auth/me`] as const;
-};
+    return [
+    `/auth/me`
+    ] as const;
+    }
 
-export const getGetMeQueryOptions = <
-  TData = Awaited<ReturnType<typeof getMe>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>>;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetMeQueryKey();
+export const getGetMeQueryOptions = <TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMe>>> = ({ signal }) =>
-    getMe({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getMe>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getGetMeQueryKey();
 
-export type GetMeQueryResult = NonNullable<Awaited<ReturnType<typeof getMe>>>;
-export type GetMeQueryError = ErrorType<unknown>;
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMe>>> = ({ signal }) => getMe({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMeQueryResult = NonNullable<Awaited<ReturnType<typeof getMe>>>
+export type GetMeQueryError = ErrorType<unknown>
+
 
 export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<unknown>>(
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>> &
-      Pick<
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMe>>,
           TError,
           Awaited<ReturnType<typeof getMe>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<unknown>>(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>> &
-      Pick<
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMe>>,
           TError,
           Awaited<ReturnType<typeof getMe>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<unknown>>(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = ErrorType<unknown>>(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetMeQueryOptions(options);
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMe>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetMeQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type listPersonalAccessTokensResponse200 = {
-  data: PersonalAccessTokenDto[];
-  status: 200;
-};
+  data: PersonalAccessTokenDto[]
+  status: 200
+}
 
-export type listPersonalAccessTokensResponseSuccess = listPersonalAccessTokensResponse200 & {
+export type listPersonalAccessTokensResponseSuccess = (listPersonalAccessTokensResponse200) & {
   headers: Headers;
 };
+;
 
-export type listPersonalAccessTokensResponse = listPersonalAccessTokensResponseSuccess;
+export type listPersonalAccessTokensResponse = (listPersonalAccessTokensResponseSuccess)
 
 export const getListPersonalAccessTokensUrl = () => {
-  return `/auth/tokens`;
-};
 
-export const listPersonalAccessTokens = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listPersonalAccessTokensResponse> => {
-  return orvalFetch<listPersonalAccessTokensResponse>(getListPersonalAccessTokensUrl(), {
+
+
+
+  return `/auth/tokens`
+}
+
+export const listPersonalAccessTokens = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<listPersonalAccessTokensResponse> => {
+
+  return orvalFetch<listPersonalAccessTokensResponse>(getListPersonalAccessTokensUrl(),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getListPersonalAccessTokensQueryKey = () => {
-  return [`/auth/tokens`] as const;
-};
+    return [
+    `/auth/tokens`
+    ] as const;
+    }
 
-export const getListPersonalAccessTokensQueryOptions = <
-  TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListPersonalAccessTokensQueryKey();
+export const getListPersonalAccessTokensQueryOptions = <TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPersonalAccessTokens>>> = ({
-    signal,
-  }) => listPersonalAccessTokens({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listPersonalAccessTokens>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getListPersonalAccessTokensQueryKey();
 
-export type ListPersonalAccessTokensQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listPersonalAccessTokens>>
->;
-export type ListPersonalAccessTokensQueryError = ErrorType<unknown>;
 
-export function useListPersonalAccessTokens<
-  TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>,
-  TError = ErrorType<unknown>,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>
-    > &
-      Pick<
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPersonalAccessTokens>>> = ({ signal }) => listPersonalAccessTokens({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListPersonalAccessTokensQueryResult = NonNullable<Awaited<ReturnType<typeof listPersonalAccessTokens>>>
+export type ListPersonalAccessTokensQueryError = ErrorType<unknown>
+
+
+export function useListPersonalAccessTokens<TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPersonalAccessTokens>>,
           TError,
           Awaited<ReturnType<typeof listPersonalAccessTokens>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListPersonalAccessTokens<
-  TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPersonalAccessTokens<TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPersonalAccessTokens>>,
           TError,
           Awaited<ReturnType<typeof listPersonalAccessTokens>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListPersonalAccessTokens<
-  TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPersonalAccessTokens<TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListPersonalAccessTokens<
-  TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListPersonalAccessTokensQueryOptions(options);
+export function useListPersonalAccessTokens<TData = Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalAccessTokens>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListPersonalAccessTokensQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createPersonalAccessTokenResponse200 = {
-  data: CreatePersonalAccessTokenResponseDto;
-  status: 200;
-};
+  data: CreatePersonalAccessTokenResponseDto
+  status: 200
+}
 
-export type createPersonalAccessTokenResponseSuccess = createPersonalAccessTokenResponse200 & {
+export type createPersonalAccessTokenResponseSuccess = (createPersonalAccessTokenResponse200) & {
   headers: Headers;
 };
+;
 
-export type createPersonalAccessTokenResponse = createPersonalAccessTokenResponseSuccess;
+export type createPersonalAccessTokenResponse = (createPersonalAccessTokenResponseSuccess)
 
 export const getCreatePersonalAccessTokenUrl = () => {
-  return `/auth/tokens`;
-};
 
-export const createPersonalAccessToken = async (
-  createPersonalAccessTokenBodyDto: CreatePersonalAccessTokenBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createPersonalAccessTokenResponse> => {
-  return orvalFetch<createPersonalAccessTokenResponse>(getCreatePersonalAccessTokenUrl(), {
+
+
+
+  return `/auth/tokens`
+}
+
+export const createPersonalAccessToken = async (createPersonalAccessTokenBodyDto: CreatePersonalAccessTokenBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createPersonalAccessTokenResponse> => {
+
+  return orvalFetch<createPersonalAccessTokenResponse>(getCreatePersonalAccessTokenUrl(),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createPersonalAccessTokenBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createPersonalAccessTokenBodyDto)
+  }
+);}
 
-export const getCreatePersonalAccessTokenMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPersonalAccessToken>>,
-    TError,
-    { data: BodyType<CreatePersonalAccessTokenBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createPersonalAccessToken>>,
-  TError,
-  { data: BodyType<CreatePersonalAccessTokenBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createPersonalAccessToken"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createPersonalAccessToken>>,
-    { data: BodyType<CreatePersonalAccessTokenBodyDto> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return createPersonalAccessToken(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type CreatePersonalAccessTokenMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createPersonalAccessToken>>
->;
-export type CreatePersonalAccessTokenMutationBody = BodyType<CreatePersonalAccessTokenBodyDto>;
-export type CreatePersonalAccessTokenMutationError = ErrorType<unknown>;
+export const getCreatePersonalAccessTokenMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalAccessToken>>, TError,{data: BodyType<CreatePersonalAccessTokenBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPersonalAccessToken>>, TError,{data: BodyType<CreatePersonalAccessTokenBodyDto>}, TContext> => {
 
-export const useCreatePersonalAccessToken = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createPersonalAccessToken>>,
-      TError,
-      { data: BodyType<CreatePersonalAccessTokenBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createPersonalAccessToken>>,
-  TError,
-  { data: BodyType<CreatePersonalAccessTokenBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreatePersonalAccessTokenMutationOptions(options), queryClient);
-};
+const mutationKey = ['createPersonalAccessToken'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPersonalAccessToken>>, {data: BodyType<CreatePersonalAccessTokenBodyDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPersonalAccessToken(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePersonalAccessTokenMutationResult = NonNullable<Awaited<ReturnType<typeof createPersonalAccessToken>>>
+    export type CreatePersonalAccessTokenMutationBody = BodyType<CreatePersonalAccessTokenBodyDto>
+    export type CreatePersonalAccessTokenMutationError = ErrorType<unknown>
+
+    export const useCreatePersonalAccessToken = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalAccessToken>>, TError,{data: BodyType<CreatePersonalAccessTokenBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createPersonalAccessToken>>,
+        TError,
+        {data: BodyType<CreatePersonalAccessTokenBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreatePersonalAccessTokenMutationOptions(options), queryClient);
+    }
 
 export type revokePersonalAccessTokenResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type revokePersonalAccessTokenResponseSuccess = revokePersonalAccessTokenResponse200 & {
+export type revokePersonalAccessTokenResponseSuccess = (revokePersonalAccessTokenResponse200) & {
   headers: Headers;
 };
+;
 
-export type revokePersonalAccessTokenResponse = revokePersonalAccessTokenResponseSuccess;
+export type revokePersonalAccessTokenResponse = (revokePersonalAccessTokenResponseSuccess)
 
-export const getRevokePersonalAccessTokenUrl = (tokenId: string) => {
-  return `/auth/tokens/${tokenId}`;
-};
+export const getRevokePersonalAccessTokenUrl = (tokenId: string,) => {
 
-export const revokePersonalAccessToken = async (
-  tokenId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<revokePersonalAccessTokenResponse> => {
-  return orvalFetch<revokePersonalAccessTokenResponse>(getRevokePersonalAccessTokenUrl(tokenId), {
+
+
+
+  return `/auth/tokens/${tokenId}`
+}
+
+export const revokePersonalAccessToken = async (tokenId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<revokePersonalAccessTokenResponse> => {
+
+  return orvalFetch<revokePersonalAccessTokenResponse>(getRevokePersonalAccessTokenUrl(tokenId),
+  {
     ...options,
-    method: "DELETE",
-  });
-};
+    method: 'DELETE'
 
-export const getRevokePersonalAccessTokenMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof revokePersonalAccessToken>>,
-    TError,
-    { tokenId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof revokePersonalAccessToken>>,
-  TError,
-  { tokenId: string },
-  TContext
-> => {
-  const mutationKey = ["revokePersonalAccessToken"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof revokePersonalAccessToken>>,
-    { tokenId: string }
-  > = (props) => {
-    const { tokenId } = props ?? {};
+  }
+);}
 
-    return revokePersonalAccessToken(tokenId, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type RevokePersonalAccessTokenMutationResult = NonNullable<
-  Awaited<ReturnType<typeof revokePersonalAccessToken>>
->;
 
-export type RevokePersonalAccessTokenMutationError = ErrorType<unknown>;
 
-export const useRevokePersonalAccessToken = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof revokePersonalAccessToken>>,
-      TError,
-      { tokenId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof revokePersonalAccessToken>>,
-  TError,
-  { tokenId: string },
-  TContext
-> => {
-  return useMutation(getRevokePersonalAccessTokenMutationOptions(options), queryClient);
-};
+export const getRevokePersonalAccessTokenMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokePersonalAccessToken>>, TError,{tokenId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokePersonalAccessToken>>, TError,{tokenId: string}, TContext> => {
+
+const mutationKey = ['revokePersonalAccessToken'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokePersonalAccessToken>>, {tokenId: string}> = (props) => {
+          const {tokenId} = props ?? {};
+
+          return  revokePersonalAccessToken(tokenId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokePersonalAccessTokenMutationResult = NonNullable<Awaited<ReturnType<typeof revokePersonalAccessToken>>>
+
+    export type RevokePersonalAccessTokenMutationError = ErrorType<unknown>
+
+    export const useRevokePersonalAccessToken = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokePersonalAccessToken>>, TError,{tokenId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof revokePersonalAccessToken>>,
+        TError,
+        {tokenId: string},
+        TContext
+      > => {
+      return useMutation(getRevokePersonalAccessTokenMutationOptions(options), queryClient);
+    }
 
 export type getOrganizationMcpResponse200 = {
-  data: void;
-  status: 200;
-};
+  data: void
+  status: 200
+}
 
-export type getOrganizationMcpResponseSuccess = getOrganizationMcpResponse200 & {
+export type getOrganizationMcpResponseSuccess = (getOrganizationMcpResponse200) & {
   headers: Headers;
 };
+;
 
-export type getOrganizationMcpResponse = getOrganizationMcpResponseSuccess;
+export type getOrganizationMcpResponse = (getOrganizationMcpResponseSuccess)
 
-export const getGetOrganizationMcpUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/mcp`;
-};
+export const getGetOrganizationMcpUrl = (orgSlug: string,) => {
 
-export const getOrganizationMcp = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getOrganizationMcpResponse> => {
-  return orvalFetch<getOrganizationMcpResponse>(getGetOrganizationMcpUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/mcp`
+}
+
+export const getOrganizationMcp = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationMcpResponse> => {
+
+  return orvalFetch<getOrganizationMcpResponse>(getGetOrganizationMcpUrl(orgSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetOrganizationMcpQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/mcp`] as const;
-};
 
-export const getGetOrganizationMcpQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganizationMcp>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationMcpQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/mcp`
+    ] as const;
+    }
+
+
+export const getGetOrganizationMcpQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationMcp>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetOrganizationMcpQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationMcp>>> = ({ signal }) =>
-    getOrganizationMcp(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationMcpQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetOrganizationMcpQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getOrganizationMcp>>
->;
-export type GetOrganizationMcpQueryError = ErrorType<unknown>;
 
-export function useGetOrganizationMcp<
-  TData = Awaited<ReturnType<typeof getOrganizationMcp>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationMcp>>> = ({ signal }) => getOrganizationMcp(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationMcpQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationMcp>>>
+export type GetOrganizationMcpQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationMcp<TData = Awaited<ReturnType<typeof getOrganizationMcp>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationMcp>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationMcp>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationMcp<
-  TData = Awaited<ReturnType<typeof getOrganizationMcp>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationMcp<TData = Awaited<ReturnType<typeof getOrganizationMcp>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationMcp>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationMcp>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationMcp<
-  TData = Awaited<ReturnType<typeof getOrganizationMcp>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationMcp<TData = Awaited<ReturnType<typeof getOrganizationMcp>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetOrganizationMcp<
-  TData = Awaited<ReturnType<typeof getOrganizationMcp>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationMcpQueryOptions(orgSlug, options);
+export function useGetOrganizationMcp<TData = Awaited<ReturnType<typeof getOrganizationMcp>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationMcp>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetOrganizationMcpQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type updateOrganizationMcpSettingsResponse200 = {
-  data: void;
-  status: 200;
+  data: void
+  status: 200
+}
+
+export type updateOrganizationMcpSettingsResponseSuccess = (updateOrganizationMcpSettingsResponse200) & {
+  headers: Headers;
 };
+;
 
-export type updateOrganizationMcpSettingsResponseSuccess =
-  updateOrganizationMcpSettingsResponse200 & {
-    headers: Headers;
-  };
+export type updateOrganizationMcpSettingsResponse = (updateOrganizationMcpSettingsResponseSuccess)
 
-export type updateOrganizationMcpSettingsResponse = updateOrganizationMcpSettingsResponseSuccess;
+export const getUpdateOrganizationMcpSettingsUrl = (orgSlug: string,) => {
 
-export const getUpdateOrganizationMcpSettingsUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/mcp/settings`;
-};
 
-export const updateOrganizationMcpSettings = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateOrganizationMcpSettingsResponse> => {
-  return orvalFetch<updateOrganizationMcpSettingsResponse>(
-    getUpdateOrganizationMcpSettingsUrl(orgSlug),
-    {
-      ...options,
-      method: "PATCH",
-    },
-  );
-};
 
-export const getUpdateOrganizationMcpSettingsMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateOrganizationMcpSettings>>,
-    TError,
-    { orgSlug: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateOrganizationMcpSettings>>,
-  TError,
-  { orgSlug: string },
-  TContext
-> => {
-  const mutationKey = ["updateOrganizationMcpSettings"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateOrganizationMcpSettings>>,
-    { orgSlug: string }
-  > = (props) => {
-    const { orgSlug } = props ?? {};
+  return `/organizations/${orgSlug}/mcp/settings`
+}
 
-    return updateOrganizationMcpSettings(orgSlug, requestOptions);
-  };
+export const updateOrganizationMcpSettings = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationMcpSettingsResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<updateOrganizationMcpSettingsResponse>(getUpdateOrganizationMcpSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'PATCH'
 
-export type UpdateOrganizationMcpSettingsMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateOrganizationMcpSettings>>
->;
 
-export type UpdateOrganizationMcpSettingsMutationError = ErrorType<unknown>;
+  }
+);}
 
-export const useUpdateOrganizationMcpSettings = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateOrganizationMcpSettings>>,
-      TError,
-      { orgSlug: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateOrganizationMcpSettings>>,
-  TError,
-  { orgSlug: string },
-  TContext
-> => {
-  return useMutation(getUpdateOrganizationMcpSettingsMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getUpdateOrganizationMcpSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, TError,{orgSlug: string}, TContext> => {
+
+const mutationKey = ['updateOrganizationMcpSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, {orgSlug: string}> = (props) => {
+          const {orgSlug} = props ?? {};
+
+          return  updateOrganizationMcpSettings(orgSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationMcpSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>>
+
+    export type UpdateOrganizationMcpSettingsMutationError = ErrorType<unknown>
+
+    export const useUpdateOrganizationMcpSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateOrganizationMcpSettings>>,
+        TError,
+        {orgSlug: string},
+        TContext
+      > => {
+      return useMutation(getUpdateOrganizationMcpSettingsMutationOptions(options), queryClient);
+    }
 
 export type createOrganizationMcpCredentialResponse201 = {
-  data: void;
-  status: 201;
+  data: void
+  status: 201
+}
+
+export type createOrganizationMcpCredentialResponseSuccess = (createOrganizationMcpCredentialResponse201) & {
+  headers: Headers;
 };
+;
 
-export type createOrganizationMcpCredentialResponseSuccess =
-  createOrganizationMcpCredentialResponse201 & {
-    headers: Headers;
-  };
+export type createOrganizationMcpCredentialResponse = (createOrganizationMcpCredentialResponseSuccess)
 
-export type createOrganizationMcpCredentialResponse =
-  createOrganizationMcpCredentialResponseSuccess;
+export const getCreateOrganizationMcpCredentialUrl = (orgSlug: string,) => {
 
-export const getCreateOrganizationMcpCredentialUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/mcp/credentials`;
-};
 
-export const createOrganizationMcpCredential = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createOrganizationMcpCredentialResponse> => {
-  return orvalFetch<createOrganizationMcpCredentialResponse>(
-    getCreateOrganizationMcpCredentialUrl(orgSlug),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
-};
 
-export const getCreateOrganizationMcpCredentialMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createOrganizationMcpCredential>>,
-    TError,
-    { orgSlug: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createOrganizationMcpCredential>>,
-  TError,
-  { orgSlug: string },
-  TContext
-> => {
-  const mutationKey = ["createOrganizationMcpCredential"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createOrganizationMcpCredential>>,
-    { orgSlug: string }
-  > = (props) => {
-    const { orgSlug } = props ?? {};
+  return `/organizations/${orgSlug}/mcp/credentials`
+}
 
-    return createOrganizationMcpCredential(orgSlug, requestOptions);
-  };
+export const createOrganizationMcpCredential = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationMcpCredentialResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<createOrganizationMcpCredentialResponse>(getCreateOrganizationMcpCredentialUrl(orgSlug),
+  {
+    ...options,
+    method: 'POST'
 
-export type CreateOrganizationMcpCredentialMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createOrganizationMcpCredential>>
->;
 
-export type CreateOrganizationMcpCredentialMutationError = ErrorType<unknown>;
+  }
+);}
 
-export const useCreateOrganizationMcpCredential = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createOrganizationMcpCredential>>,
-      TError,
-      { orgSlug: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createOrganizationMcpCredential>>,
-  TError,
-  { orgSlug: string },
-  TContext
-> => {
-  return useMutation(getCreateOrganizationMcpCredentialMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getCreateOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, TError,{orgSlug: string}, TContext> => {
+
+const mutationKey = ['createOrganizationMcpCredential'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, {orgSlug: string}> = (props) => {
+          const {orgSlug} = props ?? {};
+
+          return  createOrganizationMcpCredential(orgSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOrganizationMcpCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationMcpCredential>>>
+
+    export type CreateOrganizationMcpCredentialMutationError = ErrorType<unknown>
+
+    export const useCreateOrganizationMcpCredential = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createOrganizationMcpCredential>>,
+        TError,
+        {orgSlug: string},
+        TContext
+      > => {
+      return useMutation(getCreateOrganizationMcpCredentialMutationOptions(options), queryClient);
+    }
 
 export type verifyOrganizationMcpCredentialResponse201 = {
-  data: void;
-  status: 201;
+  data: void
+  status: 201
+}
+
+export type verifyOrganizationMcpCredentialResponseSuccess = (verifyOrganizationMcpCredentialResponse201) & {
+  headers: Headers;
 };
+;
 
-export type verifyOrganizationMcpCredentialResponseSuccess =
-  verifyOrganizationMcpCredentialResponse201 & {
-    headers: Headers;
-  };
+export type verifyOrganizationMcpCredentialResponse = (verifyOrganizationMcpCredentialResponseSuccess)
 
-export type verifyOrganizationMcpCredentialResponse =
-  verifyOrganizationMcpCredentialResponseSuccess;
+export const getVerifyOrganizationMcpCredentialUrl = (orgSlug: string,
+    credentialId: string,) => {
 
-export const getVerifyOrganizationMcpCredentialUrl = (orgSlug: string, credentialId: string) => {
-  return `/organizations/${orgSlug}/mcp/credentials/${credentialId}/verify`;
-};
 
-export const verifyOrganizationMcpCredential = async (
-  orgSlug: string,
-  credentialId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<verifyOrganizationMcpCredentialResponse> => {
-  return orvalFetch<verifyOrganizationMcpCredentialResponse>(
-    getVerifyOrganizationMcpCredentialUrl(orgSlug, credentialId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
-};
 
-export const getVerifyOrganizationMcpCredentialMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>,
-    TError,
-    { orgSlug: string; credentialId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>,
-  TError,
-  { orgSlug: string; credentialId: string },
-  TContext
-> => {
-  const mutationKey = ["verifyOrganizationMcpCredential"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>,
-    { orgSlug: string; credentialId: string }
-  > = (props) => {
-    const { orgSlug, credentialId } = props ?? {};
+  return `/organizations/${orgSlug}/mcp/credentials/${credentialId}/verify`
+}
 
-    return verifyOrganizationMcpCredential(orgSlug, credentialId, requestOptions);
-  };
+export const verifyOrganizationMcpCredential = async (orgSlug: string,
+    credentialId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<verifyOrganizationMcpCredentialResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<verifyOrganizationMcpCredentialResponse>(getVerifyOrganizationMcpCredentialUrl(orgSlug,credentialId),
+  {
+    ...options,
+    method: 'POST'
 
-export type VerifyOrganizationMcpCredentialMutationResult = NonNullable<
-  Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>
->;
 
-export type VerifyOrganizationMcpCredentialMutationError = ErrorType<unknown>;
+  }
+);}
 
-export const useVerifyOrganizationMcpCredential = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>,
-      TError,
-      { orgSlug: string; credentialId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>,
-  TError,
-  { orgSlug: string; credentialId: string },
-  TContext
-> => {
-  return useMutation(getVerifyOrganizationMcpCredentialMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getVerifyOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext> => {
+
+const mutationKey = ['verifyOrganizationMcpCredential'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, {orgSlug: string;credentialId: string}> = (props) => {
+          const {orgSlug,credentialId} = props ?? {};
+
+          return  verifyOrganizationMcpCredential(orgSlug,credentialId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyOrganizationMcpCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>>
+
+    export type VerifyOrganizationMcpCredentialMutationError = ErrorType<unknown>
+
+    export const useVerifyOrganizationMcpCredential = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>,
+        TError,
+        {orgSlug: string;credentialId: string},
+        TContext
+      > => {
+      return useMutation(getVerifyOrganizationMcpCredentialMutationOptions(options), queryClient);
+    }
 
 export type revokeOrganizationMcpCredentialResponse200 = {
-  data: void;
-  status: 200;
+  data: void
+  status: 200
+}
+
+export type revokeOrganizationMcpCredentialResponseSuccess = (revokeOrganizationMcpCredentialResponse200) & {
+  headers: Headers;
 };
+;
 
-export type revokeOrganizationMcpCredentialResponseSuccess =
-  revokeOrganizationMcpCredentialResponse200 & {
-    headers: Headers;
-  };
+export type revokeOrganizationMcpCredentialResponse = (revokeOrganizationMcpCredentialResponseSuccess)
 
-export type revokeOrganizationMcpCredentialResponse =
-  revokeOrganizationMcpCredentialResponseSuccess;
+export const getRevokeOrganizationMcpCredentialUrl = (orgSlug: string,
+    credentialId: string,) => {
 
-export const getRevokeOrganizationMcpCredentialUrl = (orgSlug: string, credentialId: string) => {
-  return `/organizations/${orgSlug}/mcp/credentials/${credentialId}`;
-};
 
-export const revokeOrganizationMcpCredential = async (
-  orgSlug: string,
-  credentialId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<revokeOrganizationMcpCredentialResponse> => {
-  return orvalFetch<revokeOrganizationMcpCredentialResponse>(
-    getRevokeOrganizationMcpCredentialUrl(orgSlug, credentialId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
-};
 
-export const getRevokeOrganizationMcpCredentialMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>,
-    TError,
-    { orgSlug: string; credentialId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>,
-  TError,
-  { orgSlug: string; credentialId: string },
-  TContext
-> => {
-  const mutationKey = ["revokeOrganizationMcpCredential"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>,
-    { orgSlug: string; credentialId: string }
-  > = (props) => {
-    const { orgSlug, credentialId } = props ?? {};
+  return `/organizations/${orgSlug}/mcp/credentials/${credentialId}`
+}
 
-    return revokeOrganizationMcpCredential(orgSlug, credentialId, requestOptions);
-  };
+export const revokeOrganizationMcpCredential = async (orgSlug: string,
+    credentialId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<revokeOrganizationMcpCredentialResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<revokeOrganizationMcpCredentialResponse>(getRevokeOrganizationMcpCredentialUrl(orgSlug,credentialId),
+  {
+    ...options,
+    method: 'DELETE'
 
-export type RevokeOrganizationMcpCredentialMutationResult = NonNullable<
-  Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>
->;
 
-export type RevokeOrganizationMcpCredentialMutationError = ErrorType<unknown>;
+  }
+);}
 
-export const useRevokeOrganizationMcpCredential = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>,
-      TError,
-      { orgSlug: string; credentialId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>,
-  TError,
-  { orgSlug: string; credentialId: string },
-  TContext
-> => {
-  return useMutation(getRevokeOrganizationMcpCredentialMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getRevokeOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext> => {
+
+const mutationKey = ['revokeOrganizationMcpCredential'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, {orgSlug: string;credentialId: string}> = (props) => {
+          const {orgSlug,credentialId} = props ?? {};
+
+          return  revokeOrganizationMcpCredential(orgSlug,credentialId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeOrganizationMcpCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>>
+
+    export type RevokeOrganizationMcpCredentialMutationError = ErrorType<unknown>
+
+    export const useRevokeOrganizationMcpCredential = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>,
+        TError,
+        {orgSlug: string;credentialId: string},
+        TContext
+      > => {
+      return useMutation(getRevokeOrganizationMcpCredentialMutationOptions(options), queryClient);
+    }
 
 export type rotateOrganizationMcpCredentialResponse201 = {
-  data: void;
-  status: 201;
+  data: void
+  status: 201
+}
+
+export type rotateOrganizationMcpCredentialResponseSuccess = (rotateOrganizationMcpCredentialResponse201) & {
+  headers: Headers;
 };
+;
 
-export type rotateOrganizationMcpCredentialResponseSuccess =
-  rotateOrganizationMcpCredentialResponse201 & {
-    headers: Headers;
-  };
+export type rotateOrganizationMcpCredentialResponse = (rotateOrganizationMcpCredentialResponseSuccess)
 
-export type rotateOrganizationMcpCredentialResponse =
-  rotateOrganizationMcpCredentialResponseSuccess;
+export const getRotateOrganizationMcpCredentialUrl = (orgSlug: string,
+    credentialId: string,) => {
 
-export const getRotateOrganizationMcpCredentialUrl = (orgSlug: string, credentialId: string) => {
-  return `/organizations/${orgSlug}/mcp/credentials/${credentialId}/rotate`;
-};
 
-export const rotateOrganizationMcpCredential = async (
-  orgSlug: string,
-  credentialId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<rotateOrganizationMcpCredentialResponse> => {
-  return orvalFetch<rotateOrganizationMcpCredentialResponse>(
-    getRotateOrganizationMcpCredentialUrl(orgSlug, credentialId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
-};
 
-export const getRotateOrganizationMcpCredentialMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>,
-    TError,
-    { orgSlug: string; credentialId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>,
-  TError,
-  { orgSlug: string; credentialId: string },
-  TContext
-> => {
-  const mutationKey = ["rotateOrganizationMcpCredential"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>,
-    { orgSlug: string; credentialId: string }
-  > = (props) => {
-    const { orgSlug, credentialId } = props ?? {};
+  return `/organizations/${orgSlug}/mcp/credentials/${credentialId}/rotate`
+}
 
-    return rotateOrganizationMcpCredential(orgSlug, credentialId, requestOptions);
-  };
+export const rotateOrganizationMcpCredential = async (orgSlug: string,
+    credentialId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<rotateOrganizationMcpCredentialResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<rotateOrganizationMcpCredentialResponse>(getRotateOrganizationMcpCredentialUrl(orgSlug,credentialId),
+  {
+    ...options,
+    method: 'POST'
 
-export type RotateOrganizationMcpCredentialMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>
->;
 
-export type RotateOrganizationMcpCredentialMutationError = ErrorType<unknown>;
+  }
+);}
 
-export const useRotateOrganizationMcpCredential = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>,
-      TError,
-      { orgSlug: string; credentialId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>,
-  TError,
-  { orgSlug: string; credentialId: string },
-  TContext
-> => {
-  return useMutation(getRotateOrganizationMcpCredentialMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getRotateOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext> => {
+
+const mutationKey = ['rotateOrganizationMcpCredential'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, {orgSlug: string;credentialId: string}> = (props) => {
+          const {orgSlug,credentialId} = props ?? {};
+
+          return  rotateOrganizationMcpCredential(orgSlug,credentialId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RotateOrganizationMcpCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>>
+
+    export type RotateOrganizationMcpCredentialMutationError = ErrorType<unknown>
+
+    export const useRotateOrganizationMcpCredential = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>,
+        TError,
+        {orgSlug: string;credentialId: string},
+        TContext
+      > => {
+      return useMutation(getRotateOrganizationMcpCredentialMutationOptions(options), queryClient);
+    }
 
 export type listIssuesResponse200 = {
-  data: PaginatedIssuesDto;
-  status: 200;
-};
+  data: PaginatedIssuesDto
+  status: 200
+}
 
-export type listIssuesResponseSuccess = listIssuesResponse200 & {
+export type listIssuesResponseSuccess = (listIssuesResponse200) & {
   headers: Headers;
 };
+;
 
-export type listIssuesResponse = listIssuesResponseSuccess;
+export type listIssuesResponse = (listIssuesResponseSuccess)
 
-export const getListIssuesUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  params?: ListIssuesParams,
-) => {
+export const getListIssuesUrl = (orgSlug: string,
+    projectSlug: string,
+    params?: ListIssuesParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : String(value));
+      normalizedParams.append(key, value === null ? 'null' : String(value))
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/organizations/${orgSlug}/projects/${projectSlug}/issues?${stringifiedParams}`
-    : `/organizations/${orgSlug}/projects/${projectSlug}/issues`;
-};
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/issues?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/issues`
+}
 
-export const listIssues = async (
-  orgSlug: string,
-  projectSlug: string,
-  params?: ListIssuesParams,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listIssuesResponse> => {
-  return orvalFetch<listIssuesResponse>(getListIssuesUrl(orgSlug, projectSlug, params), {
+export const listIssues = async (orgSlug: string,
+    projectSlug: string,
+    params?: ListIssuesParams, options?: Parameters<typeof orvalFetch>[1]): Promise<listIssuesResponse> => {
+
+  return orvalFetch<listIssuesResponse>(getListIssuesUrl(orgSlug,projectSlug,params),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListIssuesQueryKey = (
-  orgSlug: string,
-  projectSlug: string,
-  params?: ListIssuesParams,
+
+  }
+);}
+
+
+
+
+
+export const getListIssuesQueryKey = (orgSlug: string,
+    projectSlug: string,
+    params?: ListIssuesParams,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListIssuesQueryOptions = <TData = Awaited<ReturnType<typeof listIssues>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    params?: ListIssuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return [
-    `/organizations/${orgSlug}/projects/${projectSlug}/issues`,
-    ...(params ? [params] : []),
-  ] as const;
-};
 
-export const getListIssuesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listIssues>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  params?: ListIssuesParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListIssuesQueryKey(orgSlug, projectSlug, params);
+  const queryKey =  queryOptions?.queryKey ?? getListIssuesQueryKey(orgSlug,projectSlug,params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssues>>> = ({ signal }) =>
-    listIssues(orgSlug, projectSlug, params, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListIssuesQueryResult = NonNullable<Awaited<ReturnType<typeof listIssues>>>;
-export type ListIssuesQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssues>>> = ({ signal }) => listIssues(orgSlug,projectSlug,params, { signal, ...requestOptions });
 
-export function useListIssues<
-  TData = Awaited<ReturnType<typeof listIssues>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  params: undefined | ListIssuesParams,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>> &
-      Pick<
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListIssuesQueryResult = NonNullable<Awaited<ReturnType<typeof listIssues>>>
+export type ListIssuesQueryError = ErrorType<unknown>
+
+
+export function useListIssues<TData = Awaited<ReturnType<typeof listIssues>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params: undefined |  ListIssuesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssues>>,
           TError,
           Awaited<ReturnType<typeof listIssues>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssues<
-  TData = Awaited<ReturnType<typeof listIssues>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  params?: ListIssuesParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssues<TData = Awaited<ReturnType<typeof listIssues>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: ListIssuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssues>>,
           TError,
           Awaited<ReturnType<typeof listIssues>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssues<
-  TData = Awaited<ReturnType<typeof listIssues>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  params?: ListIssuesParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssues<TData = Awaited<ReturnType<typeof listIssues>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: ListIssuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListIssues<
-  TData = Awaited<ReturnType<typeof listIssues>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  params?: ListIssuesParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListIssuesQueryOptions(orgSlug, projectSlug, params, options);
+export function useListIssues<TData = Awaited<ReturnType<typeof listIssues>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: ListIssuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListIssuesQueryOptions(orgSlug,projectSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getIssueResponse200 = {
-  data: IssueDetailDto;
-  status: 200;
-};
+  data: IssueDetailDto
+  status: 200
+}
 
-export type getIssueResponseSuccess = getIssueResponse200 & {
+export type getIssueResponseSuccess = (getIssueResponse200) & {
   headers: Headers;
 };
+;
 
-export type getIssueResponse = getIssueResponseSuccess;
+export type getIssueResponse = (getIssueResponseSuccess)
 
-export const getGetIssueUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  params?: GetIssueParams,
-) => {
+export const getGetIssueUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : String(value));
+      normalizedParams.append(key, value === null ? 'null' : String(value))
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}?${stringifiedParams}`
-    : `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}`;
-};
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}`
+}
 
-export const getIssue = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  params?: GetIssueParams,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getIssueResponse> => {
-  return orvalFetch<getIssueResponse>(getGetIssueUrl(orgSlug, projectSlug, issueId, params), {
+export const getIssue = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueParams, options?: Parameters<typeof orvalFetch>[1]): Promise<getIssueResponse> => {
+
+  return orvalFetch<getIssueResponse>(getGetIssueUrl(orgSlug,projectSlug,issueId,params),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetIssueQueryKey = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  params?: GetIssueParams,
+
+  }
+);}
+
+
+
+
+
+export const getGetIssueQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueParams,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetIssueQueryOptions = <TData = Awaited<ReturnType<typeof getIssue>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return [
-    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}`,
-    ...(params ? [params] : []),
-  ] as const;
-};
 
-export const getGetIssueQueryOptions = <
-  TData = Awaited<ReturnType<typeof getIssue>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  params?: GetIssueParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetIssueQueryKey(orgSlug, projectSlug, issueId, params);
+  const queryKey =  queryOptions?.queryKey ?? getGetIssueQueryKey(orgSlug,projectSlug,issueId,params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIssue>>> = ({ signal }) =>
-    getIssue(orgSlug, projectSlug, issueId, params, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined &&
-      issueId !== null &&
-      issueId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetIssueQueryResult = NonNullable<Awaited<ReturnType<typeof getIssue>>>;
-export type GetIssueQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIssue>>> = ({ signal }) => getIssue(orgSlug,projectSlug,issueId,params, { signal, ...requestOptions });
 
-export function useGetIssue<
-  TData = Awaited<ReturnType<typeof getIssue>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  params: undefined | GetIssueParams,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>> &
-      Pick<
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetIssueQueryResult = NonNullable<Awaited<ReturnType<typeof getIssue>>>
+export type GetIssueQueryError = ErrorType<unknown>
+
+
+export function useGetIssue<TData = Awaited<ReturnType<typeof getIssue>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params: undefined |  GetIssueParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getIssue>>,
           TError,
           Awaited<ReturnType<typeof getIssue>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetIssue<
-  TData = Awaited<ReturnType<typeof getIssue>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  params?: GetIssueParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssue<TData = Awaited<ReturnType<typeof getIssue>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getIssue>>,
           TError,
           Awaited<ReturnType<typeof getIssue>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetIssue<
-  TData = Awaited<ReturnType<typeof getIssue>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  params?: GetIssueParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssue<TData = Awaited<ReturnType<typeof getIssue>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetIssue<
-  TData = Awaited<ReturnType<typeof getIssue>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  params?: GetIssueParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetIssueQueryOptions(orgSlug, projectSlug, issueId, params, options);
+export function useGetIssue<TData = Awaited<ReturnType<typeof getIssue>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssue>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetIssueQueryOptions(orgSlug,projectSlug,issueId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type generateIssueTriageResponse200 = {
-  data: IssueTriageDto;
-  status: 200;
-};
+  data: IssueTriageDto
+  status: 200
+}
 
-export type generateIssueTriageResponseSuccess = generateIssueTriageResponse200 & {
+export type generateIssueTriageResponseSuccess = (generateIssueTriageResponse200) & {
   headers: Headers;
 };
+;
 
-export type generateIssueTriageResponse = generateIssueTriageResponseSuccess;
+export type generateIssueTriageResponse = (generateIssueTriageResponseSuccess)
 
-export const getGenerateIssueTriageUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/triage`;
-};
+export const getGenerateIssueTriageUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const generateIssueTriage = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<generateIssueTriageResponse> => {
-  return orvalFetch<generateIssueTriageResponse>(
-    getGenerateIssueTriageUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
-};
 
-export const getGenerateIssueTriageMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof generateIssueTriage>>,
-    TError,
-    { orgSlug: string; projectSlug: string; issueId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof generateIssueTriage>>,
-  TError,
-  { orgSlug: string; projectSlug: string; issueId: string },
-  TContext
-> => {
-  const mutationKey = ["generateIssueTriage"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof generateIssueTriage>>,
-    { orgSlug: string; projectSlug: string; issueId: string }
-  > = (props) => {
-    const { orgSlug, projectSlug, issueId } = props ?? {};
 
-    return generateIssueTriage(orgSlug, projectSlug, issueId, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/triage`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const generateIssueTriage = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<generateIssueTriageResponse> => {
 
-export type GenerateIssueTriageMutationResult = NonNullable<
-  Awaited<ReturnType<typeof generateIssueTriage>>
->;
+  return orvalFetch<generateIssueTriageResponse>(getGenerateIssueTriageUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'POST'
 
-export type GenerateIssueTriageMutationError = ErrorType<unknown>;
 
-export const useGenerateIssueTriage = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof generateIssueTriage>>,
-      TError,
-      { orgSlug: string; projectSlug: string; issueId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof generateIssueTriage>>,
-  TError,
-  { orgSlug: string; projectSlug: string; issueId: string },
-  TContext
-> => {
-  return useMutation(getGenerateIssueTriageMutationOptions(options), queryClient);
-};
+  }
+);}
+
+
+
+
+
+export const getGenerateIssueTriageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateIssueTriage>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateIssueTriage>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext> => {
+
+const mutationKey = ['generateIssueTriage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateIssueTriage>>, {orgSlug: string;projectSlug: string;issueId: string}> = (props) => {
+          const {orgSlug,projectSlug,issueId} = props ?? {};
+
+          return  generateIssueTriage(orgSlug,projectSlug,issueId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateIssueTriageMutationResult = NonNullable<Awaited<ReturnType<typeof generateIssueTriage>>>
+
+    export type GenerateIssueTriageMutationError = ErrorType<unknown>
+
+    export const useGenerateIssueTriage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateIssueTriage>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof generateIssueTriage>>,
+        TError,
+        {orgSlug: string;projectSlug: string;issueId: string},
+        TContext
+      > => {
+      return useMutation(getGenerateIssueTriageMutationOptions(options), queryClient);
+    }
 
 export type listIssueTriageRunsResponse200 = {
-  data: void;
-  status: 200;
-};
+  data: void
+  status: 200
+}
 
-export type listIssueTriageRunsResponseSuccess = listIssueTriageRunsResponse200 & {
+export type listIssueTriageRunsResponseSuccess = (listIssueTriageRunsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listIssueTriageRunsResponse = listIssueTriageRunsResponseSuccess;
+export type listIssueTriageRunsResponse = (listIssueTriageRunsResponseSuccess)
 
-export const getListIssueTriageRunsUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
+export const getListIssueTriageRunsUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/triage`
+}
+
+export const listIssueTriageRuns = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listIssueTriageRunsResponse> => {
+
+  return orvalFetch<listIssueTriageRunsResponse>(getListIssueTriageRunsUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListIssueTriageRunsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/triage`
+    ] as const;
+    }
+
+
+export const getListIssueTriageRunsQueryOptions = <TData = Awaited<ReturnType<typeof listIssueTriageRuns>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/triage`;
-};
 
-export const listIssueTriageRuns = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listIssueTriageRunsResponse> => {
-  return orvalFetch<listIssueTriageRunsResponse>(
-    getListIssueTriageRunsUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-export const getListIssueTriageRunsQueryKey = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/triage`] as const;
-};
+  const queryKey =  queryOptions?.queryKey ?? getListIssueTriageRunsQueryKey(orgSlug,projectSlug,issueId);
 
-export const getListIssueTriageRunsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listIssueTriageRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListIssueTriageRunsQueryKey(orgSlug, projectSlug, issueId);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssueTriageRuns>>> = ({ signal }) =>
-    listIssueTriageRuns(orgSlug, projectSlug, issueId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssueTriageRuns>>> = ({ signal }) => listIssueTriageRuns(orgSlug,projectSlug,issueId, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined &&
-      issueId !== null &&
-      issueId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListIssueTriageRunsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listIssueTriageRuns>>
->;
-export type ListIssueTriageRunsQueryError = ErrorType<unknown>;
 
-export function useListIssueTriageRuns<
-  TData = Awaited<ReturnType<typeof listIssueTriageRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>
-    > &
-      Pick<
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListIssueTriageRunsQueryResult = NonNullable<Awaited<ReturnType<typeof listIssueTriageRuns>>>
+export type ListIssueTriageRunsQueryError = ErrorType<unknown>
+
+
+export function useListIssueTriageRuns<TData = Awaited<ReturnType<typeof listIssueTriageRuns>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssueTriageRuns>>,
           TError,
           Awaited<ReturnType<typeof listIssueTriageRuns>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssueTriageRuns<
-  TData = Awaited<ReturnType<typeof listIssueTriageRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueTriageRuns<TData = Awaited<ReturnType<typeof listIssueTriageRuns>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssueTriageRuns>>,
           TError,
           Awaited<ReturnType<typeof listIssueTriageRuns>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssueTriageRuns<
-  TData = Awaited<ReturnType<typeof listIssueTriageRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueTriageRuns<TData = Awaited<ReturnType<typeof listIssueTriageRuns>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListIssueTriageRuns<
-  TData = Awaited<ReturnType<typeof listIssueTriageRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListIssueTriageRunsQueryOptions(orgSlug, projectSlug, issueId, options);
+export function useListIssueTriageRuns<TData = Awaited<ReturnType<typeof listIssueTriageRuns>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTriageRuns>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListIssueTriageRunsQueryOptions(orgSlug,projectSlug,issueId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getEventResponse200 = {
-  data: EventDto;
-  status: 200;
-};
+  data: EventDto
+  status: 200
+}
 
-export type getEventResponseSuccess = getEventResponse200 & {
+export type getEventResponseSuccess = (getEventResponse200) & {
   headers: Headers;
 };
+;
 
-export type getEventResponse = getEventResponseSuccess;
+export type getEventResponse = (getEventResponseSuccess)
 
-export const getGetEventUrl = (orgSlug: string, projectSlug: string, eventId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/events/${eventId}`;
-};
+export const getGetEventUrl = (orgSlug: string,
+    projectSlug: string,
+    eventId: string,) => {
 
-export const getEvent = async (
-  orgSlug: string,
-  projectSlug: string,
-  eventId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getEventResponse> => {
-  return orvalFetch<getEventResponse>(getGetEventUrl(orgSlug, projectSlug, eventId), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/events/${eventId}`
+}
+
+export const getEvent = async (orgSlug: string,
+    projectSlug: string,
+    eventId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getEventResponse> => {
+
+  return orvalFetch<getEventResponse>(getGetEventUrl(orgSlug,projectSlug,eventId),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetEventQueryKey = (orgSlug: string, projectSlug: string, eventId: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/events/${eventId}`] as const;
-};
 
-export const getGetEventQueryOptions = <
-  TData = Awaited<ReturnType<typeof getEvent>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  eventId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetEventQueryKey = (orgSlug: string,
+    projectSlug: string,
+    eventId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/events/${eventId}`
+    ] as const;
+    }
+
+
+export const getGetEventQueryOptions = <TData = Awaited<ReturnType<typeof getEvent>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    eventId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetEventQueryKey(orgSlug, projectSlug, eventId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getEvent>>> = ({ signal }) =>
-    getEvent(orgSlug, projectSlug, eventId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetEventQueryKey(orgSlug,projectSlug,eventId);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined &&
-      eventId !== null &&
-      eventId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetEventQueryResult = NonNullable<Awaited<ReturnType<typeof getEvent>>>;
-export type GetEventQueryError = ErrorType<unknown>;
 
-export function useGetEvent<
-  TData = Awaited<ReturnType<typeof getEvent>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  eventId: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEvent>>> = ({ signal }) => getEvent(orgSlug,projectSlug,eventId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && eventId !== null && eventId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetEventQueryResult = NonNullable<Awaited<ReturnType<typeof getEvent>>>
+export type GetEventQueryError = ErrorType<unknown>
+
+
+export function useGetEvent<TData = Awaited<ReturnType<typeof getEvent>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    eventId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getEvent>>,
           TError,
           Awaited<ReturnType<typeof getEvent>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetEvent<
-  TData = Awaited<ReturnType<typeof getEvent>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  eventId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetEvent<TData = Awaited<ReturnType<typeof getEvent>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    eventId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getEvent>>,
           TError,
           Awaited<ReturnType<typeof getEvent>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetEvent<
-  TData = Awaited<ReturnType<typeof getEvent>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  eventId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetEvent<TData = Awaited<ReturnType<typeof getEvent>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    eventId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetEvent<
-  TData = Awaited<ReturnType<typeof getEvent>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  eventId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetEventQueryOptions(orgSlug, projectSlug, eventId, options);
+export function useGetEvent<TData = Awaited<ReturnType<typeof getEvent>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    eventId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvent>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetEventQueryOptions(orgSlug,projectSlug,eventId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type updateIssueStatusResponse200 = {
-  data: IssueDto;
-  status: 200;
-};
+  data: IssueDto
+  status: 200
+}
 
-export type updateIssueStatusResponseSuccess = updateIssueStatusResponse200 & {
+export type updateIssueStatusResponseSuccess = (updateIssueStatusResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateIssueStatusResponse = updateIssueStatusResponseSuccess;
+export type updateIssueStatusResponse = (updateIssueStatusResponseSuccess)
 
-export const getUpdateIssueStatusUrl = (orgSlug: string, projectSlug: string, issueId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/status`;
-};
+export const getUpdateIssueStatusUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const updateIssueStatus = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  issueStatusUpdateBodyDto: IssueStatusUpdateBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateIssueStatusResponse> => {
-  return orvalFetch<updateIssueStatusResponse>(
-    getUpdateIssueStatusUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(issueStatusUpdateBodyDto),
-    },
-  );
-};
 
-export const getUpdateIssueStatusMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateIssueStatus>>,
-    TError,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<IssueStatusUpdateBodyDto>;
-    },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateIssueStatus>>,
-  TError,
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/status`
+}
+
+export const updateIssueStatus = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    issueStatusUpdateBodyDto: IssueStatusUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateIssueStatusResponse> => {
+
+  return orvalFetch<updateIssueStatusResponse>(getUpdateIssueStatusUrl(orgSlug,projectSlug,issueId),
   {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<IssueStatusUpdateBodyDto>;
-  },
-  TContext
-> => {
-  const mutationKey = ["updateIssueStatus"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(issueStatusUpdateBodyDto)
+  }
+);}
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateIssueStatus>>,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<IssueStatusUpdateBodyDto>;
+
+
+
+
+export const getUpdateIssueStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>}, TContext> => {
+
+const mutationKey = ['updateIssueStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssueStatus>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,issueId,data} = props ?? {};
+
+          return  updateIssueStatus(orgSlug,projectSlug,issueId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateIssueStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateIssueStatus>>>
+    export type UpdateIssueStatusMutationBody = BodyType<IssueStatusUpdateBodyDto>
+    export type UpdateIssueStatusMutationError = ErrorType<unknown>
+
+    export const useUpdateIssueStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateIssueStatus>>,
+        TError,
+        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateIssueStatusMutationOptions(options), queryClient);
     }
-  > = (props) => {
-    const { orgSlug, projectSlug, issueId, data } = props ?? {};
-
-    return updateIssueStatus(orgSlug, projectSlug, issueId, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateIssueStatusMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateIssueStatus>>
->;
-export type UpdateIssueStatusMutationBody = BodyType<IssueStatusUpdateBodyDto>;
-export type UpdateIssueStatusMutationError = ErrorType<unknown>;
-
-export const useUpdateIssueStatus = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateIssueStatus>>,
-      TError,
-      {
-        orgSlug: string;
-        projectSlug: string;
-        issueId: string;
-        data: BodyType<IssueStatusUpdateBodyDto>;
-      },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateIssueStatus>>,
-  TError,
-  {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<IssueStatusUpdateBodyDto>;
-  },
-  TContext
-> => {
-  return useMutation(getUpdateIssueStatusMutationOptions(options), queryClient);
-};
 
 export type updateIssueAssigneeResponse200 = {
-  data: IssueDto;
-  status: 200;
-};
+  data: IssueDto
+  status: 200
+}
 
-export type updateIssueAssigneeResponseSuccess = updateIssueAssigneeResponse200 & {
+export type updateIssueAssigneeResponseSuccess = (updateIssueAssigneeResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateIssueAssigneeResponse = updateIssueAssigneeResponseSuccess;
+export type updateIssueAssigneeResponse = (updateIssueAssigneeResponseSuccess)
 
-export const getUpdateIssueAssigneeUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/assignee`;
-};
+export const getUpdateIssueAssigneeUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const updateIssueAssignee = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  issueAssigneeUpdateBodyDto: IssueAssigneeUpdateBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateIssueAssigneeResponse> => {
-  return orvalFetch<updateIssueAssigneeResponse>(
-    getUpdateIssueAssigneeUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(issueAssigneeUpdateBodyDto),
-    },
-  );
-};
 
-export const getUpdateIssueAssigneeMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateIssueAssignee>>,
-    TError,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<IssueAssigneeUpdateBodyDto>;
-    },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateIssueAssignee>>,
-  TError,
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/assignee`
+}
+
+export const updateIssueAssignee = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    issueAssigneeUpdateBodyDto: IssueAssigneeUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateIssueAssigneeResponse> => {
+
+  return orvalFetch<updateIssueAssigneeResponse>(getUpdateIssueAssigneeUrl(orgSlug,projectSlug,issueId),
   {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<IssueAssigneeUpdateBodyDto>;
-  },
-  TContext
-> => {
-  const mutationKey = ["updateIssueAssignee"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(issueAssigneeUpdateBodyDto)
+  }
+);}
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateIssueAssignee>>,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<IssueAssigneeUpdateBodyDto>;
+
+
+
+
+export const getUpdateIssueAssigneeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>}, TContext> => {
+
+const mutationKey = ['updateIssueAssignee'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssueAssignee>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,issueId,data} = props ?? {};
+
+          return  updateIssueAssignee(orgSlug,projectSlug,issueId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateIssueAssigneeMutationResult = NonNullable<Awaited<ReturnType<typeof updateIssueAssignee>>>
+    export type UpdateIssueAssigneeMutationBody = BodyType<IssueAssigneeUpdateBodyDto>
+    export type UpdateIssueAssigneeMutationError = ErrorType<unknown>
+
+    export const useUpdateIssueAssignee = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateIssueAssignee>>,
+        TError,
+        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateIssueAssigneeMutationOptions(options), queryClient);
     }
-  > = (props) => {
-    const { orgSlug, projectSlug, issueId, data } = props ?? {};
-
-    return updateIssueAssignee(orgSlug, projectSlug, issueId, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateIssueAssigneeMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateIssueAssignee>>
->;
-export type UpdateIssueAssigneeMutationBody = BodyType<IssueAssigneeUpdateBodyDto>;
-export type UpdateIssueAssigneeMutationError = ErrorType<unknown>;
-
-export const useUpdateIssueAssignee = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateIssueAssignee>>,
-      TError,
-      {
-        orgSlug: string;
-        projectSlug: string;
-        issueId: string;
-        data: BodyType<IssueAssigneeUpdateBodyDto>;
-      },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateIssueAssignee>>,
-  TError,
-  {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<IssueAssigneeUpdateBodyDto>;
-  },
-  TContext
-> => {
-  return useMutation(getUpdateIssueAssigneeMutationOptions(options), queryClient);
-};
 
 export type updateIssuePriorityResponse200 = {
-  data: IssueDto;
-  status: 200;
-};
+  data: IssueDto
+  status: 200
+}
 
-export type updateIssuePriorityResponseSuccess = updateIssuePriorityResponse200 & {
+export type updateIssuePriorityResponseSuccess = (updateIssuePriorityResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateIssuePriorityResponse = updateIssuePriorityResponseSuccess;
+export type updateIssuePriorityResponse = (updateIssuePriorityResponseSuccess)
 
-export const getUpdateIssuePriorityUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/priority`;
-};
+export const getUpdateIssuePriorityUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const updateIssuePriority = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  issuePriorityUpdateBodyDto: IssuePriorityUpdateBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateIssuePriorityResponse> => {
-  return orvalFetch<updateIssuePriorityResponse>(
-    getUpdateIssuePriorityUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(issuePriorityUpdateBodyDto),
-    },
-  );
-};
 
-export const getUpdateIssuePriorityMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateIssuePriority>>,
-    TError,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<IssuePriorityUpdateBodyDto>;
-    },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateIssuePriority>>,
-  TError,
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/priority`
+}
+
+export const updateIssuePriority = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    issuePriorityUpdateBodyDto: IssuePriorityUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateIssuePriorityResponse> => {
+
+  return orvalFetch<updateIssuePriorityResponse>(getUpdateIssuePriorityUrl(orgSlug,projectSlug,issueId),
   {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<IssuePriorityUpdateBodyDto>;
-  },
-  TContext
-> => {
-  const mutationKey = ["updateIssuePriority"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(issuePriorityUpdateBodyDto)
+  }
+);}
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateIssuePriority>>,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<IssuePriorityUpdateBodyDto>;
+
+
+
+
+export const getUpdateIssuePriorityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>}, TContext> => {
+
+const mutationKey = ['updateIssuePriority'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssuePriority>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,issueId,data} = props ?? {};
+
+          return  updateIssuePriority(orgSlug,projectSlug,issueId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateIssuePriorityMutationResult = NonNullable<Awaited<ReturnType<typeof updateIssuePriority>>>
+    export type UpdateIssuePriorityMutationBody = BodyType<IssuePriorityUpdateBodyDto>
+    export type UpdateIssuePriorityMutationError = ErrorType<unknown>
+
+    export const useUpdateIssuePriority = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateIssuePriority>>,
+        TError,
+        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateIssuePriorityMutationOptions(options), queryClient);
     }
-  > = (props) => {
-    const { orgSlug, projectSlug, issueId, data } = props ?? {};
-
-    return updateIssuePriority(orgSlug, projectSlug, issueId, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateIssuePriorityMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateIssuePriority>>
->;
-export type UpdateIssuePriorityMutationBody = BodyType<IssuePriorityUpdateBodyDto>;
-export type UpdateIssuePriorityMutationError = ErrorType<unknown>;
-
-export const useUpdateIssuePriority = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateIssuePriority>>,
-      TError,
-      {
-        orgSlug: string;
-        projectSlug: string;
-        issueId: string;
-        data: BodyType<IssuePriorityUpdateBodyDto>;
-      },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateIssuePriority>>,
-  TError,
-  {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<IssuePriorityUpdateBodyDto>;
-  },
-  TContext
-> => {
-  return useMutation(getUpdateIssuePriorityMutationOptions(options), queryClient);
-};
 
 export type updateIssueExternalLinkResponse200 = {
-  data: IssueDto;
-  status: 200;
-};
+  data: IssueDto
+  status: 200
+}
 
-export type updateIssueExternalLinkResponseSuccess = updateIssueExternalLinkResponse200 & {
+export type updateIssueExternalLinkResponseSuccess = (updateIssueExternalLinkResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateIssueExternalLinkResponse = updateIssueExternalLinkResponseSuccess;
+export type updateIssueExternalLinkResponse = (updateIssueExternalLinkResponseSuccess)
 
-export const getUpdateIssueExternalLinkUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/external-link`;
-};
+export const getUpdateIssueExternalLinkUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const updateIssueExternalLink = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  issueExternalLinkBodyDto: IssueExternalLinkBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateIssueExternalLinkResponse> => {
-  return orvalFetch<updateIssueExternalLinkResponse>(
-    getUpdateIssueExternalLinkUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(issueExternalLinkBodyDto),
-    },
-  );
-};
 
-export const getUpdateIssueExternalLinkMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateIssueExternalLink>>,
-    TError,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<IssueExternalLinkBodyDto>;
-    },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateIssueExternalLink>>,
-  TError,
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/external-link`
+}
+
+export const updateIssueExternalLink = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    issueExternalLinkBodyDto: IssueExternalLinkBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateIssueExternalLinkResponse> => {
+
+  return orvalFetch<updateIssueExternalLinkResponse>(getUpdateIssueExternalLinkUrl(orgSlug,projectSlug,issueId),
   {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<IssueExternalLinkBodyDto>;
-  },
-  TContext
-> => {
-  const mutationKey = ["updateIssueExternalLink"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(issueExternalLinkBodyDto)
+  }
+);}
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateIssueExternalLink>>,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<IssueExternalLinkBodyDto>;
+
+
+
+
+export const getUpdateIssueExternalLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueExternalLink>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateIssueExternalLink>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>}, TContext> => {
+
+const mutationKey = ['updateIssueExternalLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssueExternalLink>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,issueId,data} = props ?? {};
+
+          return  updateIssueExternalLink(orgSlug,projectSlug,issueId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateIssueExternalLinkMutationResult = NonNullable<Awaited<ReturnType<typeof updateIssueExternalLink>>>
+    export type UpdateIssueExternalLinkMutationBody = BodyType<IssueExternalLinkBodyDto>
+    export type UpdateIssueExternalLinkMutationError = ErrorType<unknown>
+
+    export const useUpdateIssueExternalLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueExternalLink>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateIssueExternalLink>>,
+        TError,
+        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateIssueExternalLinkMutationOptions(options), queryClient);
     }
-  > = (props) => {
-    const { orgSlug, projectSlug, issueId, data } = props ?? {};
-
-    return updateIssueExternalLink(orgSlug, projectSlug, issueId, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateIssueExternalLinkMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateIssueExternalLink>>
->;
-export type UpdateIssueExternalLinkMutationBody = BodyType<IssueExternalLinkBodyDto>;
-export type UpdateIssueExternalLinkMutationError = ErrorType<unknown>;
-
-export const useUpdateIssueExternalLink = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateIssueExternalLink>>,
-      TError,
-      {
-        orgSlug: string;
-        projectSlug: string;
-        issueId: string;
-        data: BodyType<IssueExternalLinkBodyDto>;
-      },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateIssueExternalLink>>,
-  TError,
-  {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<IssueExternalLinkBodyDto>;
-  },
-  TContext
-> => {
-  return useMutation(getUpdateIssueExternalLinkMutationOptions(options), queryClient);
-};
 
 export type mergeIssueResponse200 = {
-  data: IssueDto;
-  status: 200;
-};
+  data: IssueDto
+  status: 200
+}
 
-export type mergeIssueResponseSuccess = mergeIssueResponse200 & {
+export type mergeIssueResponseSuccess = (mergeIssueResponse200) & {
   headers: Headers;
 };
+;
 
-export type mergeIssueResponse = mergeIssueResponseSuccess;
+export type mergeIssueResponse = (mergeIssueResponseSuccess)
 
-export const getMergeIssueUrl = (orgSlug: string, projectSlug: string, issueId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/merge`;
-};
+export const getMergeIssueUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const mergeIssue = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  mergeIssueBodyDto: MergeIssueBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<mergeIssueResponse> => {
-  return orvalFetch<mergeIssueResponse>(getMergeIssueUrl(orgSlug, projectSlug, issueId), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/merge`
+}
+
+export const mergeIssue = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    mergeIssueBodyDto: MergeIssueBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<mergeIssueResponse> => {
+
+  return orvalFetch<mergeIssueResponse>(getMergeIssueUrl(orgSlug,projectSlug,issueId),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(mergeIssueBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(mergeIssueBodyDto)
+  }
+);}
 
-export const getMergeIssueMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof mergeIssue>>,
-    TError,
-    { orgSlug: string; projectSlug: string; issueId: string; data: BodyType<MergeIssueBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof mergeIssue>>,
-  TError,
-  { orgSlug: string; projectSlug: string; issueId: string; data: BodyType<MergeIssueBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["mergeIssue"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof mergeIssue>>,
-    { orgSlug: string; projectSlug: string; issueId: string; data: BodyType<MergeIssueBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, issueId, data } = props ?? {};
 
-    return mergeIssue(orgSlug, projectSlug, issueId, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type MergeIssueMutationResult = NonNullable<Awaited<ReturnType<typeof mergeIssue>>>;
-export type MergeIssueMutationBody = BodyType<MergeIssueBodyDto>;
-export type MergeIssueMutationError = ErrorType<unknown>;
+export const getMergeIssueMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof mergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof mergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>}, TContext> => {
 
-export const useMergeIssue = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof mergeIssue>>,
-      TError,
-      { orgSlug: string; projectSlug: string; issueId: string; data: BodyType<MergeIssueBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof mergeIssue>>,
-  TError,
-  { orgSlug: string; projectSlug: string; issueId: string; data: BodyType<MergeIssueBodyDto> },
-  TContext
-> => {
-  return useMutation(getMergeIssueMutationOptions(options), queryClient);
-};
+const mutationKey = ['mergeIssue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof mergeIssue>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,issueId,data} = props ?? {};
+
+          return  mergeIssue(orgSlug,projectSlug,issueId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MergeIssueMutationResult = NonNullable<Awaited<ReturnType<typeof mergeIssue>>>
+    export type MergeIssueMutationBody = BodyType<MergeIssueBodyDto>
+    export type MergeIssueMutationError = ErrorType<unknown>
+
+    export const useMergeIssue = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof mergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof mergeIssue>>,
+        TError,
+        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>},
+        TContext
+      > => {
+      return useMutation(getMergeIssueMutationOptions(options), queryClient);
+    }
 
 export type unmergeIssueResponse200 = {
-  data: IssueDto;
-  status: 200;
-};
+  data: IssueDto
+  status: 200
+}
 
-export type unmergeIssueResponseSuccess = unmergeIssueResponse200 & {
+export type unmergeIssueResponseSuccess = (unmergeIssueResponse200) & {
   headers: Headers;
 };
+;
 
-export type unmergeIssueResponse = unmergeIssueResponseSuccess;
+export type unmergeIssueResponse = (unmergeIssueResponseSuccess)
 
-export const getUnmergeIssueUrl = (orgSlug: string, projectSlug: string, issueId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/unmerge`;
-};
+export const getUnmergeIssueUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const unmergeIssue = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<unmergeIssueResponse> => {
-  return orvalFetch<unmergeIssueResponse>(getUnmergeIssueUrl(orgSlug, projectSlug, issueId), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/unmerge`
+}
+
+export const unmergeIssue = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<unmergeIssueResponse> => {
+
+  return orvalFetch<unmergeIssueResponse>(getUnmergeIssueUrl(orgSlug,projectSlug,issueId),
+  {
     ...options,
-    method: "POST",
-  });
-};
+    method: 'POST'
 
-export const getUnmergeIssueMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof unmergeIssue>>,
-    TError,
-    { orgSlug: string; projectSlug: string; issueId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof unmergeIssue>>,
-  TError,
-  { orgSlug: string; projectSlug: string; issueId: string },
-  TContext
-> => {
-  const mutationKey = ["unmergeIssue"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof unmergeIssue>>,
-    { orgSlug: string; projectSlug: string; issueId: string }
-  > = (props) => {
-    const { orgSlug, projectSlug, issueId } = props ?? {};
+  }
+);}
 
-    return unmergeIssue(orgSlug, projectSlug, issueId, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type UnmergeIssueMutationResult = NonNullable<Awaited<ReturnType<typeof unmergeIssue>>>;
 
-export type UnmergeIssueMutationError = ErrorType<unknown>;
 
-export const useUnmergeIssue = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof unmergeIssue>>,
-      TError,
-      { orgSlug: string; projectSlug: string; issueId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof unmergeIssue>>,
-  TError,
-  { orgSlug: string; projectSlug: string; issueId: string },
-  TContext
-> => {
-  return useMutation(getUnmergeIssueMutationOptions(options), queryClient);
-};
+export const getUnmergeIssueMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unmergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext> => {
+
+const mutationKey = ['unmergeIssue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unmergeIssue>>, {orgSlug: string;projectSlug: string;issueId: string}> = (props) => {
+          const {orgSlug,projectSlug,issueId} = props ?? {};
+
+          return  unmergeIssue(orgSlug,projectSlug,issueId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnmergeIssueMutationResult = NonNullable<Awaited<ReturnType<typeof unmergeIssue>>>
+
+    export type UnmergeIssueMutationError = ErrorType<unknown>
+
+    export const useUnmergeIssue = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unmergeIssue>>,
+        TError,
+        {orgSlug: string;projectSlug: string;issueId: string},
+        TContext
+      > => {
+      return useMutation(getUnmergeIssueMutationOptions(options), queryClient);
+    }
 
 export type bulkUpdateIssueStatusResponse200 = {
-  data: BulkOperationResultDto;
-  status: 200;
-};
+  data: BulkOperationResultDto
+  status: 200
+}
 
-export type bulkUpdateIssueStatusResponseSuccess = bulkUpdateIssueStatusResponse200 & {
+export type bulkUpdateIssueStatusResponseSuccess = (bulkUpdateIssueStatusResponse200) & {
   headers: Headers;
 };
+;
 
-export type bulkUpdateIssueStatusResponse = bulkUpdateIssueStatusResponseSuccess;
+export type bulkUpdateIssueStatusResponse = (bulkUpdateIssueStatusResponseSuccess)
 
-export const getBulkUpdateIssueStatusUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/actions/status`;
-};
+export const getBulkUpdateIssueStatusUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const bulkUpdateIssueStatus = async (
-  orgSlug: string,
-  projectSlug: string,
-  bulkIssueStatusUpdateBodyDto: BulkIssueStatusUpdateBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<bulkUpdateIssueStatusResponse> => {
-  return orvalFetch<bulkUpdateIssueStatusResponse>(
-    getBulkUpdateIssueStatusUrl(orgSlug, projectSlug),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(bulkIssueStatusUpdateBodyDto),
-    },
-  );
-};
 
-export const getBulkUpdateIssueStatusMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof bulkUpdateIssueStatus>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueStatusUpdateBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof bulkUpdateIssueStatus>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueStatusUpdateBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["bulkUpdateIssueStatus"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof bulkUpdateIssueStatus>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueStatusUpdateBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return bulkUpdateIssueStatus(orgSlug, projectSlug, data, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/actions/status`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const bulkUpdateIssueStatus = async (orgSlug: string,
+    projectSlug: string,
+    bulkIssueStatusUpdateBodyDto: BulkIssueStatusUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<bulkUpdateIssueStatusResponse> => {
 
-export type BulkUpdateIssueStatusMutationResult = NonNullable<
-  Awaited<ReturnType<typeof bulkUpdateIssueStatus>>
->;
-export type BulkUpdateIssueStatusMutationBody = BodyType<BulkIssueStatusUpdateBodyDto>;
-export type BulkUpdateIssueStatusMutationError = ErrorType<unknown>;
+  return orvalFetch<bulkUpdateIssueStatusResponse>(getBulkUpdateIssueStatusUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkIssueStatusUpdateBodyDto)
+  }
+);}
 
-export const useBulkUpdateIssueStatus = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof bulkUpdateIssueStatus>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueStatusUpdateBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof bulkUpdateIssueStatus>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueStatusUpdateBodyDto> },
-  TContext
-> => {
-  return useMutation(getBulkUpdateIssueStatusMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getBulkUpdateIssueStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>}, TContext> => {
+
+const mutationKey = ['bulkUpdateIssueStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  bulkUpdateIssueStatus(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkUpdateIssueStatusMutationResult = NonNullable<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>>
+    export type BulkUpdateIssueStatusMutationBody = BodyType<BulkIssueStatusUpdateBodyDto>
+    export type BulkUpdateIssueStatusMutationError = ErrorType<unknown>
+
+    export const useBulkUpdateIssueStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bulkUpdateIssueStatus>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>},
+        TContext
+      > => {
+      return useMutation(getBulkUpdateIssueStatusMutationOptions(options), queryClient);
+    }
 
 export type bulkUpdateIssuePriorityResponse200 = {
-  data: BulkOperationResultDto;
-  status: 200;
-};
+  data: BulkOperationResultDto
+  status: 200
+}
 
-export type bulkUpdateIssuePriorityResponseSuccess = bulkUpdateIssuePriorityResponse200 & {
+export type bulkUpdateIssuePriorityResponseSuccess = (bulkUpdateIssuePriorityResponse200) & {
   headers: Headers;
 };
+;
 
-export type bulkUpdateIssuePriorityResponse = bulkUpdateIssuePriorityResponseSuccess;
+export type bulkUpdateIssuePriorityResponse = (bulkUpdateIssuePriorityResponseSuccess)
 
-export const getBulkUpdateIssuePriorityUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/actions/priority`;
-};
+export const getBulkUpdateIssuePriorityUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const bulkUpdateIssuePriority = async (
-  orgSlug: string,
-  projectSlug: string,
-  bulkIssuePriorityUpdateBodyDto: BulkIssuePriorityUpdateBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<bulkUpdateIssuePriorityResponse> => {
-  return orvalFetch<bulkUpdateIssuePriorityResponse>(
-    getBulkUpdateIssuePriorityUrl(orgSlug, projectSlug),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(bulkIssuePriorityUpdateBodyDto),
-    },
-  );
-};
 
-export const getBulkUpdateIssuePriorityMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof bulkUpdateIssuePriority>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<BulkIssuePriorityUpdateBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof bulkUpdateIssuePriority>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<BulkIssuePriorityUpdateBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["bulkUpdateIssuePriority"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof bulkUpdateIssuePriority>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<BulkIssuePriorityUpdateBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return bulkUpdateIssuePriority(orgSlug, projectSlug, data, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/actions/priority`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const bulkUpdateIssuePriority = async (orgSlug: string,
+    projectSlug: string,
+    bulkIssuePriorityUpdateBodyDto: BulkIssuePriorityUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<bulkUpdateIssuePriorityResponse> => {
 
-export type BulkUpdateIssuePriorityMutationResult = NonNullable<
-  Awaited<ReturnType<typeof bulkUpdateIssuePriority>>
->;
-export type BulkUpdateIssuePriorityMutationBody = BodyType<BulkIssuePriorityUpdateBodyDto>;
-export type BulkUpdateIssuePriorityMutationError = ErrorType<unknown>;
+  return orvalFetch<bulkUpdateIssuePriorityResponse>(getBulkUpdateIssuePriorityUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkIssuePriorityUpdateBodyDto)
+  }
+);}
 
-export const useBulkUpdateIssuePriority = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof bulkUpdateIssuePriority>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<BulkIssuePriorityUpdateBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof bulkUpdateIssuePriority>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<BulkIssuePriorityUpdateBodyDto> },
-  TContext
-> => {
-  return useMutation(getBulkUpdateIssuePriorityMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getBulkUpdateIssuePriorityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>}, TContext> => {
+
+const mutationKey = ['bulkUpdateIssuePriority'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, {orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  bulkUpdateIssuePriority(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkUpdateIssuePriorityMutationResult = NonNullable<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>>
+    export type BulkUpdateIssuePriorityMutationBody = BodyType<BulkIssuePriorityUpdateBodyDto>
+    export type BulkUpdateIssuePriorityMutationError = ErrorType<unknown>
+
+    export const useBulkUpdateIssuePriority = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bulkUpdateIssuePriority>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>},
+        TContext
+      > => {
+      return useMutation(getBulkUpdateIssuePriorityMutationOptions(options), queryClient);
+    }
 
 export type bulkUpdateIssueAssigneeResponse200 = {
-  data: BulkOperationResultDto;
-  status: 200;
-};
+  data: BulkOperationResultDto
+  status: 200
+}
 
-export type bulkUpdateIssueAssigneeResponseSuccess = bulkUpdateIssueAssigneeResponse200 & {
+export type bulkUpdateIssueAssigneeResponseSuccess = (bulkUpdateIssueAssigneeResponse200) & {
   headers: Headers;
 };
+;
 
-export type bulkUpdateIssueAssigneeResponse = bulkUpdateIssueAssigneeResponseSuccess;
+export type bulkUpdateIssueAssigneeResponse = (bulkUpdateIssueAssigneeResponseSuccess)
 
-export const getBulkUpdateIssueAssigneeUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/actions/assignee`;
-};
+export const getBulkUpdateIssueAssigneeUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const bulkUpdateIssueAssignee = async (
-  orgSlug: string,
-  projectSlug: string,
-  bulkIssueAssigneeUpdateBodyDto: BulkIssueAssigneeUpdateBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<bulkUpdateIssueAssigneeResponse> => {
-  return orvalFetch<bulkUpdateIssueAssigneeResponse>(
-    getBulkUpdateIssueAssigneeUrl(orgSlug, projectSlug),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(bulkIssueAssigneeUpdateBodyDto),
-    },
-  );
-};
 
-export const getBulkUpdateIssueAssigneeMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueAssigneeUpdateBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueAssigneeUpdateBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["bulkUpdateIssueAssignee"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueAssigneeUpdateBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return bulkUpdateIssueAssignee(orgSlug, projectSlug, data, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/actions/assignee`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const bulkUpdateIssueAssignee = async (orgSlug: string,
+    projectSlug: string,
+    bulkIssueAssigneeUpdateBodyDto: BulkIssueAssigneeUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<bulkUpdateIssueAssigneeResponse> => {
 
-export type BulkUpdateIssueAssigneeMutationResult = NonNullable<
-  Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>
->;
-export type BulkUpdateIssueAssigneeMutationBody = BodyType<BulkIssueAssigneeUpdateBodyDto>;
-export type BulkUpdateIssueAssigneeMutationError = ErrorType<unknown>;
+  return orvalFetch<bulkUpdateIssueAssigneeResponse>(getBulkUpdateIssueAssigneeUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkIssueAssigneeUpdateBodyDto)
+  }
+);}
 
-export const useBulkUpdateIssueAssignee = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueAssigneeUpdateBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<BulkIssueAssigneeUpdateBodyDto> },
-  TContext
-> => {
-  return useMutation(getBulkUpdateIssueAssigneeMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getBulkUpdateIssueAssigneeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>}, TContext> => {
+
+const mutationKey = ['bulkUpdateIssueAssignee'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  bulkUpdateIssueAssignee(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkUpdateIssueAssigneeMutationResult = NonNullable<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>>
+    export type BulkUpdateIssueAssigneeMutationBody = BodyType<BulkIssueAssigneeUpdateBodyDto>
+    export type BulkUpdateIssueAssigneeMutationError = ErrorType<unknown>
+
+    export const useBulkUpdateIssueAssignee = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>},
+        TContext
+      > => {
+      return useMutation(getBulkUpdateIssueAssigneeMutationOptions(options), queryClient);
+    }
 
 export type listIssueCommentsResponse200 = {
-  data: IssueCommentDto[];
-  status: 200;
-};
+  data: IssueCommentDto[]
+  status: 200
+}
 
-export type listIssueCommentsResponseSuccess = listIssueCommentsResponse200 & {
+export type listIssueCommentsResponseSuccess = (listIssueCommentsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listIssueCommentsResponse = listIssueCommentsResponseSuccess;
+export type listIssueCommentsResponse = (listIssueCommentsResponseSuccess)
 
-export const getListIssueCommentsUrl = (orgSlug: string, projectSlug: string, issueId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/comments`;
-};
+export const getListIssueCommentsUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const listIssueComments = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listIssueCommentsResponse> => {
-  return orvalFetch<listIssueCommentsResponse>(
-    getListIssueCommentsUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getListIssueCommentsQueryKey = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/comments`
+}
+
+export const listIssueComments = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listIssueCommentsResponse> => {
+
+  return orvalFetch<listIssueCommentsResponse>(getListIssueCommentsUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListIssueCommentsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/comments`
+    ] as const;
+    }
+
+
+export const getListIssueCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listIssueComments>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/comments`] as const;
-};
 
-export const getListIssueCommentsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listIssueComments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListIssueCommentsQueryKey(orgSlug, projectSlug, issueId);
+  const queryKey =  queryOptions?.queryKey ?? getListIssueCommentsQueryKey(orgSlug,projectSlug,issueId);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssueComments>>> = ({ signal }) =>
-    listIssueComments(orgSlug, projectSlug, issueId, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined &&
-      issueId !== null &&
-      issueId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListIssueCommentsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listIssueComments>>
->;
-export type ListIssueCommentsQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssueComments>>> = ({ signal }) => listIssueComments(orgSlug,projectSlug,issueId, { signal, ...requestOptions });
 
-export function useListIssueComments<
-  TData = Awaited<ReturnType<typeof listIssueComments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>> &
-      Pick<
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListIssueCommentsQueryResult = NonNullable<Awaited<ReturnType<typeof listIssueComments>>>
+export type ListIssueCommentsQueryError = ErrorType<unknown>
+
+
+export function useListIssueComments<TData = Awaited<ReturnType<typeof listIssueComments>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssueComments>>,
           TError,
           Awaited<ReturnType<typeof listIssueComments>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssueComments<
-  TData = Awaited<ReturnType<typeof listIssueComments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueComments<TData = Awaited<ReturnType<typeof listIssueComments>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssueComments>>,
           TError,
           Awaited<ReturnType<typeof listIssueComments>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssueComments<
-  TData = Awaited<ReturnType<typeof listIssueComments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueComments<TData = Awaited<ReturnType<typeof listIssueComments>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListIssueComments<
-  TData = Awaited<ReturnType<typeof listIssueComments>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListIssueCommentsQueryOptions(orgSlug, projectSlug, issueId, options);
+export function useListIssueComments<TData = Awaited<ReturnType<typeof listIssueComments>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueComments>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListIssueCommentsQueryOptions(orgSlug,projectSlug,issueId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createIssueCommentResponse200 = {
-  data: IssueCommentDto;
-  status: 200;
-};
+  data: IssueCommentDto
+  status: 200
+}
 
-export type createIssueCommentResponseSuccess = createIssueCommentResponse200 & {
+export type createIssueCommentResponseSuccess = (createIssueCommentResponse200) & {
   headers: Headers;
 };
+;
 
-export type createIssueCommentResponse = createIssueCommentResponseSuccess;
+export type createIssueCommentResponse = (createIssueCommentResponseSuccess)
 
-export const getCreateIssueCommentUrl = (orgSlug: string, projectSlug: string, issueId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/comments`;
-};
+export const getCreateIssueCommentUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const createIssueComment = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  createIssueCommentBodyDto: CreateIssueCommentBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createIssueCommentResponse> => {
-  return orvalFetch<createIssueCommentResponse>(
-    getCreateIssueCommentUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createIssueCommentBodyDto),
-    },
-  );
-};
 
-export const getCreateIssueCommentMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createIssueComment>>,
-    TError,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<CreateIssueCommentBodyDto>;
-    },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createIssueComment>>,
-  TError,
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/comments`
+}
+
+export const createIssueComment = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    createIssueCommentBodyDto: CreateIssueCommentBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createIssueCommentResponse> => {
+
+  return orvalFetch<createIssueCommentResponse>(getCreateIssueCommentUrl(orgSlug,projectSlug,issueId),
   {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<CreateIssueCommentBodyDto>;
-  },
-  TContext
-> => {
-  const mutationKey = ["createIssueComment"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createIssueCommentBodyDto)
+  }
+);}
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createIssueComment>>,
-    {
-      orgSlug: string;
-      projectSlug: string;
-      issueId: string;
-      data: BodyType<CreateIssueCommentBodyDto>;
+
+
+
+
+export const getCreateIssueCommentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIssueComment>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createIssueComment>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>}, TContext> => {
+
+const mutationKey = ['createIssueComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createIssueComment>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,issueId,data} = props ?? {};
+
+          return  createIssueComment(orgSlug,projectSlug,issueId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateIssueCommentMutationResult = NonNullable<Awaited<ReturnType<typeof createIssueComment>>>
+    export type CreateIssueCommentMutationBody = BodyType<CreateIssueCommentBodyDto>
+    export type CreateIssueCommentMutationError = ErrorType<unknown>
+
+    export const useCreateIssueComment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIssueComment>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createIssueComment>>,
+        TError,
+        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateIssueCommentMutationOptions(options), queryClient);
     }
-  > = (props) => {
-    const { orgSlug, projectSlug, issueId, data } = props ?? {};
-
-    return createIssueComment(orgSlug, projectSlug, issueId, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type CreateIssueCommentMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createIssueComment>>
->;
-export type CreateIssueCommentMutationBody = BodyType<CreateIssueCommentBodyDto>;
-export type CreateIssueCommentMutationError = ErrorType<unknown>;
-
-export const useCreateIssueComment = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createIssueComment>>,
-      TError,
-      {
-        orgSlug: string;
-        projectSlug: string;
-        issueId: string;
-        data: BodyType<CreateIssueCommentBodyDto>;
-      },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createIssueComment>>,
-  TError,
-  {
-    orgSlug: string;
-    projectSlug: string;
-    issueId: string;
-    data: BodyType<CreateIssueCommentBodyDto>;
-  },
-  TContext
-> => {
-  return useMutation(getCreateIssueCommentMutationOptions(options), queryClient);
-};
 
 export type listIssueActivityResponse200 = {
-  data: IssueActivityDto[];
-  status: 200;
-};
+  data: IssueActivityDto[]
+  status: 200
+}
 
-export type listIssueActivityResponseSuccess = listIssueActivityResponse200 & {
+export type listIssueActivityResponseSuccess = (listIssueActivityResponse200) & {
   headers: Headers;
 };
+;
 
-export type listIssueActivityResponse = listIssueActivityResponseSuccess;
+export type listIssueActivityResponse = (listIssueActivityResponseSuccess)
 
-export const getListIssueActivityUrl = (orgSlug: string, projectSlug: string, issueId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/activity`;
-};
+export const getListIssueActivityUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const listIssueActivity = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listIssueActivityResponse> => {
-  return orvalFetch<listIssueActivityResponse>(
-    getListIssueActivityUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getListIssueActivityQueryKey = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/activity`
+}
+
+export const listIssueActivity = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listIssueActivityResponse> => {
+
+  return orvalFetch<listIssueActivityResponse>(getListIssueActivityUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListIssueActivityQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/activity`
+    ] as const;
+    }
+
+
+export const getListIssueActivityQueryOptions = <TData = Awaited<ReturnType<typeof listIssueActivity>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/activity`] as const;
-};
 
-export const getListIssueActivityQueryOptions = <
-  TData = Awaited<ReturnType<typeof listIssueActivity>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListIssueActivityQueryKey(orgSlug, projectSlug, issueId);
+  const queryKey =  queryOptions?.queryKey ?? getListIssueActivityQueryKey(orgSlug,projectSlug,issueId);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssueActivity>>> = ({ signal }) =>
-    listIssueActivity(orgSlug, projectSlug, issueId, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined &&
-      issueId !== null &&
-      issueId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListIssueActivityQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listIssueActivity>>
->;
-export type ListIssueActivityQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssueActivity>>> = ({ signal }) => listIssueActivity(orgSlug,projectSlug,issueId, { signal, ...requestOptions });
 
-export function useListIssueActivity<
-  TData = Awaited<ReturnType<typeof listIssueActivity>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>> &
-      Pick<
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListIssueActivityQueryResult = NonNullable<Awaited<ReturnType<typeof listIssueActivity>>>
+export type ListIssueActivityQueryError = ErrorType<unknown>
+
+
+export function useListIssueActivity<TData = Awaited<ReturnType<typeof listIssueActivity>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssueActivity>>,
           TError,
           Awaited<ReturnType<typeof listIssueActivity>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssueActivity<
-  TData = Awaited<ReturnType<typeof listIssueActivity>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueActivity<TData = Awaited<ReturnType<typeof listIssueActivity>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssueActivity>>,
           TError,
           Awaited<ReturnType<typeof listIssueActivity>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssueActivity<
-  TData = Awaited<ReturnType<typeof listIssueActivity>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueActivity<TData = Awaited<ReturnType<typeof listIssueActivity>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListIssueActivity<
-  TData = Awaited<ReturnType<typeof listIssueActivity>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListIssueActivityQueryOptions(orgSlug, projectSlug, issueId, options);
+export function useListIssueActivity<TData = Awaited<ReturnType<typeof listIssueActivity>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueActivity>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListIssueActivityQueryOptions(orgSlug,projectSlug,issueId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getAutofixConfigResponse200 = {
-  data: AutofixConfigDto;
-  status: 200;
-};
+  data: AutofixConfigDto
+  status: 200
+}
 
-export type getAutofixConfigResponseSuccess = getAutofixConfigResponse200 & {
+export type getAutofixConfigResponseSuccess = (getAutofixConfigResponse200) & {
   headers: Headers;
 };
+;
 
-export type getAutofixConfigResponse = getAutofixConfigResponseSuccess;
+export type getAutofixConfigResponse = (getAutofixConfigResponseSuccess)
 
-export const getGetAutofixConfigUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/config`;
-};
+export const getGetAutofixConfigUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const getAutofixConfig = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getAutofixConfigResponse> => {
-  return orvalFetch<getAutofixConfigResponse>(getGetAutofixConfigUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/config`
+}
+
+export const getAutofixConfig = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getAutofixConfigResponse> => {
+
+  return orvalFetch<getAutofixConfigResponse>(getGetAutofixConfigUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetAutofixConfigQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/autofix/config`] as const;
-};
 
-export const getGetAutofixConfigQueryOptions = <
-  TData = Awaited<ReturnType<typeof getAutofixConfig>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetAutofixConfigQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/autofix/config`
+    ] as const;
+    }
+
+
+export const getGetAutofixConfigQueryOptions = <TData = Awaited<ReturnType<typeof getAutofixConfig>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetAutofixConfigQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAutofixConfig>>> = ({ signal }) =>
-    getAutofixConfig(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetAutofixConfigQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetAutofixConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getAutofixConfig>>>;
-export type GetAutofixConfigQueryError = ErrorType<unknown>;
 
-export function useGetAutofixConfig<
-  TData = Awaited<ReturnType<typeof getAutofixConfig>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAutofixConfig>>> = ({ signal }) => getAutofixConfig(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAutofixConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getAutofixConfig>>>
+export type GetAutofixConfigQueryError = ErrorType<unknown>
+
+
+export function useGetAutofixConfig<TData = Awaited<ReturnType<typeof getAutofixConfig>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAutofixConfig>>,
           TError,
           Awaited<ReturnType<typeof getAutofixConfig>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetAutofixConfig<
-  TData = Awaited<ReturnType<typeof getAutofixConfig>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAutofixConfig<TData = Awaited<ReturnType<typeof getAutofixConfig>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAutofixConfig>>,
           TError,
           Awaited<ReturnType<typeof getAutofixConfig>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetAutofixConfig<
-  TData = Awaited<ReturnType<typeof getAutofixConfig>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAutofixConfig<TData = Awaited<ReturnType<typeof getAutofixConfig>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetAutofixConfig<
-  TData = Awaited<ReturnType<typeof getAutofixConfig>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetAutofixConfigQueryOptions(orgSlug, projectSlug, options);
+export function useGetAutofixConfig<TData = Awaited<ReturnType<typeof getAutofixConfig>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixConfig>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetAutofixConfigQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type updateAutofixConfigResponse200 = {
-  data: AutofixConfigDto;
-  status: 200;
-};
+  data: AutofixConfigDto
+  status: 200
+}
 
-export type updateAutofixConfigResponseSuccess = updateAutofixConfigResponse200 & {
+export type updateAutofixConfigResponseSuccess = (updateAutofixConfigResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateAutofixConfigResponse = updateAutofixConfigResponseSuccess;
+export type updateAutofixConfigResponse = (updateAutofixConfigResponseSuccess)
 
-export const getUpdateAutofixConfigUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/config`;
-};
+export const getUpdateAutofixConfigUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const updateAutofixConfig = async (
-  orgSlug: string,
-  projectSlug: string,
-  updateAutofixConfigBodyDto: UpdateAutofixConfigBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateAutofixConfigResponse> => {
-  return orvalFetch<updateAutofixConfigResponse>(getUpdateAutofixConfigUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/config`
+}
+
+export const updateAutofixConfig = async (orgSlug: string,
+    projectSlug: string,
+    updateAutofixConfigBodyDto: UpdateAutofixConfigBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateAutofixConfigResponse> => {
+
+  return orvalFetch<updateAutofixConfigResponse>(getUpdateAutofixConfigUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "PUT",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateAutofixConfigBodyDto),
-  });
-};
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateAutofixConfigBodyDto)
+  }
+);}
 
-export const getUpdateAutofixConfigMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateAutofixConfig>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<UpdateAutofixConfigBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateAutofixConfig>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<UpdateAutofixConfigBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["updateAutofixConfig"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateAutofixConfig>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<UpdateAutofixConfigBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return updateAutofixConfig(orgSlug, projectSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type UpdateAutofixConfigMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateAutofixConfig>>
->;
-export type UpdateAutofixConfigMutationBody = BodyType<UpdateAutofixConfigBodyDto>;
-export type UpdateAutofixConfigMutationError = ErrorType<unknown>;
+export const getUpdateAutofixConfigMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAutofixConfig>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAutofixConfig>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>}, TContext> => {
 
-export const useUpdateAutofixConfig = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateAutofixConfig>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<UpdateAutofixConfigBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateAutofixConfig>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<UpdateAutofixConfigBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpdateAutofixConfigMutationOptions(options), queryClient);
-};
+const mutationKey = ['updateAutofixConfig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAutofixConfig>>, {orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  updateAutofixConfig(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAutofixConfigMutationResult = NonNullable<Awaited<ReturnType<typeof updateAutofixConfig>>>
+    export type UpdateAutofixConfigMutationBody = BodyType<UpdateAutofixConfigBodyDto>
+    export type UpdateAutofixConfigMutationError = ErrorType<unknown>
+
+    export const useUpdateAutofixConfig = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAutofixConfig>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateAutofixConfig>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateAutofixConfigMutationOptions(options), queryClient);
+    }
 
 export type triggerAutofixResponse200 = {
-  data: AutofixRunDto;
-  status: 200;
-};
+  data: AutofixRunDto
+  status: 200
+}
 
-export type triggerAutofixResponseSuccess = triggerAutofixResponse200 & {
+export type triggerAutofixResponseSuccess = (triggerAutofixResponse200) & {
   headers: Headers;
 };
+;
 
-export type triggerAutofixResponse = triggerAutofixResponseSuccess;
+export type triggerAutofixResponse = (triggerAutofixResponseSuccess)
 
-export const getTriggerAutofixUrl = (orgSlug: string, projectSlug: string, issueId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/autofix`;
-};
+export const getTriggerAutofixUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
 
-export const triggerAutofix = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<triggerAutofixResponse> => {
-  return orvalFetch<triggerAutofixResponse>(getTriggerAutofixUrl(orgSlug, projectSlug, issueId), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/autofix`
+}
+
+export const triggerAutofix = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<triggerAutofixResponse> => {
+
+  return orvalFetch<triggerAutofixResponse>(getTriggerAutofixUrl(orgSlug,projectSlug,issueId),
+  {
     ...options,
-    method: "POST",
-  });
-};
+    method: 'POST'
 
-export const getTriggerAutofixMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof triggerAutofix>>,
-    TError,
-    { orgSlug: string; projectSlug: string; issueId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof triggerAutofix>>,
-  TError,
-  { orgSlug: string; projectSlug: string; issueId: string },
-  TContext
-> => {
-  const mutationKey = ["triggerAutofix"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof triggerAutofix>>,
-    { orgSlug: string; projectSlug: string; issueId: string }
-  > = (props) => {
-    const { orgSlug, projectSlug, issueId } = props ?? {};
+  }
+);}
 
-    return triggerAutofix(orgSlug, projectSlug, issueId, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type TriggerAutofixMutationResult = NonNullable<Awaited<ReturnType<typeof triggerAutofix>>>;
 
-export type TriggerAutofixMutationError = ErrorType<unknown>;
 
-export const useTriggerAutofix = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof triggerAutofix>>,
-      TError,
-      { orgSlug: string; projectSlug: string; issueId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof triggerAutofix>>,
-  TError,
-  { orgSlug: string; projectSlug: string; issueId: string },
-  TContext
-> => {
-  return useMutation(getTriggerAutofixMutationOptions(options), queryClient);
-};
+export const getTriggerAutofixMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerAutofix>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof triggerAutofix>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext> => {
+
+const mutationKey = ['triggerAutofix'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof triggerAutofix>>, {orgSlug: string;projectSlug: string;issueId: string}> = (props) => {
+          const {orgSlug,projectSlug,issueId} = props ?? {};
+
+          return  triggerAutofix(orgSlug,projectSlug,issueId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TriggerAutofixMutationResult = NonNullable<Awaited<ReturnType<typeof triggerAutofix>>>
+
+    export type TriggerAutofixMutationError = ErrorType<unknown>
+
+    export const useTriggerAutofix = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerAutofix>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof triggerAutofix>>,
+        TError,
+        {orgSlug: string;projectSlug: string;issueId: string},
+        TContext
+      > => {
+      return useMutation(getTriggerAutofixMutationOptions(options), queryClient);
+    }
 
 export type listIssueAutofixRunsResponse200 = {
-  data: AutofixRunDto[];
-  status: 200;
-};
+  data: AutofixRunDto[]
+  status: 200
+}
 
-export type listIssueAutofixRunsResponseSuccess = listIssueAutofixRunsResponse200 & {
+export type listIssueAutofixRunsResponseSuccess = (listIssueAutofixRunsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listIssueAutofixRunsResponse = listIssueAutofixRunsResponseSuccess;
+export type listIssueAutofixRunsResponse = (listIssueAutofixRunsResponseSuccess)
 
-export const getListIssueAutofixRunsUrl = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
+export const getListIssueAutofixRunsUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/autofix/runs`
+}
+
+export const listIssueAutofixRuns = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listIssueAutofixRunsResponse> => {
+
+  return orvalFetch<listIssueAutofixRunsResponse>(getListIssueAutofixRunsUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListIssueAutofixRunsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/autofix/runs`
+    ] as const;
+    }
+
+
+export const getListIssueAutofixRunsQueryOptions = <TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/autofix/runs`;
-};
 
-export const listIssueAutofixRuns = async (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listIssueAutofixRunsResponse> => {
-  return orvalFetch<listIssueAutofixRunsResponse>(
-    getListIssueAutofixRunsUrl(orgSlug, projectSlug, issueId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-export const getListIssueAutofixRunsQueryKey = (
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-) => {
-  return [
-    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/autofix/runs`,
-  ] as const;
-};
+  const queryKey =  queryOptions?.queryKey ?? getListIssueAutofixRunsQueryKey(orgSlug,projectSlug,issueId);
 
-export const getListIssueAutofixRunsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListIssueAutofixRunsQueryKey(orgSlug, projectSlug, issueId);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssueAutofixRuns>>> = ({ signal }) =>
-    listIssueAutofixRuns(orgSlug, projectSlug, issueId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssueAutofixRuns>>> = ({ signal }) => listIssueAutofixRuns(orgSlug,projectSlug,issueId, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined &&
-      issueId !== null &&
-      issueId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListIssueAutofixRunsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listIssueAutofixRuns>>
->;
-export type ListIssueAutofixRunsQueryError = ErrorType<unknown>;
 
-export function useListIssueAutofixRuns<
-  TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>
-    > &
-      Pick<
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListIssueAutofixRunsQueryResult = NonNullable<Awaited<ReturnType<typeof listIssueAutofixRuns>>>
+export type ListIssueAutofixRunsQueryError = ErrorType<unknown>
+
+
+export function useListIssueAutofixRuns<TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssueAutofixRuns>>,
           TError,
           Awaited<ReturnType<typeof listIssueAutofixRuns>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssueAutofixRuns<
-  TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueAutofixRuns<TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listIssueAutofixRuns>>,
           TError,
           Awaited<ReturnType<typeof listIssueAutofixRuns>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListIssueAutofixRuns<
-  TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueAutofixRuns<TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListIssueAutofixRuns<
-  TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  issueId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListIssueAutofixRunsQueryOptions(orgSlug, projectSlug, issueId, options);
+export function useListIssueAutofixRuns<TData = Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueAutofixRuns>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListIssueAutofixRunsQueryOptions(orgSlug,projectSlug,issueId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type getAutofixRunResponse200 = {
-  data: AutofixRunDto;
-  status: 200;
-};
+  data: AutofixRunDto
+  status: 200
+}
 
-export type getAutofixRunResponseSuccess = getAutofixRunResponse200 & {
+export type getAutofixRunResponseSuccess = (getAutofixRunResponse200) & {
   headers: Headers;
 };
+;
 
-export type getAutofixRunResponse = getAutofixRunResponseSuccess;
+export type getAutofixRunResponse = (getAutofixRunResponseSuccess)
 
-export const getGetAutofixRunUrl = (orgSlug: string, projectSlug: string, runId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/runs/${runId}`;
-};
+export const getGetAutofixRunUrl = (orgSlug: string,
+    projectSlug: string,
+    runId: string,) => {
 
-export const getAutofixRun = async (
-  orgSlug: string,
-  projectSlug: string,
-  runId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getAutofixRunResponse> => {
-  return orvalFetch<getAutofixRunResponse>(getGetAutofixRunUrl(orgSlug, projectSlug, runId), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/runs/${runId}`
+}
+
+export const getAutofixRun = async (orgSlug: string,
+    projectSlug: string,
+    runId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getAutofixRunResponse> => {
+
+  return orvalFetch<getAutofixRunResponse>(getGetAutofixRunUrl(orgSlug,projectSlug,runId),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetAutofixRunQueryKey = (orgSlug: string, projectSlug: string, runId: string) => {
-  return [`/organizations/${orgSlug}/projects/${projectSlug}/autofix/runs/${runId}`] as const;
-};
 
-export const getGetAutofixRunQueryOptions = <
-  TData = Awaited<ReturnType<typeof getAutofixRun>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  runId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetAutofixRunQueryKey = (orgSlug: string,
+    projectSlug: string,
+    runId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/autofix/runs/${runId}`
+    ] as const;
+    }
+
+
+export const getGetAutofixRunQueryOptions = <TData = Awaited<ReturnType<typeof getAutofixRun>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    runId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetAutofixRunQueryKey(orgSlug, projectSlug, runId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAutofixRun>>> = ({ signal }) =>
-    getAutofixRun(orgSlug, projectSlug, runId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetAutofixRunQueryKey(orgSlug,projectSlug,runId);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined &&
-      runId !== null &&
-      runId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetAutofixRunQueryResult = NonNullable<Awaited<ReturnType<typeof getAutofixRun>>>;
-export type GetAutofixRunQueryError = ErrorType<unknown>;
 
-export function useGetAutofixRun<
-  TData = Awaited<ReturnType<typeof getAutofixRun>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  runId: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAutofixRun>>> = ({ signal }) => getAutofixRun(orgSlug,projectSlug,runId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && runId !== null && runId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAutofixRunQueryResult = NonNullable<Awaited<ReturnType<typeof getAutofixRun>>>
+export type GetAutofixRunQueryError = ErrorType<unknown>
+
+
+export function useGetAutofixRun<TData = Awaited<ReturnType<typeof getAutofixRun>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    runId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAutofixRun>>,
           TError,
           Awaited<ReturnType<typeof getAutofixRun>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetAutofixRun<
-  TData = Awaited<ReturnType<typeof getAutofixRun>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  runId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAutofixRun<TData = Awaited<ReturnType<typeof getAutofixRun>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    runId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAutofixRun>>,
           TError,
           Awaited<ReturnType<typeof getAutofixRun>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetAutofixRun<
-  TData = Awaited<ReturnType<typeof getAutofixRun>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  runId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAutofixRun<TData = Awaited<ReturnType<typeof getAutofixRun>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    runId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetAutofixRun<
-  TData = Awaited<ReturnType<typeof getAutofixRun>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  runId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetAutofixRunQueryOptions(orgSlug, projectSlug, runId, options);
+export function useGetAutofixRun<TData = Awaited<ReturnType<typeof getAutofixRun>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    runId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixRun>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetAutofixRunQueryOptions(orgSlug,projectSlug,runId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type reviewAutofixRunResponse200 = {
-  data: AutofixRunDto;
-  status: 200;
-};
+  data: AutofixRunDto
+  status: 200
+}
 
-export type reviewAutofixRunResponseSuccess = reviewAutofixRunResponse200 & {
+export type reviewAutofixRunResponseSuccess = (reviewAutofixRunResponse200) & {
   headers: Headers;
 };
+;
 
-export type reviewAutofixRunResponse = reviewAutofixRunResponseSuccess;
+export type reviewAutofixRunResponse = (reviewAutofixRunResponseSuccess)
 
-export const getReviewAutofixRunUrl = (orgSlug: string, projectSlug: string, runId: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/runs/${runId}/review`;
-};
+export const getReviewAutofixRunUrl = (orgSlug: string,
+    projectSlug: string,
+    runId: string,) => {
 
-export const reviewAutofixRun = async (
-  orgSlug: string,
-  projectSlug: string,
-  runId: string,
-  reviewAutofixBodyDto: ReviewAutofixBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<reviewAutofixRunResponse> => {
-  return orvalFetch<reviewAutofixRunResponse>(getReviewAutofixRunUrl(orgSlug, projectSlug, runId), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/runs/${runId}/review`
+}
+
+export const reviewAutofixRun = async (orgSlug: string,
+    projectSlug: string,
+    runId: string,
+    reviewAutofixBodyDto: ReviewAutofixBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<reviewAutofixRunResponse> => {
+
+  return orvalFetch<reviewAutofixRunResponse>(getReviewAutofixRunUrl(orgSlug,projectSlug,runId),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(reviewAutofixBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reviewAutofixBodyDto)
+  }
+);}
 
-export const getReviewAutofixRunMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof reviewAutofixRun>>,
-    TError,
-    { orgSlug: string; projectSlug: string; runId: string; data: BodyType<ReviewAutofixBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof reviewAutofixRun>>,
-  TError,
-  { orgSlug: string; projectSlug: string; runId: string; data: BodyType<ReviewAutofixBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["reviewAutofixRun"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof reviewAutofixRun>>,
-    { orgSlug: string; projectSlug: string; runId: string; data: BodyType<ReviewAutofixBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, runId, data } = props ?? {};
 
-    return reviewAutofixRun(orgSlug, projectSlug, runId, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type ReviewAutofixRunMutationResult = NonNullable<
-  Awaited<ReturnType<typeof reviewAutofixRun>>
->;
-export type ReviewAutofixRunMutationBody = BodyType<ReviewAutofixBodyDto>;
-export type ReviewAutofixRunMutationError = ErrorType<unknown>;
+export const getReviewAutofixRunMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAutofixRun>>, TError,{orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewAutofixRun>>, TError,{orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>}, TContext> => {
 
-export const useReviewAutofixRun = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof reviewAutofixRun>>,
-      TError,
-      { orgSlug: string; projectSlug: string; runId: string; data: BodyType<ReviewAutofixBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof reviewAutofixRun>>,
-  TError,
-  { orgSlug: string; projectSlug: string; runId: string; data: BodyType<ReviewAutofixBodyDto> },
-  TContext
-> => {
-  return useMutation(getReviewAutofixRunMutationOptions(options), queryClient);
-};
+const mutationKey = ['reviewAutofixRun'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewAutofixRun>>, {orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,runId,data} = props ?? {};
+
+          return  reviewAutofixRun(orgSlug,projectSlug,runId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewAutofixRunMutationResult = NonNullable<Awaited<ReturnType<typeof reviewAutofixRun>>>
+    export type ReviewAutofixRunMutationBody = BodyType<ReviewAutofixBodyDto>
+    export type ReviewAutofixRunMutationError = ErrorType<unknown>
+
+    export const useReviewAutofixRun = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAutofixRun>>, TError,{orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reviewAutofixRun>>,
+        TError,
+        {orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>},
+        TContext
+      > => {
+      return useMutation(getReviewAutofixRunMutationOptions(options), queryClient);
+    }
 
 export type getOrganizationAiSettingsResponse200 = {
-  data: OrganizationAiSettingsDto;
-  status: 200;
-};
+  data: OrganizationAiSettingsDto
+  status: 200
+}
 
-export type getOrganizationAiSettingsResponseSuccess = getOrganizationAiSettingsResponse200 & {
+export type getOrganizationAiSettingsResponseSuccess = (getOrganizationAiSettingsResponse200) & {
   headers: Headers;
 };
+;
 
-export type getOrganizationAiSettingsResponse = getOrganizationAiSettingsResponseSuccess;
+export type getOrganizationAiSettingsResponse = (getOrganizationAiSettingsResponseSuccess)
 
-export const getGetOrganizationAiSettingsUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/ai`;
-};
+export const getGetOrganizationAiSettingsUrl = (orgSlug: string,) => {
 
-export const getOrganizationAiSettings = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getOrganizationAiSettingsResponse> => {
-  return orvalFetch<getOrganizationAiSettingsResponse>(getGetOrganizationAiSettingsUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/settings/ai`
+}
+
+export const getOrganizationAiSettings = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationAiSettingsResponse> => {
+
+  return orvalFetch<getOrganizationAiSettingsResponse>(getGetOrganizationAiSettingsUrl(orgSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetOrganizationAiSettingsQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/settings/ai`] as const;
-};
 
-export const getGetOrganizationAiSettingsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationAiSettingsQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/ai`
+    ] as const;
+    }
+
+
+export const getGetOrganizationAiSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetOrganizationAiSettingsQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationAiSettings>>> = ({
-    signal,
-  }) => getOrganizationAiSettings(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationAiSettingsQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetOrganizationAiSettingsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getOrganizationAiSettings>>
->;
-export type GetOrganizationAiSettingsQueryError = ErrorType<unknown>;
 
-export function useGetOrganizationAiSettings<
-  TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationAiSettings>>> = ({ signal }) => getOrganizationAiSettings(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationAiSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationAiSettings>>>
+export type GetOrganizationAiSettingsQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationAiSettings<TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationAiSettings>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationAiSettings>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationAiSettings<
-  TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationAiSettings<TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationAiSettings>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationAiSettings>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationAiSettings<
-  TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationAiSettings<TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetOrganizationAiSettings<
-  TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationAiSettingsQueryOptions(orgSlug, options);
+export function useGetOrganizationAiSettings<TData = Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetOrganizationAiSettingsQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type updateOrganizationAiSettingsResponse200 = {
-  data: OrganizationAiSettingsDto;
-  status: 200;
+  data: OrganizationAiSettingsDto
+  status: 200
+}
+
+export type updateOrganizationAiSettingsResponseSuccess = (updateOrganizationAiSettingsResponse200) & {
+  headers: Headers;
 };
+;
 
-export type updateOrganizationAiSettingsResponseSuccess =
-  updateOrganizationAiSettingsResponse200 & {
-    headers: Headers;
-  };
+export type updateOrganizationAiSettingsResponse = (updateOrganizationAiSettingsResponseSuccess)
 
-export type updateOrganizationAiSettingsResponse = updateOrganizationAiSettingsResponseSuccess;
+export const getUpdateOrganizationAiSettingsUrl = (orgSlug: string,) => {
 
-export const getUpdateOrganizationAiSettingsUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/ai`;
-};
 
-export const updateOrganizationAiSettings = async (
-  orgSlug: string,
-  updateOrganizationAiSettingsBodyDto: UpdateOrganizationAiSettingsBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateOrganizationAiSettingsResponse> => {
-  return orvalFetch<updateOrganizationAiSettingsResponse>(
-    getUpdateOrganizationAiSettingsUrl(orgSlug),
-    {
-      ...options,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateOrganizationAiSettingsBodyDto),
-    },
-  );
-};
 
-export const getUpdateOrganizationAiSettingsMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateOrganizationAiSettings>>,
-    TError,
-    { orgSlug: string; data: BodyType<UpdateOrganizationAiSettingsBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateOrganizationAiSettings>>,
-  TError,
-  { orgSlug: string; data: BodyType<UpdateOrganizationAiSettingsBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["updateOrganizationAiSettings"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateOrganizationAiSettings>>,
-    { orgSlug: string; data: BodyType<UpdateOrganizationAiSettingsBodyDto> }
-  > = (props) => {
-    const { orgSlug, data } = props ?? {};
+  return `/organizations/${orgSlug}/settings/ai`
+}
 
-    return updateOrganizationAiSettings(orgSlug, data, requestOptions);
-  };
+export const updateOrganizationAiSettings = async (orgSlug: string,
+    updateOrganizationAiSettingsBodyDto: UpdateOrganizationAiSettingsBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationAiSettingsResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<updateOrganizationAiSettingsResponse>(getUpdateOrganizationAiSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateOrganizationAiSettingsBodyDto)
+  }
+);}
 
-export type UpdateOrganizationAiSettingsMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateOrganizationAiSettings>>
->;
-export type UpdateOrganizationAiSettingsMutationBody =
-  BodyType<UpdateOrganizationAiSettingsBodyDto>;
-export type UpdateOrganizationAiSettingsMutationError = ErrorType<unknown>;
 
-export const useUpdateOrganizationAiSettings = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateOrganizationAiSettings>>,
-      TError,
-      { orgSlug: string; data: BodyType<UpdateOrganizationAiSettingsBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateOrganizationAiSettings>>,
-  TError,
-  { orgSlug: string; data: BodyType<UpdateOrganizationAiSettingsBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpdateOrganizationAiSettingsMutationOptions(options), queryClient);
-};
+
+
+
+export const getUpdateOrganizationAiSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>}, TContext> => {
+
+const mutationKey = ['updateOrganizationAiSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, {orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>}> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  updateOrganizationAiSettings(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationAiSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationAiSettings>>>
+    export type UpdateOrganizationAiSettingsMutationBody = BodyType<UpdateOrganizationAiSettingsBodyDto>
+    export type UpdateOrganizationAiSettingsMutationError = ErrorType<unknown>
+
+    export const useUpdateOrganizationAiSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateOrganizationAiSettings>>,
+        TError,
+        {orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateOrganizationAiSettingsMutationOptions(options), queryClient);
+    }
 
 export type getOrganizationAiUsageResponse200 = {
-  data: void;
-  status: 200;
-};
+  data: void
+  status: 200
+}
 
-export type getOrganizationAiUsageResponseSuccess = getOrganizationAiUsageResponse200 & {
+export type getOrganizationAiUsageResponseSuccess = (getOrganizationAiUsageResponse200) & {
   headers: Headers;
 };
+;
 
-export type getOrganizationAiUsageResponse = getOrganizationAiUsageResponseSuccess;
+export type getOrganizationAiUsageResponse = (getOrganizationAiUsageResponseSuccess)
 
-export const getGetOrganizationAiUsageUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/ai/usage`;
-};
+export const getGetOrganizationAiUsageUrl = (orgSlug: string,) => {
 
-export const getOrganizationAiUsage = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getOrganizationAiUsageResponse> => {
-  return orvalFetch<getOrganizationAiUsageResponse>(getGetOrganizationAiUsageUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/settings/ai/usage`
+}
+
+export const getOrganizationAiUsage = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationAiUsageResponse> => {
+
+  return orvalFetch<getOrganizationAiUsageResponse>(getGetOrganizationAiUsageUrl(orgSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetOrganizationAiUsageQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/settings/ai/usage`] as const;
-};
 
-export const getGetOrganizationAiUsageQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationAiUsageQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/ai/usage`
+    ] as const;
+    }
+
+
+export const getGetOrganizationAiUsageQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetOrganizationAiUsageQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationAiUsage>>> = ({ signal }) =>
-    getOrganizationAiUsage(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationAiUsageQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetOrganizationAiUsageQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getOrganizationAiUsage>>
->;
-export type GetOrganizationAiUsageQueryError = ErrorType<unknown>;
 
-export function useGetOrganizationAiUsage<
-  TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationAiUsage>>> = ({ signal }) => getOrganizationAiUsage(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationAiUsageQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationAiUsage>>>
+export type GetOrganizationAiUsageQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationAiUsage<TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationAiUsage>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationAiUsage>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationAiUsage<
-  TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationAiUsage<TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationAiUsage>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationAiUsage>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationAiUsage<
-  TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationAiUsage<TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetOrganizationAiUsage<
-  TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationAiUsageQueryOptions(orgSlug, options);
+export function useGetOrganizationAiUsage<TData = Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAiUsage>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetOrganizationAiUsageQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type listOrganizationAiPricingOverridesResponse200 = {
-  data: void;
-  status: 200;
+  data: void
+  status: 200
+}
+
+export type listOrganizationAiPricingOverridesResponseSuccess = (listOrganizationAiPricingOverridesResponse200) & {
+  headers: Headers;
 };
+;
 
-export type listOrganizationAiPricingOverridesResponseSuccess =
-  listOrganizationAiPricingOverridesResponse200 & {
-    headers: Headers;
-  };
+export type listOrganizationAiPricingOverridesResponse = (listOrganizationAiPricingOverridesResponseSuccess)
 
-export type listOrganizationAiPricingOverridesResponse =
-  listOrganizationAiPricingOverridesResponseSuccess;
+export const getListOrganizationAiPricingOverridesUrl = (orgSlug: string,) => {
 
-export const getListOrganizationAiPricingOverridesUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/ai/pricing-overrides`;
-};
 
-export const listOrganizationAiPricingOverrides = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listOrganizationAiPricingOverridesResponse> => {
-  return orvalFetch<listOrganizationAiPricingOverridesResponse>(
-    getListOrganizationAiPricingOverridesUrl(orgSlug),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getListOrganizationAiPricingOverridesQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/settings/ai/pricing-overrides`] as const;
-};
 
-export const getListOrganizationAiPricingOverridesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  return `/organizations/${orgSlug}/settings/ai/pricing-overrides`
+}
+
+export const listOrganizationAiPricingOverrides = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listOrganizationAiPricingOverridesResponse> => {
+
+  return orvalFetch<listOrganizationAiPricingOverridesResponse>(getListOrganizationAiPricingOverridesUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOrganizationAiPricingOverridesQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/ai/pricing-overrides`
+    ] as const;
+    }
+
+
+export const getListOrganizationAiPricingOverridesQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListOrganizationAiPricingOverridesQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>> = ({
-    signal,
-  }) => listOrganizationAiPricingOverrides(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationAiPricingOverridesQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type ListOrganizationAiPricingOverridesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>
->;
-export type ListOrganizationAiPricingOverridesQueryError = ErrorType<unknown>;
 
-export function useListOrganizationAiPricingOverrides<
-  TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>> = ({ signal }) => listOrganizationAiPricingOverrides(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListOrganizationAiPricingOverridesQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>>
+export type ListOrganizationAiPricingOverridesQueryError = ErrorType<unknown>
+
+
+export function useListOrganizationAiPricingOverrides<TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationAiPricingOverrides<
-  TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationAiPricingOverrides<TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationAiPricingOverrides<
-  TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationAiPricingOverrides<TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListOrganizationAiPricingOverrides<
-  TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListOrganizationAiPricingOverridesQueryOptions(orgSlug, options);
+export function useListOrganizationAiPricingOverrides<TData = Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAiPricingOverrides>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListOrganizationAiPricingOverridesQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type replaceOrganizationAiPricingOverridesResponse200 = {
-  data: void;
-  status: 200;
+  data: void
+  status: 200
+}
+
+export type replaceOrganizationAiPricingOverridesResponseSuccess = (replaceOrganizationAiPricingOverridesResponse200) & {
+  headers: Headers;
 };
+;
 
-export type replaceOrganizationAiPricingOverridesResponseSuccess =
-  replaceOrganizationAiPricingOverridesResponse200 & {
-    headers: Headers;
-  };
+export type replaceOrganizationAiPricingOverridesResponse = (replaceOrganizationAiPricingOverridesResponseSuccess)
 
-export type replaceOrganizationAiPricingOverridesResponse =
-  replaceOrganizationAiPricingOverridesResponseSuccess;
+export const getReplaceOrganizationAiPricingOverridesUrl = (orgSlug: string,) => {
 
-export const getReplaceOrganizationAiPricingOverridesUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/ai/pricing-overrides`;
-};
 
-export const replaceOrganizationAiPricingOverrides = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<replaceOrganizationAiPricingOverridesResponse> => {
-  return orvalFetch<replaceOrganizationAiPricingOverridesResponse>(
-    getReplaceOrganizationAiPricingOverridesUrl(orgSlug),
-    {
-      ...options,
-      method: "PUT",
-    },
-  );
-};
 
-export const getReplaceOrganizationAiPricingOverridesMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>,
-    TError,
-    { orgSlug: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>,
-  TError,
-  { orgSlug: string },
-  TContext
-> => {
-  const mutationKey = ["replaceOrganizationAiPricingOverrides"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>,
-    { orgSlug: string }
-  > = (props) => {
-    const { orgSlug } = props ?? {};
+  return `/organizations/${orgSlug}/settings/ai/pricing-overrides`
+}
 
-    return replaceOrganizationAiPricingOverrides(orgSlug, requestOptions);
-  };
+export const replaceOrganizationAiPricingOverrides = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<replaceOrganizationAiPricingOverridesResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<replaceOrganizationAiPricingOverridesResponse>(getReplaceOrganizationAiPricingOverridesUrl(orgSlug),
+  {
+    ...options,
+    method: 'PUT'
 
-export type ReplaceOrganizationAiPricingOverridesMutationResult = NonNullable<
-  Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>
->;
 
-export type ReplaceOrganizationAiPricingOverridesMutationError = ErrorType<unknown>;
+  }
+);}
 
-export const useReplaceOrganizationAiPricingOverrides = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>,
-      TError,
-      { orgSlug: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>,
-  TError,
-  { orgSlug: string },
-  TContext
-> => {
-  return useMutation(getReplaceOrganizationAiPricingOverridesMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getReplaceOrganizationAiPricingOverridesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, TError,{orgSlug: string}, TContext> => {
+
+const mutationKey = ['replaceOrganizationAiPricingOverrides'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, {orgSlug: string}> = (props) => {
+          const {orgSlug} = props ?? {};
+
+          return  replaceOrganizationAiPricingOverrides(orgSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReplaceOrganizationAiPricingOverridesMutationResult = NonNullable<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>>
+
+    export type ReplaceOrganizationAiPricingOverridesMutationError = ErrorType<unknown>
+
+    export const useReplaceOrganizationAiPricingOverrides = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>,
+        TError,
+        {orgSlug: string},
+        TContext
+      > => {
+      return useMutation(getReplaceOrganizationAiPricingOverridesMutationOptions(options), queryClient);
+    }
 
 export type getRepoConnectionResponse200 = {
-  data: RepoConnectionDto;
-  status: 200;
-};
+  data: RepoConnectionDto
+  status: 200
+}
 
-export type getRepoConnectionResponseSuccess = getRepoConnectionResponse200 & {
+export type getRepoConnectionResponseSuccess = (getRepoConnectionResponse200) & {
   headers: Headers;
 };
+;
 
-export type getRepoConnectionResponse = getRepoConnectionResponseSuccess;
+export type getRepoConnectionResponse = (getRepoConnectionResponseSuccess)
 
-export const getGetRepoConnectionUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`;
-};
+export const getGetRepoConnectionUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const getRepoConnection = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getRepoConnectionResponse> => {
-  return orvalFetch<getRepoConnectionResponse>(getGetRepoConnectionUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
+}
+
+export const getRepoConnection = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getRepoConnectionResponse> => {
+
+  return orvalFetch<getRepoConnectionResponse>(getGetRepoConnectionUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetRepoConnectionQueryKey = (orgSlug: string, projectSlug: string) => {
-  return [
-    `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`,
-  ] as const;
-};
 
-export const getGetRepoConnectionQueryOptions = <
-  TData = Awaited<ReturnType<typeof getRepoConnection>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetRepoConnectionQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
+    ] as const;
+    }
+
+
+export const getGetRepoConnectionQueryOptions = <TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetRepoConnectionQueryKey(orgSlug, projectSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRepoConnection>>> = ({ signal }) =>
-    getRepoConnection(orgSlug, projectSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetRepoConnectionQueryKey(orgSlug,projectSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null &&
-      orgSlug !== undefined &&
-      projectSlug !== null &&
-      projectSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetRepoConnectionQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getRepoConnection>>
->;
-export type GetRepoConnectionQueryError = ErrorType<unknown>;
 
-export function useGetRepoConnection<
-  TData = Awaited<ReturnType<typeof getRepoConnection>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRepoConnection>>> = ({ signal }) => getRepoConnection(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetRepoConnectionQueryResult = NonNullable<Awaited<ReturnType<typeof getRepoConnection>>>
+export type GetRepoConnectionQueryError = ErrorType<unknown>
+
+
+export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getRepoConnection>>,
           TError,
           Awaited<ReturnType<typeof getRepoConnection>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetRepoConnection<
-  TData = Awaited<ReturnType<typeof getRepoConnection>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getRepoConnection>>,
           TError,
           Awaited<ReturnType<typeof getRepoConnection>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetRepoConnection<
-  TData = Awaited<ReturnType<typeof getRepoConnection>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetRepoConnection<
-  TData = Awaited<ReturnType<typeof getRepoConnection>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  projectSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetRepoConnectionQueryOptions(orgSlug, projectSlug, options);
+export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetRepoConnectionQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type upsertRepoConnectionResponse200 = {
-  data: RepoConnectionDto;
-  status: 200;
-};
+  data: RepoConnectionDto
+  status: 200
+}
 
-export type upsertRepoConnectionResponseSuccess = upsertRepoConnectionResponse200 & {
+export type upsertRepoConnectionResponseSuccess = (upsertRepoConnectionResponse200) & {
   headers: Headers;
 };
+;
 
-export type upsertRepoConnectionResponse = upsertRepoConnectionResponseSuccess;
+export type upsertRepoConnectionResponse = (upsertRepoConnectionResponseSuccess)
 
-export const getUpsertRepoConnectionUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`;
-};
+export const getUpsertRepoConnectionUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const upsertRepoConnection = async (
-  orgSlug: string,
-  projectSlug: string,
-  upsertRepoConnectionBodyDto: UpsertRepoConnectionBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<upsertRepoConnectionResponse> => {
-  return orvalFetch<upsertRepoConnectionResponse>(
-    getUpsertRepoConnectionUrl(orgSlug, projectSlug),
-    {
-      ...options,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(upsertRepoConnectionBodyDto),
-    },
-  );
-};
 
-export const getUpsertRepoConnectionMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof upsertRepoConnection>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<UpsertRepoConnectionBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof upsertRepoConnection>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<UpsertRepoConnectionBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["upsertRepoConnection"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof upsertRepoConnection>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<UpsertRepoConnectionBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return upsertRepoConnection(orgSlug, projectSlug, data, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const upsertRepoConnection = async (orgSlug: string,
+    projectSlug: string,
+    upsertRepoConnectionBodyDto: UpsertRepoConnectionBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<upsertRepoConnectionResponse> => {
 
-export type UpsertRepoConnectionMutationResult = NonNullable<
-  Awaited<ReturnType<typeof upsertRepoConnection>>
->;
-export type UpsertRepoConnectionMutationBody = BodyType<UpsertRepoConnectionBodyDto>;
-export type UpsertRepoConnectionMutationError = ErrorType<unknown>;
+  return orvalFetch<upsertRepoConnectionResponse>(getUpsertRepoConnectionUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(upsertRepoConnectionBodyDto)
+  }
+);}
 
-export const useUpsertRepoConnection = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof upsertRepoConnection>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<UpsertRepoConnectionBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof upsertRepoConnection>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<UpsertRepoConnectionBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpsertRepoConnectionMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getUpsertRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}, TContext> => {
+
+const mutationKey = ['upsertRepoConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertRepoConnection>>, {orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  upsertRepoConnection(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof upsertRepoConnection>>>
+    export type UpsertRepoConnectionMutationBody = BodyType<UpsertRepoConnectionBodyDto>
+    export type UpsertRepoConnectionMutationError = ErrorType<unknown>
+
+    export const useUpsertRepoConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof upsertRepoConnection>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpsertRepoConnectionMutationOptions(options), queryClient);
+    }
 
 export type deleteRepoConnectionResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type deleteRepoConnectionResponseSuccess = deleteRepoConnectionResponse200 & {
+export type deleteRepoConnectionResponseSuccess = (deleteRepoConnectionResponse200) & {
   headers: Headers;
 };
+;
 
-export type deleteRepoConnectionResponse = deleteRepoConnectionResponseSuccess;
+export type deleteRepoConnectionResponse = (deleteRepoConnectionResponseSuccess)
 
-export const getDeleteRepoConnectionUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`;
-};
+export const getDeleteRepoConnectionUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const deleteRepoConnection = async (
-  orgSlug: string,
-  projectSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<deleteRepoConnectionResponse> => {
-  return orvalFetch<deleteRepoConnectionResponse>(
-    getDeleteRepoConnectionUrl(orgSlug, projectSlug),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
-};
 
-export const getDeleteRepoConnectionMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteRepoConnection>>,
-    TError,
-    { orgSlug: string; projectSlug: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteRepoConnection>>,
-  TError,
-  { orgSlug: string; projectSlug: string },
-  TContext
-> => {
-  const mutationKey = ["deleteRepoConnection"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteRepoConnection>>,
-    { orgSlug: string; projectSlug: string }
-  > = (props) => {
-    const { orgSlug, projectSlug } = props ?? {};
 
-    return deleteRepoConnection(orgSlug, projectSlug, requestOptions);
-  };
+  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const deleteRepoConnection = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteRepoConnectionResponse> => {
 
-export type DeleteRepoConnectionMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteRepoConnection>>
->;
+  return orvalFetch<deleteRepoConnectionResponse>(getDeleteRepoConnectionUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'DELETE'
 
-export type DeleteRepoConnectionMutationError = ErrorType<unknown>;
 
-export const useDeleteRepoConnection = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deleteRepoConnection>>,
-      TError,
-      { orgSlug: string; projectSlug: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof deleteRepoConnection>>,
-  TError,
-  { orgSlug: string; projectSlug: string },
-  TContext
-> => {
-  return useMutation(getDeleteRepoConnectionMutationOptions(options), queryClient);
-};
+  }
+);}
+
+
+
+
+
+export const getDeleteRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,{orgSlug: string;projectSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,{orgSlug: string;projectSlug: string}, TContext> => {
+
+const mutationKey = ['deleteRepoConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRepoConnection>>, {orgSlug: string;projectSlug: string}> = (props) => {
+          const {orgSlug,projectSlug} = props ?? {};
+
+          return  deleteRepoConnection(orgSlug,projectSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRepoConnection>>>
+
+    export type DeleteRepoConnectionMutationError = ErrorType<unknown>
+
+    export const useDeleteRepoConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,{orgSlug: string;projectSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteRepoConnection>>,
+        TError,
+        {orgSlug: string;projectSlug: string},
+        TContext
+      > => {
+      return useMutation(getDeleteRepoConnectionMutationOptions(options), queryClient);
+    }
 
 export type testRepoConnectionResponse200 = {
-  data: TestRepoConnectionResultDto;
-  status: 200;
-};
+  data: TestRepoConnectionResultDto
+  status: 200
+}
 
-export type testRepoConnectionResponseSuccess = testRepoConnectionResponse200 & {
+export type testRepoConnectionResponseSuccess = (testRepoConnectionResponse200) & {
   headers: Headers;
 };
+;
 
-export type testRepoConnectionResponse = testRepoConnectionResponseSuccess;
+export type testRepoConnectionResponse = (testRepoConnectionResponseSuccess)
 
-export const getTestRepoConnectionUrl = (orgSlug: string, projectSlug: string) => {
-  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection/test`;
-};
+export const getTestRepoConnectionUrl = (orgSlug: string,
+    projectSlug: string,) => {
 
-export const testRepoConnection = async (
-  orgSlug: string,
-  projectSlug: string,
-  testRepoConnectionBodyDto: TestRepoConnectionBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<testRepoConnectionResponse> => {
-  return orvalFetch<testRepoConnectionResponse>(getTestRepoConnectionUrl(orgSlug, projectSlug), {
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection/test`
+}
+
+export const testRepoConnection = async (orgSlug: string,
+    projectSlug: string,
+    testRepoConnectionBodyDto: TestRepoConnectionBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<testRepoConnectionResponse> => {
+
+  return orvalFetch<testRepoConnectionResponse>(getTestRepoConnectionUrl(orgSlug,projectSlug),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(testRepoConnectionBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(testRepoConnectionBodyDto)
+  }
+);}
 
-export const getTestRepoConnectionMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof testRepoConnection>>,
-    TError,
-    { orgSlug: string; projectSlug: string; data: BodyType<TestRepoConnectionBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof testRepoConnection>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<TestRepoConnectionBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["testRepoConnection"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof testRepoConnection>>,
-    { orgSlug: string; projectSlug: string; data: BodyType<TestRepoConnectionBodyDto> }
-  > = (props) => {
-    const { orgSlug, projectSlug, data } = props ?? {};
 
-    return testRepoConnection(orgSlug, projectSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type TestRepoConnectionMutationResult = NonNullable<
-  Awaited<ReturnType<typeof testRepoConnection>>
->;
-export type TestRepoConnectionMutationBody = BodyType<TestRepoConnectionBodyDto>;
-export type TestRepoConnectionMutationError = ErrorType<unknown>;
+export const getTestRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}, TContext> => {
 
-export const useTestRepoConnection = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof testRepoConnection>>,
-      TError,
-      { orgSlug: string; projectSlug: string; data: BodyType<TestRepoConnectionBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof testRepoConnection>>,
-  TError,
-  { orgSlug: string; projectSlug: string; data: BodyType<TestRepoConnectionBodyDto> },
-  TContext
-> => {
-  return useMutation(getTestRepoConnectionMutationOptions(options), queryClient);
-};
+const mutationKey = ['testRepoConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testRepoConnection>>, {orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  testRepoConnection(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof testRepoConnection>>>
+    export type TestRepoConnectionMutationBody = BodyType<TestRepoConnectionBodyDto>
+    export type TestRepoConnectionMutationError = ErrorType<unknown>
+
+    export const useTestRepoConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testRepoConnection>>,
+        TError,
+        {orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>},
+        TContext
+      > => {
+      return useMutation(getTestRepoConnectionMutationOptions(options), queryClient);
+    }
 
 export type getOrganizationGithubAppSettingsResponse200 = {
-  data: OrganizationGithubAppSettingsDto;
-  status: 200;
+  data: OrganizationGithubAppSettingsDto
+  status: 200
+}
+
+export type getOrganizationGithubAppSettingsResponseSuccess = (getOrganizationGithubAppSettingsResponse200) & {
+  headers: Headers;
 };
+;
 
-export type getOrganizationGithubAppSettingsResponseSuccess =
-  getOrganizationGithubAppSettingsResponse200 & {
-    headers: Headers;
-  };
+export type getOrganizationGithubAppSettingsResponse = (getOrganizationGithubAppSettingsResponseSuccess)
 
-export type getOrganizationGithubAppSettingsResponse =
-  getOrganizationGithubAppSettingsResponseSuccess;
+export const getGetOrganizationGithubAppSettingsUrl = (orgSlug: string,) => {
 
-export const getGetOrganizationGithubAppSettingsUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/github-app`;
-};
 
-export const getOrganizationGithubAppSettings = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getOrganizationGithubAppSettingsResponse> => {
-  return orvalFetch<getOrganizationGithubAppSettingsResponse>(
-    getGetOrganizationGithubAppSettingsUrl(orgSlug),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getGetOrganizationGithubAppSettingsQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/settings/github-app`] as const;
-};
 
-export const getGetOrganizationGithubAppSettingsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  return `/organizations/${orgSlug}/settings/github-app`
+}
+
+export const getOrganizationGithubAppSettings = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationGithubAppSettingsResponse> => {
+
+  return orvalFetch<getOrganizationGithubAppSettingsResponse>(getGetOrganizationGithubAppSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationGithubAppSettingsQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/github-app`
+    ] as const;
+    }
+
+
+export const getGetOrganizationGithubAppSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetOrganizationGithubAppSettingsQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>> = ({
-    signal,
-  }) => getOrganizationGithubAppSettings(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationGithubAppSettingsQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type GetOrganizationGithubAppSettingsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>
->;
-export type GetOrganizationGithubAppSettingsQueryError = ErrorType<unknown>;
 
-export function useGetOrganizationGithubAppSettings<
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>> = ({ signal }) => getOrganizationGithubAppSettings(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationGithubAppSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>>
+export type GetOrganizationGithubAppSettingsQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationGithubAppSettings<
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationGithubAppSettings<
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetOrganizationGithubAppSettings<
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationGithubAppSettingsQueryOptions(orgSlug, options);
+export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetOrganizationGithubAppSettingsQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type updateOrganizationGithubAppSettingsResponse200 = {
-  data: OrganizationGithubAppSettingsDto;
-  status: 200;
+  data: OrganizationGithubAppSettingsDto
+  status: 200
+}
+
+export type updateOrganizationGithubAppSettingsResponseSuccess = (updateOrganizationGithubAppSettingsResponse200) & {
+  headers: Headers;
 };
+;
 
-export type updateOrganizationGithubAppSettingsResponseSuccess =
-  updateOrganizationGithubAppSettingsResponse200 & {
-    headers: Headers;
-  };
+export type updateOrganizationGithubAppSettingsResponse = (updateOrganizationGithubAppSettingsResponseSuccess)
 
-export type updateOrganizationGithubAppSettingsResponse =
-  updateOrganizationGithubAppSettingsResponseSuccess;
+export const getUpdateOrganizationGithubAppSettingsUrl = (orgSlug: string,) => {
 
-export const getUpdateOrganizationGithubAppSettingsUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/github-app`;
-};
 
-export const updateOrganizationGithubAppSettings = async (
-  orgSlug: string,
-  updateOrganizationGithubAppSettingsBodyDto: UpdateOrganizationGithubAppSettingsBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateOrganizationGithubAppSettingsResponse> => {
-  return orvalFetch<updateOrganizationGithubAppSettingsResponse>(
-    getUpdateOrganizationGithubAppSettingsUrl(orgSlug),
-    {
-      ...options,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateOrganizationGithubAppSettingsBodyDto),
-    },
-  );
-};
 
-export const getUpdateOrganizationGithubAppSettingsMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>,
-    TError,
-    { orgSlug: string; data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>,
-  TError,
-  { orgSlug: string; data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["updateOrganizationGithubAppSettings"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>,
-    { orgSlug: string; data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto> }
-  > = (props) => {
-    const { orgSlug, data } = props ?? {};
+  return `/organizations/${orgSlug}/settings/github-app`
+}
 
-    return updateOrganizationGithubAppSettings(orgSlug, data, requestOptions);
-  };
+export const updateOrganizationGithubAppSettings = async (orgSlug: string,
+    updateOrganizationGithubAppSettingsBodyDto: UpdateOrganizationGithubAppSettingsBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationGithubAppSettingsResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<updateOrganizationGithubAppSettingsResponse>(getUpdateOrganizationGithubAppSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateOrganizationGithubAppSettingsBodyDto)
+  }
+);}
 
-export type UpdateOrganizationGithubAppSettingsMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>
->;
-export type UpdateOrganizationGithubAppSettingsMutationBody =
-  BodyType<UpdateOrganizationGithubAppSettingsBodyDto>;
-export type UpdateOrganizationGithubAppSettingsMutationError = ErrorType<unknown>;
 
-export const useUpdateOrganizationGithubAppSettings = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>,
-      TError,
-      { orgSlug: string; data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>,
-  TError,
-  { orgSlug: string; data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpdateOrganizationGithubAppSettingsMutationOptions(options), queryClient);
-};
+
+
+
+export const getUpdateOrganizationGithubAppSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}, TContext> => {
+
+const mutationKey = ['updateOrganizationGithubAppSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, {orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  updateOrganizationGithubAppSettings(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationGithubAppSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>>
+    export type UpdateOrganizationGithubAppSettingsMutationBody = BodyType<UpdateOrganizationGithubAppSettingsBodyDto>
+    export type UpdateOrganizationGithubAppSettingsMutationError = ErrorType<unknown>
+
+    export const useUpdateOrganizationGithubAppSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>,
+        TError,
+        {orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateOrganizationGithubAppSettingsMutationOptions(options), queryClient);
+    }
 
 export type getOrganizationGithubAppInstallUrlResponse200 = {
-  data: GithubAppInstallUrlDto;
-  status: 200;
+  data: GithubAppInstallUrlDto
+  status: 200
+}
+
+export type getOrganizationGithubAppInstallUrlResponseSuccess = (getOrganizationGithubAppInstallUrlResponse200) & {
+  headers: Headers;
 };
+;
 
-export type getOrganizationGithubAppInstallUrlResponseSuccess =
-  getOrganizationGithubAppInstallUrlResponse200 & {
-    headers: Headers;
-  };
+export type getOrganizationGithubAppInstallUrlResponse = (getOrganizationGithubAppInstallUrlResponseSuccess)
 
-export type getOrganizationGithubAppInstallUrlResponse =
-  getOrganizationGithubAppInstallUrlResponseSuccess;
+export const getGetOrganizationGithubAppInstallUrlUrl = (orgSlug: string,) => {
 
-export const getGetOrganizationGithubAppInstallUrlUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/github-app/install-url`;
-};
 
-export const getOrganizationGithubAppInstallUrl = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getOrganizationGithubAppInstallUrlResponse> => {
-  return orvalFetch<getOrganizationGithubAppInstallUrlResponse>(
-    getGetOrganizationGithubAppInstallUrlUrl(orgSlug),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getGetOrganizationGithubAppInstallUrlQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/settings/github-app/install-url`] as const;
-};
 
-export const getGetOrganizationGithubAppInstallUrlQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  return `/organizations/${orgSlug}/settings/github-app/install-url`
+}
+
+export const getOrganizationGithubAppInstallUrl = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationGithubAppInstallUrlResponse> => {
+
+  return orvalFetch<getOrganizationGithubAppInstallUrlResponse>(getGetOrganizationGithubAppInstallUrlUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationGithubAppInstallUrlQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/github-app/install-url`
+    ] as const;
+    }
+
+
+export const getGetOrganizationGithubAppInstallUrlQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetOrganizationGithubAppInstallUrlQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>> = ({
-    signal,
-  }) => getOrganizationGithubAppInstallUrl(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationGithubAppInstallUrlQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type GetOrganizationGithubAppInstallUrlQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>
->;
-export type GetOrganizationGithubAppInstallUrlQueryError = ErrorType<unknown>;
 
-export function useGetOrganizationGithubAppInstallUrl<
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>> = ({ signal }) => getOrganizationGithubAppInstallUrl(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationGithubAppInstallUrlQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>>
+export type GetOrganizationGithubAppInstallUrlQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationGithubAppInstallUrl<
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationGithubAppInstallUrl<
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetOrganizationGithubAppInstallUrl<
-  TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationGithubAppInstallUrlQueryOptions(orgSlug, options);
+export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetOrganizationGithubAppInstallUrlQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createOrganizationGithubAppManifestResponse200 = {
-  data: GithubAppManifestDto;
-  status: 200;
+  data: GithubAppManifestDto
+  status: 200
+}
+
+export type createOrganizationGithubAppManifestResponseSuccess = (createOrganizationGithubAppManifestResponse200) & {
+  headers: Headers;
 };
+;
 
-export type createOrganizationGithubAppManifestResponseSuccess =
-  createOrganizationGithubAppManifestResponse200 & {
-    headers: Headers;
-  };
+export type createOrganizationGithubAppManifestResponse = (createOrganizationGithubAppManifestResponseSuccess)
 
-export type createOrganizationGithubAppManifestResponse =
-  createOrganizationGithubAppManifestResponseSuccess;
+export const getCreateOrganizationGithubAppManifestUrl = (orgSlug: string,) => {
 
-export const getCreateOrganizationGithubAppManifestUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/github-app/manifest`;
-};
 
-export const createOrganizationGithubAppManifest = async (
-  orgSlug: string,
-  createGithubAppManifestBodyDto: CreateGithubAppManifestBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createOrganizationGithubAppManifestResponse> => {
-  return orvalFetch<createOrganizationGithubAppManifestResponse>(
-    getCreateOrganizationGithubAppManifestUrl(orgSlug),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createGithubAppManifestBodyDto),
-    },
-  );
-};
 
-export const getCreateOrganizationGithubAppManifestMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>,
-    TError,
-    { orgSlug: string; data: BodyType<CreateGithubAppManifestBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateGithubAppManifestBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createOrganizationGithubAppManifest"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>,
-    { orgSlug: string; data: BodyType<CreateGithubAppManifestBodyDto> }
-  > = (props) => {
-    const { orgSlug, data } = props ?? {};
+  return `/organizations/${orgSlug}/settings/github-app/manifest`
+}
 
-    return createOrganizationGithubAppManifest(orgSlug, data, requestOptions);
-  };
+export const createOrganizationGithubAppManifest = async (orgSlug: string,
+    createGithubAppManifestBodyDto: CreateGithubAppManifestBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationGithubAppManifestResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<createOrganizationGithubAppManifestResponse>(getCreateOrganizationGithubAppManifestUrl(orgSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createGithubAppManifestBodyDto)
+  }
+);}
 
-export type CreateOrganizationGithubAppManifestMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>
->;
-export type CreateOrganizationGithubAppManifestMutationBody =
-  BodyType<CreateGithubAppManifestBodyDto>;
-export type CreateOrganizationGithubAppManifestMutationError = ErrorType<unknown>;
 
-export const useCreateOrganizationGithubAppManifest = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>,
-      TError,
-      { orgSlug: string; data: BodyType<CreateGithubAppManifestBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateGithubAppManifestBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateOrganizationGithubAppManifestMutationOptions(options), queryClient);
-};
+
+
+
+export const getCreateOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}, TContext> => {
+
+const mutationKey = ['createOrganizationGithubAppManifest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, {orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  createOrganizationGithubAppManifest(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOrganizationGithubAppManifestMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>>
+    export type CreateOrganizationGithubAppManifestMutationBody = BodyType<CreateGithubAppManifestBodyDto>
+    export type CreateOrganizationGithubAppManifestMutationError = ErrorType<unknown>
+
+    export const useCreateOrganizationGithubAppManifest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>,
+        TError,
+        {orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateOrganizationGithubAppManifestMutationOptions(options), queryClient);
+    }
 
 export type completeOrganizationGithubAppManifestResponse200 = {
-  data: GithubAppManifestResultDto;
-  status: 200;
+  data: GithubAppManifestResultDto
+  status: 200
+}
+
+export type completeOrganizationGithubAppManifestResponseSuccess = (completeOrganizationGithubAppManifestResponse200) & {
+  headers: Headers;
 };
+;
 
-export type completeOrganizationGithubAppManifestResponseSuccess =
-  completeOrganizationGithubAppManifestResponse200 & {
-    headers: Headers;
-  };
+export type completeOrganizationGithubAppManifestResponse = (completeOrganizationGithubAppManifestResponseSuccess)
 
-export type completeOrganizationGithubAppManifestResponse =
-  completeOrganizationGithubAppManifestResponseSuccess;
+export const getCompleteOrganizationGithubAppManifestUrl = (orgSlug: string,) => {
 
-export const getCompleteOrganizationGithubAppManifestUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/github-app/complete-manifest`;
-};
 
-export const completeOrganizationGithubAppManifest = async (
-  orgSlug: string,
-  completeGithubAppManifestBodyDto: CompleteGithubAppManifestBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<completeOrganizationGithubAppManifestResponse> => {
-  return orvalFetch<completeOrganizationGithubAppManifestResponse>(
-    getCompleteOrganizationGithubAppManifestUrl(orgSlug),
-    {
-      ...options,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(completeGithubAppManifestBodyDto),
-    },
-  );
-};
 
-export const getCompleteOrganizationGithubAppManifestMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>,
-    TError,
-    { orgSlug: string; data: BodyType<CompleteGithubAppManifestBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>,
-  TError,
-  { orgSlug: string; data: BodyType<CompleteGithubAppManifestBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["completeOrganizationGithubAppManifest"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>,
-    { orgSlug: string; data: BodyType<CompleteGithubAppManifestBodyDto> }
-  > = (props) => {
-    const { orgSlug, data } = props ?? {};
+  return `/organizations/${orgSlug}/settings/github-app/complete-manifest`
+}
 
-    return completeOrganizationGithubAppManifest(orgSlug, data, requestOptions);
-  };
+export const completeOrganizationGithubAppManifest = async (orgSlug: string,
+    completeGithubAppManifestBodyDto: CompleteGithubAppManifestBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<completeOrganizationGithubAppManifestResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<completeOrganizationGithubAppManifestResponse>(getCompleteOrganizationGithubAppManifestUrl(orgSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(completeGithubAppManifestBodyDto)
+  }
+);}
 
-export type CompleteOrganizationGithubAppManifestMutationResult = NonNullable<
-  Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>
->;
-export type CompleteOrganizationGithubAppManifestMutationBody =
-  BodyType<CompleteGithubAppManifestBodyDto>;
-export type CompleteOrganizationGithubAppManifestMutationError = ErrorType<unknown>;
 
-export const useCompleteOrganizationGithubAppManifest = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>,
-      TError,
-      { orgSlug: string; data: BodyType<CompleteGithubAppManifestBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>,
-  TError,
-  { orgSlug: string; data: BodyType<CompleteGithubAppManifestBodyDto> },
-  TContext
-> => {
-  return useMutation(getCompleteOrganizationGithubAppManifestMutationOptions(options), queryClient);
-};
+
+
+
+export const getCompleteOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}, TContext> => {
+
+const mutationKey = ['completeOrganizationGithubAppManifest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, {orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  completeOrganizationGithubAppManifest(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteOrganizationGithubAppManifestMutationResult = NonNullable<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>>
+    export type CompleteOrganizationGithubAppManifestMutationBody = BodyType<CompleteGithubAppManifestBodyDto>
+    export type CompleteOrganizationGithubAppManifestMutationError = ErrorType<unknown>
+
+    export const useCompleteOrganizationGithubAppManifest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>,
+        TError,
+        {orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCompleteOrganizationGithubAppManifestMutationOptions(options), queryClient);
+    }
 
 export type listOrganizationGithubRepositoriesResponse200 = {
-  data: GithubAppRepositoryDto[];
-  status: 200;
+  data: GithubAppRepositoryDto[]
+  status: 200
+}
+
+export type listOrganizationGithubRepositoriesResponseSuccess = (listOrganizationGithubRepositoriesResponse200) & {
+  headers: Headers;
 };
+;
 
-export type listOrganizationGithubRepositoriesResponseSuccess =
-  listOrganizationGithubRepositoriesResponse200 & {
-    headers: Headers;
-  };
+export type listOrganizationGithubRepositoriesResponse = (listOrganizationGithubRepositoriesResponseSuccess)
 
-export type listOrganizationGithubRepositoriesResponse =
-  listOrganizationGithubRepositoriesResponseSuccess;
+export const getListOrganizationGithubRepositoriesUrl = (orgSlug: string,) => {
 
-export const getListOrganizationGithubRepositoriesUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/github-app/repositories`;
-};
 
-export const listOrganizationGithubRepositories = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listOrganizationGithubRepositoriesResponse> => {
-  return orvalFetch<listOrganizationGithubRepositoriesResponse>(
-    getListOrganizationGithubRepositoriesUrl(orgSlug),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getListOrganizationGithubRepositoriesQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/settings/github-app/repositories`] as const;
-};
 
-export const getListOrganizationGithubRepositoriesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  return `/organizations/${orgSlug}/settings/github-app/repositories`
+}
+
+export const listOrganizationGithubRepositories = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listOrganizationGithubRepositoriesResponse> => {
+
+  return orvalFetch<listOrganizationGithubRepositoriesResponse>(getListOrganizationGithubRepositoriesUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOrganizationGithubRepositoriesQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/github-app/repositories`
+    ] as const;
+    }
+
+
+export const getListOrganizationGithubRepositoriesQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListOrganizationGithubRepositoriesQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>> = ({
-    signal,
-  }) => listOrganizationGithubRepositories(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationGithubRepositoriesQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type ListOrganizationGithubRepositoriesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listOrganizationGithubRepositories>>
->;
-export type ListOrganizationGithubRepositoriesQueryError = ErrorType<unknown>;
 
-export function useListOrganizationGithubRepositories<
-  TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>> = ({ signal }) => listOrganizationGithubRepositories(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListOrganizationGithubRepositoriesQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>>
+export type ListOrganizationGithubRepositoriesQueryError = ErrorType<unknown>
+
+
+export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationGithubRepositories>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationGithubRepositories<
-  TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationGithubRepositories>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationGithubRepositories<
-  TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListOrganizationGithubRepositories<
-  TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListOrganizationGithubRepositoriesQueryOptions(orgSlug, options);
+export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListOrganizationGithubRepositoriesQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type syncOrganizationGithubRepositoriesResponse200 = {
-  data: GithubAppRepositoryDto[];
-  status: 200;
+  data: GithubAppRepositoryDto[]
+  status: 200
+}
+
+export type syncOrganizationGithubRepositoriesResponseSuccess = (syncOrganizationGithubRepositoriesResponse200) & {
+  headers: Headers;
 };
+;
 
-export type syncOrganizationGithubRepositoriesResponseSuccess =
-  syncOrganizationGithubRepositoriesResponse200 & {
-    headers: Headers;
-  };
+export type syncOrganizationGithubRepositoriesResponse = (syncOrganizationGithubRepositoriesResponseSuccess)
 
-export type syncOrganizationGithubRepositoriesResponse =
-  syncOrganizationGithubRepositoriesResponseSuccess;
+export const getSyncOrganizationGithubRepositoriesUrl = (orgSlug: string,) => {
 
-export const getSyncOrganizationGithubRepositoriesUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/github-app/repositories/sync`;
-};
 
-export const syncOrganizationGithubRepositories = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<syncOrganizationGithubRepositoriesResponse> => {
-  return orvalFetch<syncOrganizationGithubRepositoriesResponse>(
-    getSyncOrganizationGithubRepositoriesUrl(orgSlug),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
-};
 
-export const getSyncOrganizationGithubRepositoriesMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>,
-    TError,
-    { orgSlug: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>,
-  TError,
-  { orgSlug: string },
-  TContext
-> => {
-  const mutationKey = ["syncOrganizationGithubRepositories"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>,
-    { orgSlug: string }
-  > = (props) => {
-    const { orgSlug } = props ?? {};
+  return `/organizations/${orgSlug}/settings/github-app/repositories/sync`
+}
 
-    return syncOrganizationGithubRepositories(orgSlug, requestOptions);
-  };
+export const syncOrganizationGithubRepositories = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<syncOrganizationGithubRepositoriesResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<syncOrganizationGithubRepositoriesResponse>(getSyncOrganizationGithubRepositoriesUrl(orgSlug),
+  {
+    ...options,
+    method: 'POST'
 
-export type SyncOrganizationGithubRepositoriesMutationResult = NonNullable<
-  Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>
->;
 
-export type SyncOrganizationGithubRepositoriesMutationError = ErrorType<unknown>;
+  }
+);}
 
-export const useSyncOrganizationGithubRepositories = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>,
-      TError,
-      { orgSlug: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>,
-  TError,
-  { orgSlug: string },
-  TContext
-> => {
-  return useMutation(getSyncOrganizationGithubRepositoriesMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getSyncOrganizationGithubRepositoriesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,{orgSlug: string}, TContext> => {
+
+const mutationKey = ['syncOrganizationGithubRepositories'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, {orgSlug: string}> = (props) => {
+          const {orgSlug} = props ?? {};
+
+          return  syncOrganizationGithubRepositories(orgSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncOrganizationGithubRepositoriesMutationResult = NonNullable<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>>
+
+    export type SyncOrganizationGithubRepositoriesMutationError = ErrorType<unknown>
+
+    export const useSyncOrganizationGithubRepositories = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>,
+        TError,
+        {orgSlug: string},
+        TContext
+      > => {
+      return useMutation(getSyncOrganizationGithubRepositoriesMutationOptions(options), queryClient);
+    }
 
 export type completeOrganizationGithubAppInstallationResponse200 = {
-  data: OrganizationGithubAppSettingsDto;
-  status: 200;
+  data: OrganizationGithubAppSettingsDto
+  status: 200
+}
+
+export type completeOrganizationGithubAppInstallationResponseSuccess = (completeOrganizationGithubAppInstallationResponse200) & {
+  headers: Headers;
 };
+;
 
-export type completeOrganizationGithubAppInstallationResponseSuccess =
-  completeOrganizationGithubAppInstallationResponse200 & {
-    headers: Headers;
-  };
+export type completeOrganizationGithubAppInstallationResponse = (completeOrganizationGithubAppInstallationResponseSuccess)
 
-export type completeOrganizationGithubAppInstallationResponse =
-  completeOrganizationGithubAppInstallationResponseSuccess;
+export const getCompleteOrganizationGithubAppInstallationUrl = (orgSlug: string,) => {
 
-export const getCompleteOrganizationGithubAppInstallationUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/settings/github-app/complete-installation`;
-};
 
-export const completeOrganizationGithubAppInstallation = async (
-  orgSlug: string,
-  completeGithubAppInstallationBodyDto: CompleteGithubAppInstallationBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<completeOrganizationGithubAppInstallationResponse> => {
-  return orvalFetch<completeOrganizationGithubAppInstallationResponse>(
-    getCompleteOrganizationGithubAppInstallationUrl(orgSlug),
-    {
-      ...options,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(completeGithubAppInstallationBodyDto),
-    },
-  );
-};
 
-export const getCompleteOrganizationGithubAppInstallationMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>,
-    TError,
-    { orgSlug: string; data: BodyType<CompleteGithubAppInstallationBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>,
-  TError,
-  { orgSlug: string; data: BodyType<CompleteGithubAppInstallationBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["completeOrganizationGithubAppInstallation"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>,
-    { orgSlug: string; data: BodyType<CompleteGithubAppInstallationBodyDto> }
-  > = (props) => {
-    const { orgSlug, data } = props ?? {};
+  return `/organizations/${orgSlug}/settings/github-app/complete-installation`
+}
 
-    return completeOrganizationGithubAppInstallation(orgSlug, data, requestOptions);
-  };
+export const completeOrganizationGithubAppInstallation = async (orgSlug: string,
+    completeGithubAppInstallationBodyDto: CompleteGithubAppInstallationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<completeOrganizationGithubAppInstallationResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<completeOrganizationGithubAppInstallationResponse>(getCompleteOrganizationGithubAppInstallationUrl(orgSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(completeGithubAppInstallationBodyDto)
+  }
+);}
 
-export type CompleteOrganizationGithubAppInstallationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>
->;
-export type CompleteOrganizationGithubAppInstallationMutationBody =
-  BodyType<CompleteGithubAppInstallationBodyDto>;
-export type CompleteOrganizationGithubAppInstallationMutationError = ErrorType<unknown>;
 
-export const useCompleteOrganizationGithubAppInstallation = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>,
-      TError,
-      { orgSlug: string; data: BodyType<CompleteGithubAppInstallationBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>,
-  TError,
-  { orgSlug: string; data: BodyType<CompleteGithubAppInstallationBodyDto> },
-  TContext
-> => {
-  return useMutation(
-    getCompleteOrganizationGithubAppInstallationMutationOptions(options),
-    queryClient,
-  );
-};
+
+
+
+export const getCompleteOrganizationGithubAppInstallationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}, TContext> => {
+
+const mutationKey = ['completeOrganizationGithubAppInstallation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, {orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  completeOrganizationGithubAppInstallation(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteOrganizationGithubAppInstallationMutationResult = NonNullable<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>>
+    export type CompleteOrganizationGithubAppInstallationMutationBody = BodyType<CompleteGithubAppInstallationBodyDto>
+    export type CompleteOrganizationGithubAppInstallationMutationError = ErrorType<unknown>
+
+    export const useCompleteOrganizationGithubAppInstallation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>,
+        TError,
+        {orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCompleteOrganizationGithubAppInstallationMutationOptions(options), queryClient);
+    }
 
 export type listOrganizationsResponse200 = {
-  data: OrganizationListItemDto[];
-  status: 200;
-};
+  data: OrganizationListItemDto[]
+  status: 200
+}
 
-export type listOrganizationsResponseSuccess = listOrganizationsResponse200 & {
+export type listOrganizationsResponseSuccess = (listOrganizationsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listOrganizationsResponse = listOrganizationsResponseSuccess;
+export type listOrganizationsResponse = (listOrganizationsResponseSuccess)
 
 export const getListOrganizationsUrl = () => {
-  return `/organizations`;
-};
 
-export const listOrganizations = async (
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listOrganizationsResponse> => {
-  return orvalFetch<listOrganizationsResponse>(getListOrganizationsUrl(), {
+
+
+
+  return `/organizations`
+}
+
+export const listOrganizations = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<listOrganizationsResponse> => {
+
+  return orvalFetch<listOrganizationsResponse>(getListOrganizationsUrl(),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
 
 export const getListOrganizationsQueryKey = () => {
-  return [`/organizations`] as const;
-};
+    return [
+    `/organizations`
+    ] as const;
+    }
 
-export const getListOrganizationsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listOrganizations>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>>;
-  request?: SecondParameter<typeof orvalFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListOrganizationsQueryKey();
+export const getListOrganizationsQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizations>>> = ({ signal }) =>
-    listOrganizations({ signal, ...requestOptions });
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listOrganizations>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationsQueryKey();
 
-export type ListOrganizationsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listOrganizations>>
->;
-export type ListOrganizationsQueryError = ErrorType<unknown>;
 
-export function useListOrganizations<
-  TData = Awaited<ReturnType<typeof listOrganizations>>,
-  TError = ErrorType<unknown>,
->(
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>> &
-      Pick<
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizations>>> = ({ signal }) => listOrganizations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListOrganizationsQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizations>>>
+export type ListOrganizationsQueryError = ErrorType<unknown>
+
+
+export function useListOrganizations<TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizations>>,
           TError,
           Awaited<ReturnType<typeof listOrganizations>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizations<
-  TData = Awaited<ReturnType<typeof listOrganizations>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizations<TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizations>>,
           TError,
           Awaited<ReturnType<typeof listOrganizations>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizations<
-  TData = Awaited<ReturnType<typeof listOrganizations>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizations<TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListOrganizations<
-  TData = Awaited<ReturnType<typeof listOrganizations>>,
-  TError = ErrorType<unknown>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListOrganizationsQueryOptions(options);
+export function useListOrganizations<TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListOrganizationsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createOrganizationResponse200 = {
-  data: OrganizationDto;
-  status: 200;
-};
+  data: OrganizationDto
+  status: 200
+}
 
-export type createOrganizationResponseSuccess = createOrganizationResponse200 & {
+export type createOrganizationResponseSuccess = (createOrganizationResponse200) & {
   headers: Headers;
 };
+;
 
-export type createOrganizationResponse = createOrganizationResponseSuccess;
+export type createOrganizationResponse = (createOrganizationResponseSuccess)
 
 export const getCreateOrganizationUrl = () => {
-  return `/organizations`;
-};
 
-export const createOrganization = async (
-  createOrganizationBodyDto: CreateOrganizationBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createOrganizationResponse> => {
-  return orvalFetch<createOrganizationResponse>(getCreateOrganizationUrl(), {
+
+
+
+  return `/organizations`
+}
+
+export const createOrganization = async (createOrganizationBodyDto: CreateOrganizationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationResponse> => {
+
+  return orvalFetch<createOrganizationResponse>(getCreateOrganizationUrl(),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createOrganizationBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createOrganizationBodyDto)
+  }
+);}
 
-export const getCreateOrganizationMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createOrganization>>,
-    TError,
-    { data: BodyType<CreateOrganizationBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createOrganization>>,
-  TError,
-  { data: BodyType<CreateOrganizationBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createOrganization"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createOrganization>>,
-    { data: BodyType<CreateOrganizationBodyDto> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return createOrganization(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type CreateOrganizationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createOrganization>>
->;
-export type CreateOrganizationMutationBody = BodyType<CreateOrganizationBodyDto>;
-export type CreateOrganizationMutationError = ErrorType<unknown>;
+export const getCreateOrganizationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,{data: BodyType<CreateOrganizationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,{data: BodyType<CreateOrganizationBodyDto>}, TContext> => {
 
-export const useCreateOrganization = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createOrganization>>,
-      TError,
-      { data: BodyType<CreateOrganizationBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createOrganization>>,
-  TError,
-  { data: BodyType<CreateOrganizationBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateOrganizationMutationOptions(options), queryClient);
-};
+const mutationKey = ['createOrganization'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganization>>, {data: BodyType<CreateOrganizationBodyDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createOrganization(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOrganizationMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganization>>>
+    export type CreateOrganizationMutationBody = BodyType<CreateOrganizationBodyDto>
+    export type CreateOrganizationMutationError = ErrorType<unknown>
+
+    export const useCreateOrganization = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,{data: BodyType<CreateOrganizationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createOrganization>>,
+        TError,
+        {data: BodyType<CreateOrganizationBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateOrganizationMutationOptions(options), queryClient);
+    }
 
 export type getOrganizationResponse200 = {
-  data: OrganizationDto;
-  status: 200;
-};
+  data: OrganizationDto
+  status: 200
+}
 
-export type getOrganizationResponseSuccess = getOrganizationResponse200 & {
+export type getOrganizationResponseSuccess = (getOrganizationResponse200) & {
   headers: Headers;
 };
+;
 
-export type getOrganizationResponse = getOrganizationResponseSuccess;
+export type getOrganizationResponse = (getOrganizationResponseSuccess)
 
-export const getGetOrganizationUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}`;
-};
+export const getGetOrganizationUrl = (orgSlug: string,) => {
 
-export const getOrganization = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getOrganizationResponse> => {
-  return orvalFetch<getOrganizationResponse>(getGetOrganizationUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}`
+}
+
+export const getOrganization = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationResponse> => {
+
+  return orvalFetch<getOrganizationResponse>(getGetOrganizationUrl(orgSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetOrganizationQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}`] as const;
-};
 
-export const getGetOrganizationQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganization>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}`
+    ] as const;
+    }
+
+
+export const getGetOrganizationQueryOptions = <TData = Awaited<ReturnType<typeof getOrganization>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetOrganizationQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganization>>> = ({ signal }) =>
-    getOrganization(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetOrganizationQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganization>>>;
-export type GetOrganizationQueryError = ErrorType<unknown>;
 
-export function useGetOrganization<
-  TData = Awaited<ReturnType<typeof getOrganization>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganization>>> = ({ signal }) => getOrganization(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganization>>>
+export type GetOrganizationQueryError = ErrorType<unknown>
+
+
+export function useGetOrganization<TData = Awaited<ReturnType<typeof getOrganization>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganization>>,
           TError,
           Awaited<ReturnType<typeof getOrganization>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganization<
-  TData = Awaited<ReturnType<typeof getOrganization>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganization<TData = Awaited<ReturnType<typeof getOrganization>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganization>>,
           TError,
           Awaited<ReturnType<typeof getOrganization>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganization<
-  TData = Awaited<ReturnType<typeof getOrganization>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganization<TData = Awaited<ReturnType<typeof getOrganization>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetOrganization<
-  TData = Awaited<ReturnType<typeof getOrganization>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationQueryOptions(orgSlug, options);
+export function useGetOrganization<TData = Awaited<ReturnType<typeof getOrganization>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganization>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetOrganizationQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type listOrganizationMembersResponse200 = {
-  data: OrganizationMemberDto[];
-  status: 200;
-};
+  data: OrganizationMemberDto[]
+  status: 200
+}
 
-export type listOrganizationMembersResponseSuccess = listOrganizationMembersResponse200 & {
+export type listOrganizationMembersResponseSuccess = (listOrganizationMembersResponse200) & {
   headers: Headers;
 };
+;
 
-export type listOrganizationMembersResponse = listOrganizationMembersResponseSuccess;
+export type listOrganizationMembersResponse = (listOrganizationMembersResponseSuccess)
 
-export const getListOrganizationMembersUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/members`;
-};
+export const getListOrganizationMembersUrl = (orgSlug: string,) => {
 
-export const listOrganizationMembers = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listOrganizationMembersResponse> => {
-  return orvalFetch<listOrganizationMembersResponse>(getListOrganizationMembersUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/members`
+}
+
+export const listOrganizationMembers = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listOrganizationMembersResponse> => {
+
+  return orvalFetch<listOrganizationMembersResponse>(getListOrganizationMembersUrl(orgSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListOrganizationMembersQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/members`] as const;
-};
 
-export const getListOrganizationMembersQueryOptions = <
-  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListOrganizationMembersQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/members`
+    ] as const;
+    }
+
+
+export const getListOrganizationMembersQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizationMembers>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListOrganizationMembersQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationMembers>>> = ({
-    signal,
-  }) => listOrganizationMembers(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationMembersQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListOrganizationMembersQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listOrganizationMembers>>
->;
-export type ListOrganizationMembersQueryError = ErrorType<unknown>;
 
-export function useListOrganizationMembers<
-  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationMembers>>> = ({ signal }) => listOrganizationMembers(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListOrganizationMembersQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizationMembers>>>
+export type ListOrganizationMembersQueryError = ErrorType<unknown>
+
+
+export function useListOrganizationMembers<TData = Awaited<ReturnType<typeof listOrganizationMembers>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationMembers>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationMembers>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationMembers<
-  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationMembers<TData = Awaited<ReturnType<typeof listOrganizationMembers>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationMembers>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationMembers>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationMembers<
-  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationMembers<TData = Awaited<ReturnType<typeof listOrganizationMembers>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListOrganizationMembers<
-  TData = Awaited<ReturnType<typeof listOrganizationMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListOrganizationMembersQueryOptions(orgSlug, options);
+export function useListOrganizationMembers<TData = Awaited<ReturnType<typeof listOrganizationMembers>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationMembers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListOrganizationMembersQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type listOrganizationRolesResponse200 = {
-  data: OrganizationRoleDto[];
-  status: 200;
-};
+  data: OrganizationRoleDto[]
+  status: 200
+}
 
-export type listOrganizationRolesResponseSuccess = listOrganizationRolesResponse200 & {
+export type listOrganizationRolesResponseSuccess = (listOrganizationRolesResponse200) & {
   headers: Headers;
 };
+;
 
-export type listOrganizationRolesResponse = listOrganizationRolesResponseSuccess;
+export type listOrganizationRolesResponse = (listOrganizationRolesResponseSuccess)
 
-export const getListOrganizationRolesUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/roles`;
-};
+export const getListOrganizationRolesUrl = (orgSlug: string,) => {
 
-export const listOrganizationRoles = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listOrganizationRolesResponse> => {
-  return orvalFetch<listOrganizationRolesResponse>(getListOrganizationRolesUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/roles`
+}
+
+export const listOrganizationRoles = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listOrganizationRolesResponse> => {
+
+  return orvalFetch<listOrganizationRolesResponse>(getListOrganizationRolesUrl(orgSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListOrganizationRolesQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/roles`] as const;
-};
 
-export const getListOrganizationRolesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listOrganizationRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListOrganizationRolesQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/roles`
+    ] as const;
+    }
+
+
+export const getListOrganizationRolesQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizationRoles>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListOrganizationRolesQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationRoles>>> = ({ signal }) =>
-    listOrganizationRoles(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationRolesQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListOrganizationRolesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listOrganizationRoles>>
->;
-export type ListOrganizationRolesQueryError = ErrorType<unknown>;
 
-export function useListOrganizationRoles<
-  TData = Awaited<ReturnType<typeof listOrganizationRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationRoles>>> = ({ signal }) => listOrganizationRoles(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListOrganizationRolesQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizationRoles>>>
+export type ListOrganizationRolesQueryError = ErrorType<unknown>
+
+
+export function useListOrganizationRoles<TData = Awaited<ReturnType<typeof listOrganizationRoles>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationRoles>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationRoles>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationRoles<
-  TData = Awaited<ReturnType<typeof listOrganizationRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationRoles<TData = Awaited<ReturnType<typeof listOrganizationRoles>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationRoles>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationRoles>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationRoles<
-  TData = Awaited<ReturnType<typeof listOrganizationRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationRoles<TData = Awaited<ReturnType<typeof listOrganizationRoles>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListOrganizationRoles<
-  TData = Awaited<ReturnType<typeof listOrganizationRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListOrganizationRolesQueryOptions(orgSlug, options);
+export function useListOrganizationRoles<TData = Awaited<ReturnType<typeof listOrganizationRoles>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationRoles>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListOrganizationRolesQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createOrganizationRoleResponse200 = {
-  data: OrganizationRoleDto;
-  status: 200;
-};
+  data: OrganizationRoleDto
+  status: 200
+}
 
-export type createOrganizationRoleResponseSuccess = createOrganizationRoleResponse200 & {
+export type createOrganizationRoleResponseSuccess = (createOrganizationRoleResponse200) & {
   headers: Headers;
 };
+;
 
-export type createOrganizationRoleResponse = createOrganizationRoleResponseSuccess;
+export type createOrganizationRoleResponse = (createOrganizationRoleResponseSuccess)
 
-export const getCreateOrganizationRoleUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/roles`;
-};
+export const getCreateOrganizationRoleUrl = (orgSlug: string,) => {
 
-export const createOrganizationRole = async (
-  orgSlug: string,
-  createOrganizationRoleBodyDto: CreateOrganizationRoleBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createOrganizationRoleResponse> => {
-  return orvalFetch<createOrganizationRoleResponse>(getCreateOrganizationRoleUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/roles`
+}
+
+export const createOrganizationRole = async (orgSlug: string,
+    createOrganizationRoleBodyDto: CreateOrganizationRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationRoleResponse> => {
+
+  return orvalFetch<createOrganizationRoleResponse>(getCreateOrganizationRoleUrl(orgSlug),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createOrganizationRoleBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createOrganizationRoleBodyDto)
+  }
+);}
 
-export const getCreateOrganizationRoleMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createOrganizationRole>>,
-    TError,
-    { orgSlug: string; data: BodyType<CreateOrganizationRoleBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createOrganizationRole>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateOrganizationRoleBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createOrganizationRole"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createOrganizationRole>>,
-    { orgSlug: string; data: BodyType<CreateOrganizationRoleBodyDto> }
-  > = (props) => {
-    const { orgSlug, data } = props ?? {};
 
-    return createOrganizationRole(orgSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type CreateOrganizationRoleMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createOrganizationRole>>
->;
-export type CreateOrganizationRoleMutationBody = BodyType<CreateOrganizationRoleBodyDto>;
-export type CreateOrganizationRoleMutationError = ErrorType<unknown>;
+export const getCreateOrganizationRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationRole>>, TError,{orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationRole>>, TError,{orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>}, TContext> => {
 
-export const useCreateOrganizationRole = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createOrganizationRole>>,
-      TError,
-      { orgSlug: string; data: BodyType<CreateOrganizationRoleBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createOrganizationRole>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateOrganizationRoleBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateOrganizationRoleMutationOptions(options), queryClient);
-};
+const mutationKey = ['createOrganizationRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationRole>>, {orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>}> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  createOrganizationRole(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOrganizationRoleMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationRole>>>
+    export type CreateOrganizationRoleMutationBody = BodyType<CreateOrganizationRoleBodyDto>
+    export type CreateOrganizationRoleMutationError = ErrorType<unknown>
+
+    export const useCreateOrganizationRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationRole>>, TError,{orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createOrganizationRole>>,
+        TError,
+        {orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateOrganizationRoleMutationOptions(options), queryClient);
+    }
 
 export type updateOrganizationRoleResponse200 = {
-  data: OrganizationRoleDto;
-  status: 200;
-};
+  data: OrganizationRoleDto
+  status: 200
+}
 
-export type updateOrganizationRoleResponseSuccess = updateOrganizationRoleResponse200 & {
+export type updateOrganizationRoleResponseSuccess = (updateOrganizationRoleResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateOrganizationRoleResponse = updateOrganizationRoleResponseSuccess;
+export type updateOrganizationRoleResponse = (updateOrganizationRoleResponseSuccess)
 
-export const getUpdateOrganizationRoleUrl = (orgSlug: string, roleKey: string) => {
-  return `/organizations/${orgSlug}/roles/${roleKey}`;
-};
+export const getUpdateOrganizationRoleUrl = (orgSlug: string,
+    roleKey: string,) => {
 
-export const updateOrganizationRole = async (
-  orgSlug: string,
-  roleKey: string,
-  updateOrganizationRoleBodyDto: UpdateOrganizationRoleBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateOrganizationRoleResponse> => {
-  return orvalFetch<updateOrganizationRoleResponse>(
-    getUpdateOrganizationRoleUrl(orgSlug, roleKey),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateOrganizationRoleBodyDto),
-    },
-  );
-};
 
-export const getUpdateOrganizationRoleMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateOrganizationRole>>,
-    TError,
-    { orgSlug: string; roleKey: string; data: BodyType<UpdateOrganizationRoleBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateOrganizationRole>>,
-  TError,
-  { orgSlug: string; roleKey: string; data: BodyType<UpdateOrganizationRoleBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["updateOrganizationRole"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateOrganizationRole>>,
-    { orgSlug: string; roleKey: string; data: BodyType<UpdateOrganizationRoleBodyDto> }
-  > = (props) => {
-    const { orgSlug, roleKey, data } = props ?? {};
 
-    return updateOrganizationRole(orgSlug, roleKey, data, requestOptions);
-  };
+  return `/organizations/${orgSlug}/roles/${roleKey}`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const updateOrganizationRole = async (orgSlug: string,
+    roleKey: string,
+    updateOrganizationRoleBodyDto: UpdateOrganizationRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationRoleResponse> => {
 
-export type UpdateOrganizationRoleMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateOrganizationRole>>
->;
-export type UpdateOrganizationRoleMutationBody = BodyType<UpdateOrganizationRoleBodyDto>;
-export type UpdateOrganizationRoleMutationError = ErrorType<unknown>;
+  return orvalFetch<updateOrganizationRoleResponse>(getUpdateOrganizationRoleUrl(orgSlug,roleKey),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateOrganizationRoleBodyDto)
+  }
+);}
 
-export const useUpdateOrganizationRole = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateOrganizationRole>>,
-      TError,
-      { orgSlug: string; roleKey: string; data: BodyType<UpdateOrganizationRoleBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateOrganizationRole>>,
-  TError,
-  { orgSlug: string; roleKey: string; data: BodyType<UpdateOrganizationRoleBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpdateOrganizationRoleMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getUpdateOrganizationRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationRole>>, TError,{orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationRole>>, TError,{orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>}, TContext> => {
+
+const mutationKey = ['updateOrganizationRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationRole>>, {orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>}> = (props) => {
+          const {orgSlug,roleKey,data} = props ?? {};
+
+          return  updateOrganizationRole(orgSlug,roleKey,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationRole>>>
+    export type UpdateOrganizationRoleMutationBody = BodyType<UpdateOrganizationRoleBodyDto>
+    export type UpdateOrganizationRoleMutationError = ErrorType<unknown>
+
+    export const useUpdateOrganizationRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationRole>>, TError,{orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateOrganizationRole>>,
+        TError,
+        {orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateOrganizationRoleMutationOptions(options), queryClient);
+    }
 
 export type deleteOrganizationRoleResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type deleteOrganizationRoleResponseSuccess = deleteOrganizationRoleResponse200 & {
+export type deleteOrganizationRoleResponseSuccess = (deleteOrganizationRoleResponse200) & {
   headers: Headers;
 };
+;
 
-export type deleteOrganizationRoleResponse = deleteOrganizationRoleResponseSuccess;
+export type deleteOrganizationRoleResponse = (deleteOrganizationRoleResponseSuccess)
 
-export const getDeleteOrganizationRoleUrl = (orgSlug: string, roleKey: string) => {
-  return `/organizations/${orgSlug}/roles/${roleKey}`;
-};
+export const getDeleteOrganizationRoleUrl = (orgSlug: string,
+    roleKey: string,) => {
 
-export const deleteOrganizationRole = async (
-  orgSlug: string,
-  roleKey: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<deleteOrganizationRoleResponse> => {
-  return orvalFetch<deleteOrganizationRoleResponse>(
-    getDeleteOrganizationRoleUrl(orgSlug, roleKey),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
-};
 
-export const getDeleteOrganizationRoleMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteOrganizationRole>>,
-    TError,
-    { orgSlug: string; roleKey: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteOrganizationRole>>,
-  TError,
-  { orgSlug: string; roleKey: string },
-  TContext
-> => {
-  const mutationKey = ["deleteOrganizationRole"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteOrganizationRole>>,
-    { orgSlug: string; roleKey: string }
-  > = (props) => {
-    const { orgSlug, roleKey } = props ?? {};
 
-    return deleteOrganizationRole(orgSlug, roleKey, requestOptions);
-  };
+  return `/organizations/${orgSlug}/roles/${roleKey}`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const deleteOrganizationRole = async (orgSlug: string,
+    roleKey: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteOrganizationRoleResponse> => {
 
-export type DeleteOrganizationRoleMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteOrganizationRole>>
->;
+  return orvalFetch<deleteOrganizationRoleResponse>(getDeleteOrganizationRoleUrl(orgSlug,roleKey),
+  {
+    ...options,
+    method: 'DELETE'
 
-export type DeleteOrganizationRoleMutationError = ErrorType<unknown>;
 
-export const useDeleteOrganizationRole = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deleteOrganizationRole>>,
-      TError,
-      { orgSlug: string; roleKey: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof deleteOrganizationRole>>,
-  TError,
-  { orgSlug: string; roleKey: string },
-  TContext
-> => {
-  return useMutation(getDeleteOrganizationRoleMutationOptions(options), queryClient);
-};
+  }
+);}
+
+
+
+
+
+export const getDeleteOrganizationRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationRole>>, TError,{orgSlug: string;roleKey: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationRole>>, TError,{orgSlug: string;roleKey: string}, TContext> => {
+
+const mutationKey = ['deleteOrganizationRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOrganizationRole>>, {orgSlug: string;roleKey: string}> = (props) => {
+          const {orgSlug,roleKey} = props ?? {};
+
+          return  deleteOrganizationRole(orgSlug,roleKey,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteOrganizationRoleMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOrganizationRole>>>
+
+    export type DeleteOrganizationRoleMutationError = ErrorType<unknown>
+
+    export const useDeleteOrganizationRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationRole>>, TError,{orgSlug: string;roleKey: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteOrganizationRole>>,
+        TError,
+        {orgSlug: string;roleKey: string},
+        TContext
+      > => {
+      return useMutation(getDeleteOrganizationRoleMutationOptions(options), queryClient);
+    }
 
 export type getOrganizationOverviewResponse200 = {
-  data: OrganizationOverviewDto;
-  status: 200;
-};
+  data: OrganizationOverviewDto
+  status: 200
+}
 
-export type getOrganizationOverviewResponseSuccess = getOrganizationOverviewResponse200 & {
+export type getOrganizationOverviewResponseSuccess = (getOrganizationOverviewResponse200) & {
   headers: Headers;
 };
+;
 
-export type getOrganizationOverviewResponse = getOrganizationOverviewResponseSuccess;
+export type getOrganizationOverviewResponse = (getOrganizationOverviewResponseSuccess)
 
-export const getGetOrganizationOverviewUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/overview`;
-};
+export const getGetOrganizationOverviewUrl = (orgSlug: string,) => {
 
-export const getOrganizationOverview = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getOrganizationOverviewResponse> => {
-  return orvalFetch<getOrganizationOverviewResponse>(getGetOrganizationOverviewUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/overview`
+}
+
+export const getOrganizationOverview = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationOverviewResponse> => {
+
+  return orvalFetch<getOrganizationOverviewResponse>(getGetOrganizationOverviewUrl(orgSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getGetOrganizationOverviewQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/overview`] as const;
-};
 
-export const getGetOrganizationOverviewQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganizationOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationOverviewQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/overview`
+    ] as const;
+    }
+
+
+export const getGetOrganizationOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationOverview>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetOrganizationOverviewQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationOverview>>> = ({
-    signal,
-  }) => getOrganizationOverview(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationOverviewQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type GetOrganizationOverviewQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getOrganizationOverview>>
->;
-export type GetOrganizationOverviewQueryError = ErrorType<unknown>;
 
-export function useGetOrganizationOverview<
-  TData = Awaited<ReturnType<typeof getOrganizationOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationOverview>>> = ({ signal }) => getOrganizationOverview(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationOverview>>>
+export type GetOrganizationOverviewQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationOverview<TData = Awaited<ReturnType<typeof getOrganizationOverview>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationOverview>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationOverview>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationOverview<
-  TData = Awaited<ReturnType<typeof getOrganizationOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationOverview<TData = Awaited<ReturnType<typeof getOrganizationOverview>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationOverview>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationOverview>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationOverview<
-  TData = Awaited<ReturnType<typeof getOrganizationOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationOverview<TData = Awaited<ReturnType<typeof getOrganizationOverview>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetOrganizationOverview<
-  TData = Awaited<ReturnType<typeof getOrganizationOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationOverviewQueryOptions(orgSlug, options);
+export function useGetOrganizationOverview<TData = Awaited<ReturnType<typeof getOrganizationOverview>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationOverview>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetOrganizationOverviewQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+
+
+
+
+
+
 export type getOrganizationJobQueueOverviewResponse200 = {
-  data: OrganizationJobQueueOverviewDto;
-  status: 200;
+  data: OrganizationJobQueueOverviewDto
+  status: 200
+}
+
+export type getOrganizationJobQueueOverviewResponseSuccess = (getOrganizationJobQueueOverviewResponse200) & {
+  headers: Headers;
 };
+;
 
-export type getOrganizationJobQueueOverviewResponseSuccess =
-  getOrganizationJobQueueOverviewResponse200 & {
-    headers: Headers;
-  };
+export type getOrganizationJobQueueOverviewResponse = (getOrganizationJobQueueOverviewResponseSuccess)
 
-export type getOrganizationJobQueueOverviewResponse =
-  getOrganizationJobQueueOverviewResponseSuccess;
-
-export const getGetOrganizationJobQueueOverviewUrl = (
-  orgSlug: string,
-  params?: GetOrganizationJobQueueOverviewParams,
-) => {
+export const getGetOrganizationJobQueueOverviewUrl = (orgSlug: string,
+    params?: GetOrganizationJobQueueOverviewParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : String(value));
+      normalizedParams.append(key, value === null ? 'null' : String(value))
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/organizations/${orgSlug}/jobs?${stringifiedParams}`
-    : `/organizations/${orgSlug}/jobs`;
-};
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/jobs?${stringifiedParams}` : `/organizations/${orgSlug}/jobs`
+}
 
-export const getOrganizationJobQueueOverview = async (
-  orgSlug: string,
-  params?: GetOrganizationJobQueueOverviewParams,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<getOrganizationJobQueueOverviewResponse> => {
-  return orvalFetch<getOrganizationJobQueueOverviewResponse>(
-    getGetOrganizationJobQueueOverviewUrl(orgSlug, params),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
+export const getOrganizationJobQueueOverview = async (orgSlug: string,
+    params?: GetOrganizationJobQueueOverviewParams, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationJobQueueOverviewResponse> => {
 
-export const getGetOrganizationJobQueueOverviewQueryKey = (
-  orgSlug: string,
-  params?: GetOrganizationJobQueueOverviewParams,
+  return orvalFetch<getOrganizationJobQueueOverviewResponse>(getGetOrganizationJobQueueOverviewUrl(orgSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationJobQueueOverviewQueryKey = (orgSlug: string,
+    params?: GetOrganizationJobQueueOverviewParams,) => {
+    return [
+    `/organizations/${orgSlug}/jobs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetOrganizationJobQueueOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError = ErrorType<unknown>>(orgSlug: string,
+    params?: GetOrganizationJobQueueOverviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  return [`/organizations/${orgSlug}/jobs`, ...(params ? [params] : [])] as const;
-};
 
-export const getGetOrganizationJobQueueOverviewQueryOptions = <
-  TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  params?: GetOrganizationJobQueueOverviewParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetOrganizationJobQueueOverviewQueryKey(orgSlug, params);
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationJobQueueOverviewQueryKey(orgSlug,params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>> = ({
-    signal,
-  }) => getOrganizationJobQueueOverview(orgSlug, params, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
 
-export type GetOrganizationJobQueueOverviewQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>
->;
-export type GetOrganizationJobQueueOverviewQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>> = ({ signal }) => getOrganizationJobQueueOverview(orgSlug,params, { signal, ...requestOptions });
 
-export function useGetOrganizationJobQueueOverview<
-  TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  params: undefined | GetOrganizationJobQueueOverviewParams,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>
-    > &
-      Pick<
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationJobQueueOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>>
+export type GetOrganizationJobQueueOverviewQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationJobQueueOverview<TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params: undefined |  GetOrganizationJobQueueOverviewParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationJobQueueOverview<
-  TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  params?: GetOrganizationJobQueueOverviewParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationJobQueueOverview<TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params?: GetOrganizationJobQueueOverviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>,
           TError,
           Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetOrganizationJobQueueOverview<
-  TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  params?: GetOrganizationJobQueueOverviewParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationJobQueueOverview<TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params?: GetOrganizationJobQueueOverviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetOrganizationJobQueueOverview<
-  TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  params?: GetOrganizationJobQueueOverviewParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetOrganizationJobQueueOverviewQueryOptions(orgSlug, params, options);
+export function useGetOrganizationJobQueueOverview<TData = Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params?: GetOrganizationJobQueueOverviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationJobQueueOverview>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getGetOrganizationJobQueueOverviewQueryOptions(orgSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type requeueOrganizationJobResponse200 = {
-  data: OrganizationJobDto;
-  status: 200;
-};
+  data: OrganizationJobDto
+  status: 200
+}
 
-export type requeueOrganizationJobResponseSuccess = requeueOrganizationJobResponse200 & {
+export type requeueOrganizationJobResponseSuccess = (requeueOrganizationJobResponse200) & {
   headers: Headers;
 };
+;
 
-export type requeueOrganizationJobResponse = requeueOrganizationJobResponseSuccess;
+export type requeueOrganizationJobResponse = (requeueOrganizationJobResponseSuccess)
 
-export const getRequeueOrganizationJobUrl = (orgSlug: string, jobId: string) => {
-  return `/organizations/${orgSlug}/jobs/${jobId}/requeue`;
-};
+export const getRequeueOrganizationJobUrl = (orgSlug: string,
+    jobId: string,) => {
 
-export const requeueOrganizationJob = async (
-  orgSlug: string,
-  jobId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<requeueOrganizationJobResponse> => {
-  return orvalFetch<requeueOrganizationJobResponse>(getRequeueOrganizationJobUrl(orgSlug, jobId), {
+
+
+
+  return `/organizations/${orgSlug}/jobs/${jobId}/requeue`
+}
+
+export const requeueOrganizationJob = async (orgSlug: string,
+    jobId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<requeueOrganizationJobResponse> => {
+
+  return orvalFetch<requeueOrganizationJobResponse>(getRequeueOrganizationJobUrl(orgSlug,jobId),
+  {
     ...options,
-    method: "POST",
-  });
-};
+    method: 'POST'
 
-export const getRequeueOrganizationJobMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof requeueOrganizationJob>>,
-    TError,
-    { orgSlug: string; jobId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof requeueOrganizationJob>>,
-  TError,
-  { orgSlug: string; jobId: string },
-  TContext
-> => {
-  const mutationKey = ["requeueOrganizationJob"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof requeueOrganizationJob>>,
-    { orgSlug: string; jobId: string }
-  > = (props) => {
-    const { orgSlug, jobId } = props ?? {};
+  }
+);}
 
-    return requeueOrganizationJob(orgSlug, jobId, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type RequeueOrganizationJobMutationResult = NonNullable<
-  Awaited<ReturnType<typeof requeueOrganizationJob>>
->;
 
-export type RequeueOrganizationJobMutationError = ErrorType<unknown>;
 
-export const useRequeueOrganizationJob = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof requeueOrganizationJob>>,
-      TError,
-      { orgSlug: string; jobId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof requeueOrganizationJob>>,
-  TError,
-  { orgSlug: string; jobId: string },
-  TContext
-> => {
-  return useMutation(getRequeueOrganizationJobMutationOptions(options), queryClient);
-};
+export const getRequeueOrganizationJobMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requeueOrganizationJob>>, TError,{orgSlug: string;jobId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requeueOrganizationJob>>, TError,{orgSlug: string;jobId: string}, TContext> => {
+
+const mutationKey = ['requeueOrganizationJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requeueOrganizationJob>>, {orgSlug: string;jobId: string}> = (props) => {
+          const {orgSlug,jobId} = props ?? {};
+
+          return  requeueOrganizationJob(orgSlug,jobId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequeueOrganizationJobMutationResult = NonNullable<Awaited<ReturnType<typeof requeueOrganizationJob>>>
+
+    export type RequeueOrganizationJobMutationError = ErrorType<unknown>
+
+    export const useRequeueOrganizationJob = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requeueOrganizationJob>>, TError,{orgSlug: string;jobId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requeueOrganizationJob>>,
+        TError,
+        {orgSlug: string;jobId: string},
+        TContext
+      > => {
+      return useMutation(getRequeueOrganizationJobMutationOptions(options), queryClient);
+    }
 
 export type createOrganizationInvitationResponse200 = {
-  data: InvitationResultDto;
-  status: 200;
+  data: InvitationResultDto
+  status: 200
+}
+
+export type createOrganizationInvitationResponseSuccess = (createOrganizationInvitationResponse200) & {
+  headers: Headers;
 };
+;
 
-export type createOrganizationInvitationResponseSuccess =
-  createOrganizationInvitationResponse200 & {
-    headers: Headers;
-  };
+export type createOrganizationInvitationResponse = (createOrganizationInvitationResponseSuccess)
 
-export type createOrganizationInvitationResponse = createOrganizationInvitationResponseSuccess;
+export const getCreateOrganizationInvitationUrl = (orgSlug: string,) => {
 
-export const getCreateOrganizationInvitationUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/invitations`;
-};
 
-export const createOrganizationInvitation = async (
-  orgSlug: string,
-  createInvitationBodyDto: CreateInvitationBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createOrganizationInvitationResponse> => {
-  return orvalFetch<createOrganizationInvitationResponse>(
-    getCreateOrganizationInvitationUrl(orgSlug),
-    {
-      ...options,
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createInvitationBodyDto),
-    },
-  );
-};
 
-export const getCreateOrganizationInvitationMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createOrganizationInvitation>>,
-    TError,
-    { orgSlug: string; data: BodyType<CreateInvitationBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createOrganizationInvitation>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateInvitationBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createOrganizationInvitation"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createOrganizationInvitation>>,
-    { orgSlug: string; data: BodyType<CreateInvitationBodyDto> }
-  > = (props) => {
-    const { orgSlug, data } = props ?? {};
+  return `/organizations/${orgSlug}/invitations`
+}
 
-    return createOrganizationInvitation(orgSlug, data, requestOptions);
-  };
+export const createOrganizationInvitation = async (orgSlug: string,
+    createInvitationBodyDto: CreateInvitationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationInvitationResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<createOrganizationInvitationResponse>(getCreateOrganizationInvitationUrl(orgSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createInvitationBodyDto)
+  }
+);}
 
-export type CreateOrganizationInvitationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createOrganizationInvitation>>
->;
-export type CreateOrganizationInvitationMutationBody = BodyType<CreateInvitationBodyDto>;
-export type CreateOrganizationInvitationMutationError = ErrorType<unknown>;
 
-export const useCreateOrganizationInvitation = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createOrganizationInvitation>>,
-      TError,
-      { orgSlug: string; data: BodyType<CreateInvitationBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createOrganizationInvitation>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateInvitationBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateOrganizationInvitationMutationOptions(options), queryClient);
-};
+
+
+
+export const getCreateOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationInvitation>>, TError,{orgSlug: string;data: BodyType<CreateInvitationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationInvitation>>, TError,{orgSlug: string;data: BodyType<CreateInvitationBodyDto>}, TContext> => {
+
+const mutationKey = ['createOrganizationInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationInvitation>>, {orgSlug: string;data: BodyType<CreateInvitationBodyDto>}> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  createOrganizationInvitation(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationInvitation>>>
+    export type CreateOrganizationInvitationMutationBody = BodyType<CreateInvitationBodyDto>
+    export type CreateOrganizationInvitationMutationError = ErrorType<unknown>
+
+    export const useCreateOrganizationInvitation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationInvitation>>, TError,{orgSlug: string;data: BodyType<CreateInvitationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createOrganizationInvitation>>,
+        TError,
+        {orgSlug: string;data: BodyType<CreateInvitationBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateOrganizationInvitationMutationOptions(options), queryClient);
+    }
 
 export type listOrganizationInvitationsResponse200 = {
-  data: OrganizationInvitationDto[];
-  status: 200;
-};
+  data: OrganizationInvitationDto[]
+  status: 200
+}
 
-export type listOrganizationInvitationsResponseSuccess = listOrganizationInvitationsResponse200 & {
+export type listOrganizationInvitationsResponseSuccess = (listOrganizationInvitationsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listOrganizationInvitationsResponse = listOrganizationInvitationsResponseSuccess;
+export type listOrganizationInvitationsResponse = (listOrganizationInvitationsResponseSuccess)
 
-export const getListOrganizationInvitationsUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/invitations`;
-};
+export const getListOrganizationInvitationsUrl = (orgSlug: string,) => {
 
-export const listOrganizationInvitations = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listOrganizationInvitationsResponse> => {
-  return orvalFetch<listOrganizationInvitationsResponse>(
-    getListOrganizationInvitationsUrl(orgSlug),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getListOrganizationInvitationsQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/invitations`] as const;
-};
 
-export const getListOrganizationInvitationsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listOrganizationInvitations>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+
+  return `/organizations/${orgSlug}/invitations`
+}
+
+export const listOrganizationInvitations = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listOrganizationInvitationsResponse> => {
+
+  return orvalFetch<listOrganizationInvitationsResponse>(getListOrganizationInvitationsUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOrganizationInvitationsQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/invitations`
+    ] as const;
+    }
+
+
+export const getListOrganizationInvitationsQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizationInvitations>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListOrganizationInvitationsQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationInvitations>>> = ({
-    signal,
-  }) => listOrganizationInvitations(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationInvitationsQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListOrganizationInvitationsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listOrganizationInvitations>>
->;
-export type ListOrganizationInvitationsQueryError = ErrorType<unknown>;
 
-export function useListOrganizationInvitations<
-  TData = Awaited<ReturnType<typeof listOrganizationInvitations>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>
-    > &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationInvitations>>> = ({ signal }) => listOrganizationInvitations(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListOrganizationInvitationsQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizationInvitations>>>
+export type ListOrganizationInvitationsQueryError = ErrorType<unknown>
+
+
+export function useListOrganizationInvitations<TData = Awaited<ReturnType<typeof listOrganizationInvitations>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationInvitations>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationInvitations>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationInvitations<
-  TData = Awaited<ReturnType<typeof listOrganizationInvitations>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationInvitations<TData = Awaited<ReturnType<typeof listOrganizationInvitations>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOrganizationInvitations>>,
           TError,
           Awaited<ReturnType<typeof listOrganizationInvitations>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListOrganizationInvitations<
-  TData = Awaited<ReturnType<typeof listOrganizationInvitations>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationInvitations<TData = Awaited<ReturnType<typeof listOrganizationInvitations>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListOrganizationInvitations<
-  TData = Awaited<ReturnType<typeof listOrganizationInvitations>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListOrganizationInvitationsQueryOptions(orgSlug, options);
+export function useListOrganizationInvitations<TData = Awaited<ReturnType<typeof listOrganizationInvitations>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationInvitations>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListOrganizationInvitationsQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type resendOrganizationInvitationResponse200 = {
-  data: InvitationResultDto;
-  status: 200;
+  data: InvitationResultDto
+  status: 200
+}
+
+export type resendOrganizationInvitationResponseSuccess = (resendOrganizationInvitationResponse200) & {
+  headers: Headers;
 };
+;
 
-export type resendOrganizationInvitationResponseSuccess =
-  resendOrganizationInvitationResponse200 & {
-    headers: Headers;
-  };
+export type resendOrganizationInvitationResponse = (resendOrganizationInvitationResponseSuccess)
 
-export type resendOrganizationInvitationResponse = resendOrganizationInvitationResponseSuccess;
+export const getResendOrganizationInvitationUrl = (orgSlug: string,
+    invitationId: string,) => {
 
-export const getResendOrganizationInvitationUrl = (orgSlug: string, invitationId: string) => {
-  return `/organizations/${orgSlug}/invitations/${invitationId}/resend`;
-};
 
-export const resendOrganizationInvitation = async (
-  orgSlug: string,
-  invitationId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<resendOrganizationInvitationResponse> => {
-  return orvalFetch<resendOrganizationInvitationResponse>(
-    getResendOrganizationInvitationUrl(orgSlug, invitationId),
-    {
-      ...options,
-      method: "POST",
-    },
-  );
-};
 
-export const getResendOrganizationInvitationMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof resendOrganizationInvitation>>,
-    TError,
-    { orgSlug: string; invitationId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof resendOrganizationInvitation>>,
-  TError,
-  { orgSlug: string; invitationId: string },
-  TContext
-> => {
-  const mutationKey = ["resendOrganizationInvitation"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof resendOrganizationInvitation>>,
-    { orgSlug: string; invitationId: string }
-  > = (props) => {
-    const { orgSlug, invitationId } = props ?? {};
+  return `/organizations/${orgSlug}/invitations/${invitationId}/resend`
+}
 
-    return resendOrganizationInvitation(orgSlug, invitationId, requestOptions);
-  };
+export const resendOrganizationInvitation = async (orgSlug: string,
+    invitationId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<resendOrganizationInvitationResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<resendOrganizationInvitationResponse>(getResendOrganizationInvitationUrl(orgSlug,invitationId),
+  {
+    ...options,
+    method: 'POST'
 
-export type ResendOrganizationInvitationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof resendOrganizationInvitation>>
->;
 
-export type ResendOrganizationInvitationMutationError = ErrorType<unknown>;
+  }
+);}
 
-export const useResendOrganizationInvitation = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof resendOrganizationInvitation>>,
-      TError,
-      { orgSlug: string; invitationId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof resendOrganizationInvitation>>,
-  TError,
-  { orgSlug: string; invitationId: string },
-  TContext
-> => {
-  return useMutation(getResendOrganizationInvitationMutationOptions(options), queryClient);
-};
+
+
+
+
+export const getResendOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext> => {
+
+const mutationKey = ['resendOrganizationInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendOrganizationInvitation>>, {orgSlug: string;invitationId: string}> = (props) => {
+          const {orgSlug,invitationId} = props ?? {};
+
+          return  resendOrganizationInvitation(orgSlug,invitationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof resendOrganizationInvitation>>>
+
+    export type ResendOrganizationInvitationMutationError = ErrorType<unknown>
+
+    export const useResendOrganizationInvitation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof resendOrganizationInvitation>>,
+        TError,
+        {orgSlug: string;invitationId: string},
+        TContext
+      > => {
+      return useMutation(getResendOrganizationInvitationMutationOptions(options), queryClient);
+    }
 
 export type acceptOrganizationInvitationResponse200 = {
-  data: OrganizationDto;
-  status: 200;
+  data: OrganizationDto
+  status: 200
+}
+
+export type acceptOrganizationInvitationResponseSuccess = (acceptOrganizationInvitationResponse200) & {
+  headers: Headers;
 };
+;
 
-export type acceptOrganizationInvitationResponseSuccess =
-  acceptOrganizationInvitationResponse200 & {
-    headers: Headers;
-  };
-
-export type acceptOrganizationInvitationResponse = acceptOrganizationInvitationResponseSuccess;
+export type acceptOrganizationInvitationResponse = (acceptOrganizationInvitationResponseSuccess)
 
 export const getAcceptOrganizationInvitationUrl = () => {
-  return `/organizations/invitations/accept`;
-};
 
-export const acceptOrganizationInvitation = async (
-  acceptInvitationBodyDto: AcceptInvitationBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<acceptOrganizationInvitationResponse> => {
-  return orvalFetch<acceptOrganizationInvitationResponse>(getAcceptOrganizationInvitationUrl(), {
+
+
+
+  return `/organizations/invitations/accept`
+}
+
+export const acceptOrganizationInvitation = async (acceptInvitationBodyDto: AcceptInvitationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<acceptOrganizationInvitationResponse> => {
+
+  return orvalFetch<acceptOrganizationInvitationResponse>(getAcceptOrganizationInvitationUrl(),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(acceptInvitationBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(acceptInvitationBodyDto)
+  }
+);}
 
-export const getAcceptOrganizationInvitationMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof acceptOrganizationInvitation>>,
-    TError,
-    { data: BodyType<AcceptInvitationBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof acceptOrganizationInvitation>>,
-  TError,
-  { data: BodyType<AcceptInvitationBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["acceptOrganizationInvitation"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof acceptOrganizationInvitation>>,
-    { data: BodyType<AcceptInvitationBodyDto> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return acceptOrganizationInvitation(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type AcceptOrganizationInvitationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof acceptOrganizationInvitation>>
->;
-export type AcceptOrganizationInvitationMutationBody = BodyType<AcceptInvitationBodyDto>;
-export type AcceptOrganizationInvitationMutationError = ErrorType<unknown>;
+export const getAcceptOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,{data: BodyType<AcceptInvitationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,{data: BodyType<AcceptInvitationBodyDto>}, TContext> => {
 
-export const useAcceptOrganizationInvitation = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof acceptOrganizationInvitation>>,
-      TError,
-      { data: BodyType<AcceptInvitationBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof acceptOrganizationInvitation>>,
-  TError,
-  { data: BodyType<AcceptInvitationBodyDto> },
-  TContext
-> => {
-  return useMutation(getAcceptOrganizationInvitationMutationOptions(options), queryClient);
-};
+const mutationKey = ['acceptOrganizationInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, {data: BodyType<AcceptInvitationBodyDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  acceptOrganizationInvitation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof acceptOrganizationInvitation>>>
+    export type AcceptOrganizationInvitationMutationBody = BodyType<AcceptInvitationBodyDto>
+    export type AcceptOrganizationInvitationMutationError = ErrorType<unknown>
+
+    export const useAcceptOrganizationInvitation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,{data: BodyType<AcceptInvitationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof acceptOrganizationInvitation>>,
+        TError,
+        {data: BodyType<AcceptInvitationBodyDto>},
+        TContext
+      > => {
+      return useMutation(getAcceptOrganizationInvitationMutationOptions(options), queryClient);
+    }
 
 export type updateOrganizationMemberRoleResponse200 = {
-  data: OrganizationMemberDto;
-  status: 200;
+  data: OrganizationMemberDto
+  status: 200
+}
+
+export type updateOrganizationMemberRoleResponseSuccess = (updateOrganizationMemberRoleResponse200) & {
+  headers: Headers;
 };
+;
 
-export type updateOrganizationMemberRoleResponseSuccess =
-  updateOrganizationMemberRoleResponse200 & {
-    headers: Headers;
-  };
+export type updateOrganizationMemberRoleResponse = (updateOrganizationMemberRoleResponseSuccess)
 
-export type updateOrganizationMemberRoleResponse = updateOrganizationMemberRoleResponseSuccess;
+export const getUpdateOrganizationMemberRoleUrl = (orgSlug: string,
+    memberId: string,) => {
 
-export const getUpdateOrganizationMemberRoleUrl = (orgSlug: string, memberId: string) => {
-  return `/organizations/${orgSlug}/members/${memberId}`;
-};
 
-export const updateOrganizationMemberRole = async (
-  orgSlug: string,
-  memberId: string,
-  updateMemberRoleBodyDto: UpdateMemberRoleBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateOrganizationMemberRoleResponse> => {
-  return orvalFetch<updateOrganizationMemberRoleResponse>(
-    getUpdateOrganizationMemberRoleUrl(orgSlug, memberId),
-    {
-      ...options,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(updateMemberRoleBodyDto),
-    },
-  );
-};
 
-export const getUpdateOrganizationMemberRoleMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateOrganizationMemberRole>>,
-    TError,
-    { orgSlug: string; memberId: string; data: BodyType<UpdateMemberRoleBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateOrganizationMemberRole>>,
-  TError,
-  { orgSlug: string; memberId: string; data: BodyType<UpdateMemberRoleBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["updateOrganizationMemberRole"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateOrganizationMemberRole>>,
-    { orgSlug: string; memberId: string; data: BodyType<UpdateMemberRoleBodyDto> }
-  > = (props) => {
-    const { orgSlug, memberId, data } = props ?? {};
+  return `/organizations/${orgSlug}/members/${memberId}`
+}
 
-    return updateOrganizationMemberRole(orgSlug, memberId, data, requestOptions);
-  };
+export const updateOrganizationMemberRole = async (orgSlug: string,
+    memberId: string,
+    updateMemberRoleBodyDto: UpdateMemberRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationMemberRoleResponse> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+  return orvalFetch<updateOrganizationMemberRoleResponse>(getUpdateOrganizationMemberRoleUrl(orgSlug,memberId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateMemberRoleBodyDto)
+  }
+);}
 
-export type UpdateOrganizationMemberRoleMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateOrganizationMemberRole>>
->;
-export type UpdateOrganizationMemberRoleMutationBody = BodyType<UpdateMemberRoleBodyDto>;
-export type UpdateOrganizationMemberRoleMutationError = ErrorType<unknown>;
 
-export const useUpdateOrganizationMemberRole = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateOrganizationMemberRole>>,
-      TError,
-      { orgSlug: string; memberId: string; data: BodyType<UpdateMemberRoleBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateOrganizationMemberRole>>,
-  TError,
-  { orgSlug: string; memberId: string; data: BodyType<UpdateMemberRoleBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpdateOrganizationMemberRoleMutationOptions(options), queryClient);
-};
+
+
+
+export const getUpdateOrganizationMemberRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, TError,{orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, TError,{orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>}, TContext> => {
+
+const mutationKey = ['updateOrganizationMemberRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, {orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>}> = (props) => {
+          const {orgSlug,memberId,data} = props ?? {};
+
+          return  updateOrganizationMemberRole(orgSlug,memberId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationMemberRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationMemberRole>>>
+    export type UpdateOrganizationMemberRoleMutationBody = BodyType<UpdateMemberRoleBodyDto>
+    export type UpdateOrganizationMemberRoleMutationError = ErrorType<unknown>
+
+    export const useUpdateOrganizationMemberRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, TError,{orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateOrganizationMemberRole>>,
+        TError,
+        {orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateOrganizationMemberRoleMutationOptions(options), queryClient);
+    }
 
 export type removeOrganizationMemberResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type removeOrganizationMemberResponseSuccess = removeOrganizationMemberResponse200 & {
+export type removeOrganizationMemberResponseSuccess = (removeOrganizationMemberResponse200) & {
   headers: Headers;
 };
+;
 
-export type removeOrganizationMemberResponse = removeOrganizationMemberResponseSuccess;
+export type removeOrganizationMemberResponse = (removeOrganizationMemberResponseSuccess)
 
-export const getRemoveOrganizationMemberUrl = (orgSlug: string, memberId: string) => {
-  return `/organizations/${orgSlug}/members/${memberId}`;
-};
+export const getRemoveOrganizationMemberUrl = (orgSlug: string,
+    memberId: string,) => {
 
-export const removeOrganizationMember = async (
-  orgSlug: string,
-  memberId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<removeOrganizationMemberResponse> => {
-  return orvalFetch<removeOrganizationMemberResponse>(
-    getRemoveOrganizationMemberUrl(orgSlug, memberId),
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
-};
 
-export const getRemoveOrganizationMemberMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof removeOrganizationMember>>,
-    TError,
-    { orgSlug: string; memberId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof removeOrganizationMember>>,
-  TError,
-  { orgSlug: string; memberId: string },
-  TContext
-> => {
-  const mutationKey = ["removeOrganizationMember"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof removeOrganizationMember>>,
-    { orgSlug: string; memberId: string }
-  > = (props) => {
-    const { orgSlug, memberId } = props ?? {};
 
-    return removeOrganizationMember(orgSlug, memberId, requestOptions);
-  };
+  return `/organizations/${orgSlug}/members/${memberId}`
+}
 
-  return { mutationFn, ...mutationOptions };
-};
+export const removeOrganizationMember = async (orgSlug: string,
+    memberId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<removeOrganizationMemberResponse> => {
 
-export type RemoveOrganizationMemberMutationResult = NonNullable<
-  Awaited<ReturnType<typeof removeOrganizationMember>>
->;
+  return orvalFetch<removeOrganizationMemberResponse>(getRemoveOrganizationMemberUrl(orgSlug,memberId),
+  {
+    ...options,
+    method: 'DELETE'
 
-export type RemoveOrganizationMemberMutationError = ErrorType<unknown>;
 
-export const useRemoveOrganizationMember = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof removeOrganizationMember>>,
-      TError,
-      { orgSlug: string; memberId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof removeOrganizationMember>>,
-  TError,
-  { orgSlug: string; memberId: string },
-  TContext
-> => {
-  return useMutation(getRemoveOrganizationMemberMutationOptions(options), queryClient);
-};
+  }
+);}
+
+
+
+
+
+export const getRemoveOrganizationMemberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeOrganizationMember>>, TError,{orgSlug: string;memberId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeOrganizationMember>>, TError,{orgSlug: string;memberId: string}, TContext> => {
+
+const mutationKey = ['removeOrganizationMember'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeOrganizationMember>>, {orgSlug: string;memberId: string}> = (props) => {
+          const {orgSlug,memberId} = props ?? {};
+
+          return  removeOrganizationMember(orgSlug,memberId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveOrganizationMemberMutationResult = NonNullable<Awaited<ReturnType<typeof removeOrganizationMember>>>
+
+    export type RemoveOrganizationMemberMutationError = ErrorType<unknown>
+
+    export const useRemoveOrganizationMember = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeOrganizationMember>>, TError,{orgSlug: string;memberId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removeOrganizationMember>>,
+        TError,
+        {orgSlug: string;memberId: string},
+        TContext
+      > => {
+      return useMutation(getRemoveOrganizationMemberMutationOptions(options), queryClient);
+    }
 
 export type listTeamsResponse200 = {
-  data: TeamDto[];
-  status: 200;
-};
+  data: TeamDto[]
+  status: 200
+}
 
-export type listTeamsResponseSuccess = listTeamsResponse200 & {
+export type listTeamsResponseSuccess = (listTeamsResponse200) & {
   headers: Headers;
 };
+;
 
-export type listTeamsResponse = listTeamsResponseSuccess;
+export type listTeamsResponse = (listTeamsResponseSuccess)
 
-export const getListTeamsUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/teams`;
-};
+export const getListTeamsUrl = (orgSlug: string,) => {
 
-export const listTeams = async (
-  orgSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listTeamsResponse> => {
-  return orvalFetch<listTeamsResponse>(getListTeamsUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/teams`
+}
+
+export const listTeams = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listTeamsResponse> => {
+
+  return orvalFetch<listTeamsResponse>(getListTeamsUrl(orgSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListTeamsQueryKey = (orgSlug: string) => {
-  return [`/organizations/${orgSlug}/teams`] as const;
-};
 
-export const getListTeamsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listTeams>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListTeamsQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/teams`
+    ] as const;
+    }
+
+
+export const getListTeamsQueryOptions = <TData = Awaited<ReturnType<typeof listTeams>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListTeamsQueryKey(orgSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTeams>>> = ({ signal }) =>
-    listTeams(orgSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListTeamsQueryKey(orgSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: orgSlug !== null && orgSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListTeamsQueryResult = NonNullable<Awaited<ReturnType<typeof listTeams>>>;
-export type ListTeamsQueryError = ErrorType<unknown>;
 
-export function useListTeams<
-  TData = Awaited<ReturnType<typeof listTeams>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTeams>>> = ({ signal }) => listTeams(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListTeamsQueryResult = NonNullable<Awaited<ReturnType<typeof listTeams>>>
+export type ListTeamsQueryError = ErrorType<unknown>
+
+
+export function useListTeams<TData = Awaited<ReturnType<typeof listTeams>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listTeams>>,
           TError,
           Awaited<ReturnType<typeof listTeams>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListTeams<
-  TData = Awaited<ReturnType<typeof listTeams>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTeams<TData = Awaited<ReturnType<typeof listTeams>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listTeams>>,
           TError,
           Awaited<ReturnType<typeof listTeams>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListTeams<
-  TData = Awaited<ReturnType<typeof listTeams>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTeams<TData = Awaited<ReturnType<typeof listTeams>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListTeams<
-  TData = Awaited<ReturnType<typeof listTeams>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListTeamsQueryOptions(orgSlug, options);
+export function useListTeams<TData = Awaited<ReturnType<typeof listTeams>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListTeamsQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type createTeamResponse200 = {
-  data: TeamDto;
-  status: 200;
-};
+  data: TeamDto
+  status: 200
+}
 
-export type createTeamResponseSuccess = createTeamResponse200 & {
+export type createTeamResponseSuccess = (createTeamResponse200) & {
   headers: Headers;
 };
+;
 
-export type createTeamResponse = createTeamResponseSuccess;
+export type createTeamResponse = (createTeamResponseSuccess)
 
-export const getCreateTeamUrl = (orgSlug: string) => {
-  return `/organizations/${orgSlug}/teams`;
-};
+export const getCreateTeamUrl = (orgSlug: string,) => {
 
-export const createTeam = async (
-  orgSlug: string,
-  createTeamBodyDto: CreateTeamBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createTeamResponse> => {
-  return orvalFetch<createTeamResponse>(getCreateTeamUrl(orgSlug), {
+
+
+
+  return `/organizations/${orgSlug}/teams`
+}
+
+export const createTeam = async (orgSlug: string,
+    createTeamBodyDto: CreateTeamBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createTeamResponse> => {
+
+  return orvalFetch<createTeamResponse>(getCreateTeamUrl(orgSlug),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createTeamBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createTeamBodyDto)
+  }
+);}
 
-export const getCreateTeamMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createTeam>>,
-    TError,
-    { orgSlug: string; data: BodyType<CreateTeamBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createTeam>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateTeamBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createTeam"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createTeam>>,
-    { orgSlug: string; data: BodyType<CreateTeamBodyDto> }
-  > = (props) => {
-    const { orgSlug, data } = props ?? {};
 
-    return createTeam(orgSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type CreateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof createTeam>>>;
-export type CreateTeamMutationBody = BodyType<CreateTeamBodyDto>;
-export type CreateTeamMutationError = ErrorType<unknown>;
+export const getCreateTeamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,{orgSlug: string;data: BodyType<CreateTeamBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,{orgSlug: string;data: BodyType<CreateTeamBodyDto>}, TContext> => {
 
-export const useCreateTeam = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createTeam>>,
-      TError,
-      { orgSlug: string; data: BodyType<CreateTeamBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createTeam>>,
-  TError,
-  { orgSlug: string; data: BodyType<CreateTeamBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateTeamMutationOptions(options), queryClient);
-};
+const mutationKey = ['createTeam'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTeam>>, {orgSlug: string;data: BodyType<CreateTeamBodyDto>}> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  createTeam(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof createTeam>>>
+    export type CreateTeamMutationBody = BodyType<CreateTeamBodyDto>
+    export type CreateTeamMutationError = ErrorType<unknown>
+
+    export const useCreateTeam = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,{orgSlug: string;data: BodyType<CreateTeamBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createTeam>>,
+        TError,
+        {orgSlug: string;data: BodyType<CreateTeamBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateTeamMutationOptions(options), queryClient);
+    }
 
 export type updateTeamResponse200 = {
-  data: TeamDto;
-  status: 200;
-};
+  data: TeamDto
+  status: 200
+}
 
-export type updateTeamResponseSuccess = updateTeamResponse200 & {
+export type updateTeamResponseSuccess = (updateTeamResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateTeamResponse = updateTeamResponseSuccess;
+export type updateTeamResponse = (updateTeamResponseSuccess)
 
-export const getUpdateTeamUrl = (orgSlug: string, teamSlug: string) => {
-  return `/organizations/${orgSlug}/teams/${teamSlug}`;
-};
+export const getUpdateTeamUrl = (orgSlug: string,
+    teamSlug: string,) => {
 
-export const updateTeam = async (
-  orgSlug: string,
-  teamSlug: string,
-  updateTeamBodyDto: UpdateTeamBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateTeamResponse> => {
-  return orvalFetch<updateTeamResponse>(getUpdateTeamUrl(orgSlug, teamSlug), {
+
+
+
+  return `/organizations/${orgSlug}/teams/${teamSlug}`
+}
+
+export const updateTeam = async (orgSlug: string,
+    teamSlug: string,
+    updateTeamBodyDto: UpdateTeamBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateTeamResponse> => {
+
+  return orvalFetch<updateTeamResponse>(getUpdateTeamUrl(orgSlug,teamSlug),
+  {
     ...options,
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateTeamBodyDto),
-  });
-};
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateTeamBodyDto)
+  }
+);}
 
-export const getUpdateTeamMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateTeam>>,
-    TError,
-    { orgSlug: string; teamSlug: string; data: BodyType<UpdateTeamBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateTeam>>,
-  TError,
-  { orgSlug: string; teamSlug: string; data: BodyType<UpdateTeamBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["updateTeam"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateTeam>>,
-    { orgSlug: string; teamSlug: string; data: BodyType<UpdateTeamBodyDto> }
-  > = (props) => {
-    const { orgSlug, teamSlug, data } = props ?? {};
 
-    return updateTeam(orgSlug, teamSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type UpdateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof updateTeam>>>;
-export type UpdateTeamMutationBody = BodyType<UpdateTeamBodyDto>;
-export type UpdateTeamMutationError = ErrorType<unknown>;
+export const getUpdateTeamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>}, TContext> => {
 
-export const useUpdateTeam = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateTeam>>,
-      TError,
-      { orgSlug: string; teamSlug: string; data: BodyType<UpdateTeamBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateTeam>>,
-  TError,
-  { orgSlug: string; teamSlug: string; data: BodyType<UpdateTeamBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpdateTeamMutationOptions(options), queryClient);
-};
+const mutationKey = ['updateTeam'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTeam>>, {orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>}> = (props) => {
+          const {orgSlug,teamSlug,data} = props ?? {};
+
+          return  updateTeam(orgSlug,teamSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof updateTeam>>>
+    export type UpdateTeamMutationBody = BodyType<UpdateTeamBodyDto>
+    export type UpdateTeamMutationError = ErrorType<unknown>
+
+    export const useUpdateTeam = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateTeam>>,
+        TError,
+        {orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateTeamMutationOptions(options), queryClient);
+    }
 
 export type deleteTeamResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type deleteTeamResponseSuccess = deleteTeamResponse200 & {
+export type deleteTeamResponseSuccess = (deleteTeamResponse200) & {
   headers: Headers;
 };
+;
 
-export type deleteTeamResponse = deleteTeamResponseSuccess;
+export type deleteTeamResponse = (deleteTeamResponseSuccess)
 
-export const getDeleteTeamUrl = (orgSlug: string, teamSlug: string) => {
-  return `/organizations/${orgSlug}/teams/${teamSlug}`;
-};
+export const getDeleteTeamUrl = (orgSlug: string,
+    teamSlug: string,) => {
 
-export const deleteTeam = async (
-  orgSlug: string,
-  teamSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<deleteTeamResponse> => {
-  return orvalFetch<deleteTeamResponse>(getDeleteTeamUrl(orgSlug, teamSlug), {
+
+
+
+  return `/organizations/${orgSlug}/teams/${teamSlug}`
+}
+
+export const deleteTeam = async (orgSlug: string,
+    teamSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteTeamResponse> => {
+
+  return orvalFetch<deleteTeamResponse>(getDeleteTeamUrl(orgSlug,teamSlug),
+  {
     ...options,
-    method: "DELETE",
-  });
-};
+    method: 'DELETE'
 
-export const getDeleteTeamMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteTeam>>,
-    TError,
-    { orgSlug: string; teamSlug: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteTeam>>,
-  TError,
-  { orgSlug: string; teamSlug: string },
-  TContext
-> => {
-  const mutationKey = ["deleteTeam"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteTeam>>,
-    { orgSlug: string; teamSlug: string }
-  > = (props) => {
-    const { orgSlug, teamSlug } = props ?? {};
+  }
+);}
 
-    return deleteTeam(orgSlug, teamSlug, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type DeleteTeamMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTeam>>>;
 
-export type DeleteTeamMutationError = ErrorType<unknown>;
 
-export const useDeleteTeam = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deleteTeam>>,
-      TError,
-      { orgSlug: string; teamSlug: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof deleteTeam>>,
-  TError,
-  { orgSlug: string; teamSlug: string },
-  TContext
-> => {
-  return useMutation(getDeleteTeamMutationOptions(options), queryClient);
-};
+export const getDeleteTeamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,{orgSlug: string;teamSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,{orgSlug: string;teamSlug: string}, TContext> => {
+
+const mutationKey = ['deleteTeam'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTeam>>, {orgSlug: string;teamSlug: string}> = (props) => {
+          const {orgSlug,teamSlug} = props ?? {};
+
+          return  deleteTeam(orgSlug,teamSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteTeamMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTeam>>>
+
+    export type DeleteTeamMutationError = ErrorType<unknown>
+
+    export const useDeleteTeam = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,{orgSlug: string;teamSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteTeam>>,
+        TError,
+        {orgSlug: string;teamSlug: string},
+        TContext
+      > => {
+      return useMutation(getDeleteTeamMutationOptions(options), queryClient);
+    }
 
 export type listTeamMembersResponse200 = {
-  data: TeamMembersResponseDto;
-  status: 200;
-};
+  data: TeamMembersResponseDto
+  status: 200
+}
 
-export type listTeamMembersResponseSuccess = listTeamMembersResponse200 & {
+export type listTeamMembersResponseSuccess = (listTeamMembersResponse200) & {
   headers: Headers;
 };
+;
 
-export type listTeamMembersResponse = listTeamMembersResponseSuccess;
+export type listTeamMembersResponse = (listTeamMembersResponseSuccess)
 
-export const getListTeamMembersUrl = (orgSlug: string, teamSlug: string) => {
-  return `/organizations/${orgSlug}/teams/${teamSlug}/members`;
-};
+export const getListTeamMembersUrl = (orgSlug: string,
+    teamSlug: string,) => {
 
-export const listTeamMembers = async (
-  orgSlug: string,
-  teamSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listTeamMembersResponse> => {
-  return orvalFetch<listTeamMembersResponse>(getListTeamMembersUrl(orgSlug, teamSlug), {
+
+
+
+  return `/organizations/${orgSlug}/teams/${teamSlug}/members`
+}
+
+export const listTeamMembers = async (orgSlug: string,
+    teamSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listTeamMembersResponse> => {
+
+  return orvalFetch<listTeamMembersResponse>(getListTeamMembersUrl(orgSlug,teamSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListTeamMembersQueryKey = (orgSlug: string, teamSlug: string) => {
-  return [`/organizations/${orgSlug}/teams/${teamSlug}/members`] as const;
-};
 
-export const getListTeamMembersQueryOptions = <
-  TData = Awaited<ReturnType<typeof listTeamMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListTeamMembersQueryKey = (orgSlug: string,
+    teamSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/teams/${teamSlug}/members`
+    ] as const;
+    }
+
+
+export const getListTeamMembersQueryOptions = <TData = Awaited<ReturnType<typeof listTeamMembers>>, TError = ErrorType<unknown>>(orgSlug: string,
+    teamSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListTeamMembersQueryKey(orgSlug, teamSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTeamMembers>>> = ({ signal }) =>
-    listTeamMembers(orgSlug, teamSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListTeamMembersQueryKey(orgSlug,teamSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null && orgSlug !== undefined && teamSlug !== null && teamSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListTeamMembersQueryResult = NonNullable<Awaited<ReturnType<typeof listTeamMembers>>>;
-export type ListTeamMembersQueryError = ErrorType<unknown>;
 
-export function useListTeamMembers<
-  TData = Awaited<ReturnType<typeof listTeamMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTeamMembers>>> = ({ signal }) => listTeamMembers(orgSlug,teamSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && teamSlug !== null && teamSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListTeamMembersQueryResult = NonNullable<Awaited<ReturnType<typeof listTeamMembers>>>
+export type ListTeamMembersQueryError = ErrorType<unknown>
+
+
+export function useListTeamMembers<TData = Awaited<ReturnType<typeof listTeamMembers>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    teamSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listTeamMembers>>,
           TError,
           Awaited<ReturnType<typeof listTeamMembers>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListTeamMembers<
-  TData = Awaited<ReturnType<typeof listTeamMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTeamMembers<TData = Awaited<ReturnType<typeof listTeamMembers>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    teamSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listTeamMembers>>,
           TError,
           Awaited<ReturnType<typeof listTeamMembers>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListTeamMembers<
-  TData = Awaited<ReturnType<typeof listTeamMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTeamMembers<TData = Awaited<ReturnType<typeof listTeamMembers>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    teamSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListTeamMembers<
-  TData = Awaited<ReturnType<typeof listTeamMembers>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListTeamMembersQueryOptions(orgSlug, teamSlug, options);
+export function useListTeamMembers<TData = Awaited<ReturnType<typeof listTeamMembers>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    teamSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamMembers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListTeamMembersQueryOptions(orgSlug,teamSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export type addTeamMemberResponse200 = {
-  data: TeamMemberDto;
-  status: 200;
-};
+  data: TeamMemberDto
+  status: 200
+}
 
-export type addTeamMemberResponseSuccess = addTeamMemberResponse200 & {
+export type addTeamMemberResponseSuccess = (addTeamMemberResponse200) & {
   headers: Headers;
 };
+;
 
-export type addTeamMemberResponse = addTeamMemberResponseSuccess;
+export type addTeamMemberResponse = (addTeamMemberResponseSuccess)
 
-export const getAddTeamMemberUrl = (orgSlug: string, teamSlug: string) => {
-  return `/organizations/${orgSlug}/teams/${teamSlug}/members`;
-};
+export const getAddTeamMemberUrl = (orgSlug: string,
+    teamSlug: string,) => {
 
-export const addTeamMember = async (
-  orgSlug: string,
-  teamSlug: string,
-  addTeamMemberBodyDto: AddTeamMemberBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<addTeamMemberResponse> => {
-  return orvalFetch<addTeamMemberResponse>(getAddTeamMemberUrl(orgSlug, teamSlug), {
+
+
+
+  return `/organizations/${orgSlug}/teams/${teamSlug}/members`
+}
+
+export const addTeamMember = async (orgSlug: string,
+    teamSlug: string,
+    addTeamMemberBodyDto: AddTeamMemberBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<addTeamMemberResponse> => {
+
+  return orvalFetch<addTeamMemberResponse>(getAddTeamMemberUrl(orgSlug,teamSlug),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(addTeamMemberBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(addTeamMemberBodyDto)
+  }
+);}
 
-export const getAddTeamMemberMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof addTeamMember>>,
-    TError,
-    { orgSlug: string; teamSlug: string; data: BodyType<AddTeamMemberBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof addTeamMember>>,
-  TError,
-  { orgSlug: string; teamSlug: string; data: BodyType<AddTeamMemberBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["addTeamMember"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof addTeamMember>>,
-    { orgSlug: string; teamSlug: string; data: BodyType<AddTeamMemberBodyDto> }
-  > = (props) => {
-    const { orgSlug, teamSlug, data } = props ?? {};
 
-    return addTeamMember(orgSlug, teamSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type AddTeamMemberMutationResult = NonNullable<Awaited<ReturnType<typeof addTeamMember>>>;
-export type AddTeamMemberMutationBody = BodyType<AddTeamMemberBodyDto>;
-export type AddTeamMemberMutationError = ErrorType<unknown>;
+export const getAddTeamMemberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTeamMember>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addTeamMember>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>}, TContext> => {
 
-export const useAddTeamMember = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof addTeamMember>>,
-      TError,
-      { orgSlug: string; teamSlug: string; data: BodyType<AddTeamMemberBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof addTeamMember>>,
-  TError,
-  { orgSlug: string; teamSlug: string; data: BodyType<AddTeamMemberBodyDto> },
-  TContext
-> => {
-  return useMutation(getAddTeamMemberMutationOptions(options), queryClient);
-};
+const mutationKey = ['addTeamMember'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addTeamMember>>, {orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>}> = (props) => {
+          const {orgSlug,teamSlug,data} = props ?? {};
+
+          return  addTeamMember(orgSlug,teamSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddTeamMemberMutationResult = NonNullable<Awaited<ReturnType<typeof addTeamMember>>>
+    export type AddTeamMemberMutationBody = BodyType<AddTeamMemberBodyDto>
+    export type AddTeamMemberMutationError = ErrorType<unknown>
+
+    export const useAddTeamMember = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTeamMember>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof addTeamMember>>,
+        TError,
+        {orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>},
+        TContext
+      > => {
+      return useMutation(getAddTeamMemberMutationOptions(options), queryClient);
+    }
 
 export type listTeamRolesResponse200 = {
-  data: TeamRoleDto[];
-  status: 200;
-};
+  data: TeamRoleDto[]
+  status: 200
+}
 
-export type listTeamRolesResponseSuccess = listTeamRolesResponse200 & {
+export type listTeamRolesResponseSuccess = (listTeamRolesResponse200) & {
   headers: Headers;
 };
+;
 
-export type listTeamRolesResponse = listTeamRolesResponseSuccess;
+export type listTeamRolesResponse = (listTeamRolesResponseSuccess)
 
-export const getListTeamRolesUrl = (orgSlug: string, teamSlug: string) => {
-  return `/organizations/${orgSlug}/teams/${teamSlug}/roles`;
-};
+export const getListTeamRolesUrl = (orgSlug: string,
+    teamSlug: string,) => {
 
-export const listTeamRoles = async (
-  orgSlug: string,
-  teamSlug: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<listTeamRolesResponse> => {
-  return orvalFetch<listTeamRolesResponse>(getListTeamRolesUrl(orgSlug, teamSlug), {
+
+
+
+  return `/organizations/${orgSlug}/teams/${teamSlug}/roles`
+}
+
+export const listTeamRoles = async (orgSlug: string,
+    teamSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listTeamRolesResponse> => {
+
+  return orvalFetch<listTeamRolesResponse>(getListTeamRolesUrl(orgSlug,teamSlug),
+  {
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
 
-export const getListTeamRolesQueryKey = (orgSlug: string, teamSlug: string) => {
-  return [`/organizations/${orgSlug}/teams/${teamSlug}/roles`] as const;
-};
 
-export const getListTeamRolesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listTeamRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
+  }
+);}
+
+
+
+
+
+export const getListTeamRolesQueryKey = (orgSlug: string,
+    teamSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/teams/${teamSlug}/roles`
+    ] as const;
+    }
+
+
+export const getListTeamRolesQueryOptions = <TData = Awaited<ReturnType<typeof listTeamRoles>>, TError = ErrorType<unknown>>(orgSlug: string,
+    teamSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListTeamRolesQueryKey(orgSlug, teamSlug);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTeamRoles>>> = ({ signal }) =>
-    listTeamRoles(orgSlug, teamSlug, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getListTeamRolesQueryKey(orgSlug,teamSlug);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      orgSlug !== null && orgSlug !== undefined && teamSlug !== null && teamSlug !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-};
 
-export type ListTeamRolesQueryResult = NonNullable<Awaited<ReturnType<typeof listTeamRoles>>>;
-export type ListTeamRolesQueryError = ErrorType<unknown>;
 
-export function useListTeamRoles<
-  TData = Awaited<ReturnType<typeof listTeamRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>> &
-      Pick<
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTeamRoles>>> = ({ signal }) => listTeamRoles(orgSlug,teamSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && teamSlug !== null && teamSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListTeamRolesQueryResult = NonNullable<Awaited<ReturnType<typeof listTeamRoles>>>
+export type ListTeamRolesQueryError = ErrorType<unknown>
+
+
+export function useListTeamRoles<TData = Awaited<ReturnType<typeof listTeamRoles>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    teamSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listTeamRoles>>,
           TError,
           Awaited<ReturnType<typeof listTeamRoles>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListTeamRoles<
-  TData = Awaited<ReturnType<typeof listTeamRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTeamRoles<TData = Awaited<ReturnType<typeof listTeamRoles>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    teamSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listTeamRoles>>,
           TError,
           Awaited<ReturnType<typeof listTeamRoles>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListTeamRoles<
-  TData = Awaited<ReturnType<typeof listTeamRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTeamRoles<TData = Awaited<ReturnType<typeof listTeamRoles>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    teamSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListTeamRoles<
-  TData = Awaited<ReturnType<typeof listTeamRoles>>,
-  TError = ErrorType<unknown>,
->(
-  orgSlug: string,
-  teamSlug: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>>;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListTeamRolesQueryOptions(orgSlug, teamSlug, options);
+export function useListTeamRoles<TData = Awaited<ReturnType<typeof listTeamRoles>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    teamSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTeamRoles>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  const queryOptions = getListTeamRolesQueryOptions(orgSlug,teamSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type createTeamRoleResponse200 = {
-  data: TeamRoleDto;
-  status: 200;
-};
 
-export type createTeamRoleResponseSuccess = createTeamRoleResponse200 & {
+
+
+
+
+
+export type createTeamRoleResponse200 = {
+  data: TeamRoleDto
+  status: 200
+}
+
+export type createTeamRoleResponseSuccess = (createTeamRoleResponse200) & {
   headers: Headers;
 };
+;
 
-export type createTeamRoleResponse = createTeamRoleResponseSuccess;
+export type createTeamRoleResponse = (createTeamRoleResponseSuccess)
 
-export const getCreateTeamRoleUrl = (orgSlug: string, teamSlug: string) => {
-  return `/organizations/${orgSlug}/teams/${teamSlug}/roles`;
-};
+export const getCreateTeamRoleUrl = (orgSlug: string,
+    teamSlug: string,) => {
 
-export const createTeamRole = async (
-  orgSlug: string,
-  teamSlug: string,
-  createTeamRoleBodyDto: CreateTeamRoleBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<createTeamRoleResponse> => {
-  return orvalFetch<createTeamRoleResponse>(getCreateTeamRoleUrl(orgSlug, teamSlug), {
+
+
+
+  return `/organizations/${orgSlug}/teams/${teamSlug}/roles`
+}
+
+export const createTeamRole = async (orgSlug: string,
+    teamSlug: string,
+    createTeamRoleBodyDto: CreateTeamRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createTeamRoleResponse> => {
+
+  return orvalFetch<createTeamRoleResponse>(getCreateTeamRoleUrl(orgSlug,teamSlug),
+  {
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createTeamRoleBodyDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createTeamRoleBodyDto)
+  }
+);}
 
-export const getCreateTeamRoleMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createTeamRole>>,
-    TError,
-    { orgSlug: string; teamSlug: string; data: BodyType<CreateTeamRoleBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createTeamRole>>,
-  TError,
-  { orgSlug: string; teamSlug: string; data: BodyType<CreateTeamRoleBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["createTeamRole"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createTeamRole>>,
-    { orgSlug: string; teamSlug: string; data: BodyType<CreateTeamRoleBodyDto> }
-  > = (props) => {
-    const { orgSlug, teamSlug, data } = props ?? {};
 
-    return createTeamRole(orgSlug, teamSlug, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type CreateTeamRoleMutationResult = NonNullable<Awaited<ReturnType<typeof createTeamRole>>>;
-export type CreateTeamRoleMutationBody = BodyType<CreateTeamRoleBodyDto>;
-export type CreateTeamRoleMutationError = ErrorType<unknown>;
+export const getCreateTeamRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeamRole>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTeamRole>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>}, TContext> => {
 
-export const useCreateTeamRole = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof createTeamRole>>,
-      TError,
-      { orgSlug: string; teamSlug: string; data: BodyType<CreateTeamRoleBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof createTeamRole>>,
-  TError,
-  { orgSlug: string; teamSlug: string; data: BodyType<CreateTeamRoleBodyDto> },
-  TContext
-> => {
-  return useMutation(getCreateTeamRoleMutationOptions(options), queryClient);
-};
+const mutationKey = ['createTeamRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTeamRole>>, {orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>}> = (props) => {
+          const {orgSlug,teamSlug,data} = props ?? {};
+
+          return  createTeamRole(orgSlug,teamSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateTeamRoleMutationResult = NonNullable<Awaited<ReturnType<typeof createTeamRole>>>
+    export type CreateTeamRoleMutationBody = BodyType<CreateTeamRoleBodyDto>
+    export type CreateTeamRoleMutationError = ErrorType<unknown>
+
+    export const useCreateTeamRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeamRole>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createTeamRole>>,
+        TError,
+        {orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>},
+        TContext
+      > => {
+      return useMutation(getCreateTeamRoleMutationOptions(options), queryClient);
+    }
 
 export type deleteTeamRoleResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type deleteTeamRoleResponseSuccess = deleteTeamRoleResponse200 & {
+export type deleteTeamRoleResponseSuccess = (deleteTeamRoleResponse200) & {
   headers: Headers;
 };
+;
 
-export type deleteTeamRoleResponse = deleteTeamRoleResponseSuccess;
+export type deleteTeamRoleResponse = (deleteTeamRoleResponseSuccess)
 
-export const getDeleteTeamRoleUrl = (orgSlug: string, teamSlug: string, roleKey: string) => {
-  return `/organizations/${orgSlug}/teams/${teamSlug}/roles/${roleKey}`;
-};
+export const getDeleteTeamRoleUrl = (orgSlug: string,
+    teamSlug: string,
+    roleKey: string,) => {
 
-export const deleteTeamRole = async (
-  orgSlug: string,
-  teamSlug: string,
-  roleKey: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<deleteTeamRoleResponse> => {
-  return orvalFetch<deleteTeamRoleResponse>(getDeleteTeamRoleUrl(orgSlug, teamSlug, roleKey), {
+
+
+
+  return `/organizations/${orgSlug}/teams/${teamSlug}/roles/${roleKey}`
+}
+
+export const deleteTeamRole = async (orgSlug: string,
+    teamSlug: string,
+    roleKey: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteTeamRoleResponse> => {
+
+  return orvalFetch<deleteTeamRoleResponse>(getDeleteTeamRoleUrl(orgSlug,teamSlug,roleKey),
+  {
     ...options,
-    method: "DELETE",
-  });
-};
+    method: 'DELETE'
 
-export const getDeleteTeamRoleMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteTeamRole>>,
-    TError,
-    { orgSlug: string; teamSlug: string; roleKey: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteTeamRole>>,
-  TError,
-  { orgSlug: string; teamSlug: string; roleKey: string },
-  TContext
-> => {
-  const mutationKey = ["deleteTeamRole"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteTeamRole>>,
-    { orgSlug: string; teamSlug: string; roleKey: string }
-  > = (props) => {
-    const { orgSlug, teamSlug, roleKey } = props ?? {};
+  }
+);}
 
-    return deleteTeamRole(orgSlug, teamSlug, roleKey, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type DeleteTeamRoleMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTeamRole>>>;
 
-export type DeleteTeamRoleMutationError = ErrorType<unknown>;
 
-export const useDeleteTeamRole = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deleteTeamRole>>,
-      TError,
-      { orgSlug: string; teamSlug: string; roleKey: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof deleteTeamRole>>,
-  TError,
-  { orgSlug: string; teamSlug: string; roleKey: string },
-  TContext
-> => {
-  return useMutation(getDeleteTeamRoleMutationOptions(options), queryClient);
-};
+export const getDeleteTeamRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string}, TContext> => {
+
+const mutationKey = ['deleteTeamRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTeamRole>>, {orgSlug: string;teamSlug: string;roleKey: string}> = (props) => {
+          const {orgSlug,teamSlug,roleKey} = props ?? {};
+
+          return  deleteTeamRole(orgSlug,teamSlug,roleKey,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteTeamRoleMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTeamRole>>>
+
+    export type DeleteTeamRoleMutationError = ErrorType<unknown>
+
+    export const useDeleteTeamRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteTeamRole>>,
+        TError,
+        {orgSlug: string;teamSlug: string;roleKey: string},
+        TContext
+      > => {
+      return useMutation(getDeleteTeamRoleMutationOptions(options), queryClient);
+    }
 
 export type updateTeamRoleResponse200 = {
-  data: TeamRoleDto;
-  status: 200;
-};
+  data: TeamRoleDto
+  status: 200
+}
 
-export type updateTeamRoleResponseSuccess = updateTeamRoleResponse200 & {
+export type updateTeamRoleResponseSuccess = (updateTeamRoleResponse200) & {
   headers: Headers;
 };
+;
 
-export type updateTeamRoleResponse = updateTeamRoleResponseSuccess;
+export type updateTeamRoleResponse = (updateTeamRoleResponseSuccess)
 
-export const getUpdateTeamRoleUrl = (orgSlug: string, teamSlug: string, roleKey: string) => {
-  return `/organizations/${orgSlug}/teams/${teamSlug}/roles/${roleKey}`;
-};
+export const getUpdateTeamRoleUrl = (orgSlug: string,
+    teamSlug: string,
+    roleKey: string,) => {
 
-export const updateTeamRole = async (
-  orgSlug: string,
-  teamSlug: string,
-  roleKey: string,
-  updateTeamRoleBodyDto: UpdateTeamRoleBodyDto,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<updateTeamRoleResponse> => {
-  return orvalFetch<updateTeamRoleResponse>(getUpdateTeamRoleUrl(orgSlug, teamSlug, roleKey), {
+
+
+
+  return `/organizations/${orgSlug}/teams/${teamSlug}/roles/${roleKey}`
+}
+
+export const updateTeamRole = async (orgSlug: string,
+    teamSlug: string,
+    roleKey: string,
+    updateTeamRoleBodyDto: UpdateTeamRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateTeamRoleResponse> => {
+
+  return orvalFetch<updateTeamRoleResponse>(getUpdateTeamRoleUrl(orgSlug,teamSlug,roleKey),
+  {
     ...options,
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateTeamRoleBodyDto),
-  });
-};
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateTeamRoleBodyDto)
+  }
+);}
 
-export const getUpdateTeamRoleMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateTeamRole>>,
-    TError,
-    { orgSlug: string; teamSlug: string; roleKey: string; data: BodyType<UpdateTeamRoleBodyDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateTeamRole>>,
-  TError,
-  { orgSlug: string; teamSlug: string; roleKey: string; data: BodyType<UpdateTeamRoleBodyDto> },
-  TContext
-> => {
-  const mutationKey = ["updateTeamRole"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateTeamRole>>,
-    { orgSlug: string; teamSlug: string; roleKey: string; data: BodyType<UpdateTeamRoleBodyDto> }
-  > = (props) => {
-    const { orgSlug, teamSlug, roleKey, data } = props ?? {};
 
-    return updateTeamRole(orgSlug, teamSlug, roleKey, data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type UpdateTeamRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateTeamRole>>>;
-export type UpdateTeamRoleMutationBody = BodyType<UpdateTeamRoleBodyDto>;
-export type UpdateTeamRoleMutationError = ErrorType<unknown>;
+export const getUpdateTeamRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>}, TContext> => {
 
-export const useUpdateTeamRole = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateTeamRole>>,
-      TError,
-      { orgSlug: string; teamSlug: string; roleKey: string; data: BodyType<UpdateTeamRoleBodyDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateTeamRole>>,
-  TError,
-  { orgSlug: string; teamSlug: string; roleKey: string; data: BodyType<UpdateTeamRoleBodyDto> },
-  TContext
-> => {
-  return useMutation(getUpdateTeamRoleMutationOptions(options), queryClient);
-};
+const mutationKey = ['updateTeamRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTeamRole>>, {orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>}> = (props) => {
+          const {orgSlug,teamSlug,roleKey,data} = props ?? {};
+
+          return  updateTeamRole(orgSlug,teamSlug,roleKey,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTeamRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateTeamRole>>>
+    export type UpdateTeamRoleMutationBody = BodyType<UpdateTeamRoleBodyDto>
+    export type UpdateTeamRoleMutationError = ErrorType<unknown>
+
+    export const useUpdateTeamRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateTeamRole>>,
+        TError,
+        {orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>},
+        TContext
+      > => {
+      return useMutation(getUpdateTeamRoleMutationOptions(options), queryClient);
+    }
 
 export type removeTeamMemberResponse200 = {
-  data: SuccessDto;
-  status: 200;
-};
+  data: SuccessDto
+  status: 200
+}
 
-export type removeTeamMemberResponseSuccess = removeTeamMemberResponse200 & {
+export type removeTeamMemberResponseSuccess = (removeTeamMemberResponse200) & {
   headers: Headers;
 };
+;
 
-export type removeTeamMemberResponse = removeTeamMemberResponseSuccess;
+export type removeTeamMemberResponse = (removeTeamMemberResponseSuccess)
 
-export const getRemoveTeamMemberUrl = (orgSlug: string, teamSlug: string, userId: string) => {
-  return `/organizations/${orgSlug}/teams/${teamSlug}/members/${userId}`;
-};
+export const getRemoveTeamMemberUrl = (orgSlug: string,
+    teamSlug: string,
+    userId: string,) => {
 
-export const removeTeamMember = async (
-  orgSlug: string,
-  teamSlug: string,
-  userId: string,
-  options?: Parameters<typeof orvalFetch>[1],
-): Promise<removeTeamMemberResponse> => {
-  return orvalFetch<removeTeamMemberResponse>(getRemoveTeamMemberUrl(orgSlug, teamSlug, userId), {
+
+
+
+  return `/organizations/${orgSlug}/teams/${teamSlug}/members/${userId}`
+}
+
+export const removeTeamMember = async (orgSlug: string,
+    teamSlug: string,
+    userId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<removeTeamMemberResponse> => {
+
+  return orvalFetch<removeTeamMemberResponse>(getRemoveTeamMemberUrl(orgSlug,teamSlug,userId),
+  {
     ...options,
-    method: "DELETE",
-  });
-};
+    method: 'DELETE'
 
-export const getRemoveTeamMemberMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof removeTeamMember>>,
-    TError,
-    { orgSlug: string; teamSlug: string; userId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof orvalFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof removeTeamMember>>,
-  TError,
-  { orgSlug: string; teamSlug: string; userId: string },
-  TContext
-> => {
-  const mutationKey = ["removeTeamMember"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof removeTeamMember>>,
-    { orgSlug: string; teamSlug: string; userId: string }
-  > = (props) => {
-    const { orgSlug, teamSlug, userId } = props ?? {};
+  }
+);}
 
-    return removeTeamMember(orgSlug, teamSlug, userId, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
 
-export type RemoveTeamMemberMutationResult = NonNullable<
-  Awaited<ReturnType<typeof removeTeamMember>>
->;
 
-export type RemoveTeamMemberMutationError = ErrorType<unknown>;
 
-export const useRemoveTeamMember = <TError = ErrorType<unknown>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof removeTeamMember>>,
-      TError,
-      { orgSlug: string; teamSlug: string; userId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof orvalFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof removeTeamMember>>,
-  TError,
-  { orgSlug: string; teamSlug: string; userId: string },
-  TContext
-> => {
-  return useMutation(getRemoveTeamMemberMutationOptions(options), queryClient);
-};
+export const getRemoveTeamMemberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTeamMember>>, TError,{orgSlug: string;teamSlug: string;userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeTeamMember>>, TError,{orgSlug: string;teamSlug: string;userId: string}, TContext> => {
+
+const mutationKey = ['removeTeamMember'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeTeamMember>>, {orgSlug: string;teamSlug: string;userId: string}> = (props) => {
+          const {orgSlug,teamSlug,userId} = props ?? {};
+
+          return  removeTeamMember(orgSlug,teamSlug,userId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveTeamMemberMutationResult = NonNullable<Awaited<ReturnType<typeof removeTeamMember>>>
+
+    export type RemoveTeamMemberMutationError = ErrorType<unknown>
+
+    export const useRemoveTeamMember = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTeamMember>>, TError,{orgSlug: string;teamSlug: string;userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removeTeamMember>>,
+        TError,
+        {orgSlug: string;teamSlug: string;userId: string},
+        TContext
+      > => {
+      return useMutation(getRemoveTeamMemberMutationOptions(options), queryClient);
+    }

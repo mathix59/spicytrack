@@ -18,10 +18,9 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-import type { DestinationType } from "./types";
+import type { DestinationType, TriggerType } from "./types";
 import { DestinationTypeSelect } from "./destination-type-select";
 import {
   BellRing,
@@ -30,7 +29,36 @@ import {
   destinationTargetLabel,
   destinationTargetPlaceholder,
   triggerLabel,
+  TRIGGER_TYPES,
 } from "./utils";
+
+function TriggerCheckboxes({ defaultValues }: { defaultValues: string[] }) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Triggers">
+      {TRIGGER_TYPES.map((trigger) => (
+        <label
+          className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm"
+          key={trigger.value}
+        >
+          <input
+            defaultChecked={defaultValues.includes(trigger.value)}
+            name="triggerTypes"
+            type="checkbox"
+            value={trigger.value}
+          />
+          {trigger.label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function ruleTriggerTypes(rule: AlertRuleDto): TriggerType[] {
+  const values = rule.triggerTypes?.length ? rule.triggerTypes : [rule.triggerType ?? "new_issue"];
+  return values.filter((value): value is TriggerType =>
+    TRIGGER_TYPES.some((trigger) => trigger.value === value),
+  );
+}
 
 function ProjectAlertRulesCard({
   rules,
@@ -40,11 +68,13 @@ function ProjectAlertRulesCard({
   isCreating,
   isUpdating,
   isDeleting,
+  testingRuleId,
   onCreateOpenChange,
   onCreateDestinationTypeChange,
   onCreateRule,
   onUpdateRule,
   onRemoveRule,
+  onTestRule,
 }: {
   rules: AlertRuleDto[];
   error: string | null;
@@ -53,11 +83,13 @@ function ProjectAlertRulesCard({
   isCreating: boolean;
   isUpdating: boolean;
   isDeleting: boolean;
+  testingRuleId: string | null;
   onCreateOpenChange: (open: boolean) => void;
   onCreateDestinationTypeChange: (value: DestinationType) => void;
   onCreateRule: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onUpdateRule: (event: FormEvent<HTMLFormElement>, rule: AlertRuleDto) => Promise<void>;
   onRemoveRule: (ruleId: string) => Promise<void>;
+  onTestRule: (ruleId: string) => Promise<void>;
 }) {
   return (
     <Card className="overflow-hidden">
@@ -82,14 +114,9 @@ function ProjectAlertRulesCard({
                 <Field label="Name">
                   <Input name="name" required />
                 </Field>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <Field label="Trigger">
-                    <Select defaultValue="new_issue" name="triggerType">
-                      <option value="new_issue">new_issue</option>
-                      <option value="regression">regression</option>
-                      <option value="event_threshold">event_threshold</option>
-                      <option value="daily_digest">daily_digest</option>
-                    </Select>
+                <div className="grid gap-4 md:grid-cols-[2fr_1fr_1fr]">
+                  <Field label="Triggers">
+                    <TriggerCheckboxes defaultValues={["new_issue"]} />
                   </Field>
                   <Field label="Threshold">
                     <Input min="1" name="threshold" placeholder="100" type="number" />
@@ -128,6 +155,11 @@ function ProjectAlertRulesCard({
         </div>
       </CardHeader>
       <CardContent className="grid gap-3 p-3">
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
         {rules.length === 0 ? (
           <EmptyState
             title="No rules yet"
@@ -138,9 +170,11 @@ function ProjectAlertRulesCard({
             <AlertRuleForm
               isDeleting={isDeleting}
               isSaving={isUpdating}
+              isTesting={testingRuleId === rule.id}
               key={rule.id}
               onDelete={() => void onRemoveRule(rule.id)}
               onSubmit={(event) => void onUpdateRule(event, rule)}
+              onTest={() => void onTestRule(rule.id)}
               rule={rule}
             />
           ))
@@ -156,12 +190,16 @@ function AlertRuleForm({
   onDelete,
   isSaving,
   isDeleting,
+  isTesting,
+  onTest,
 }: {
   rule: AlertRuleDto;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDelete: () => void;
   isSaving: boolean;
   isDeleting: boolean;
+  isTesting: boolean;
+  onTest: () => void;
 }) {
   const [destinationType, setDestinationType] = useState<DestinationType>(
     (rule.destinationType as DestinationType) ?? "webhook",
@@ -185,7 +223,11 @@ function AlertRuleForm({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <Badge variant="muted">{triggerLabel(rule.triggerType, rule.threshold)}</Badge>
+        {ruleTriggerTypes(rule).map((triggerType) => (
+          <Badge key={triggerType} variant="muted">
+            {triggerLabel(triggerType, rule.threshold)}
+          </Badge>
+        ))}
         <Badge variant="muted">{rule.destinationType}</Badge>
         <Badge variant="muted">{rule.cooldownMinutes}m cooldown</Badge>
       </div>
@@ -207,14 +249,9 @@ function AlertRuleForm({
         </Field>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Field label="Trigger">
-          <Select defaultValue={rule.triggerType} name="triggerType">
-            <option value="new_issue">new_issue</option>
-            <option value="regression">regression</option>
-            <option value="event_threshold">event_threshold</option>
-            <option value="daily_digest">daily_digest</option>
-          </Select>
+      <div className="grid gap-4 md:grid-cols-[2fr_1fr_1fr]">
+        <Field label="Triggers">
+          <TriggerCheckboxes defaultValues={ruleTriggerTypes(rule)} />
         </Field>
         <Field label="Threshold">
           <Input
@@ -263,9 +300,14 @@ function AlertRuleForm({
         <Button disabled={isDeleting} onClick={onDelete} type="button" variant="ghost">
           Delete rule
         </Button>
-        <Button disabled={isSaving} type="submit">
-          Save changes
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={isTesting} onClick={onTest} type="button" variant="outline">
+            {isTesting ? "Testing…" : "Test"}
+          </Button>
+          <Button disabled={isSaving} type="submit">
+            Save changes
+          </Button>
+        </div>
       </div>
     </form>
   );

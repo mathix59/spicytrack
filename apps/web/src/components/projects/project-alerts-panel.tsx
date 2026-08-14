@@ -15,11 +15,13 @@ function ProjectAlertsPanel(props: ProjectAlertsPanelProps) {
         isCreating={state.isCreating}
         isDeleting={state.isDeleting}
         isUpdating={state.isUpdating}
+        testingRuleId={state.testingRuleId}
         onCreateDestinationTypeChange={state.setCreateDestinationType}
         onCreateOpenChange={state.setCreateOpen}
         onCreateRule={state.createRule}
         onRemoveRule={state.removeRule}
         onUpdateRule={state.updateRule}
+        onTestRule={state.testRule}
         rules={state.rules}
       />
       <ProjectAlertDeliveriesCard deliveries={state.deliveries} />
