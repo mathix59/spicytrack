@@ -1,5 +1,13 @@
 # web
 
+## 1.0.3
+
+### Patch Changes
+
+- 36586b2: Allow the GitHub App manifest form to be submitted to GitHub from production deployments, and wait for the API service DNS records before starting the Kubernetes web pod.
+- 61a0e0f: Keep long release identifiers inside release list and detail cards across desktop and mobile layouts.
+- b4239eb: Allow alert rules to combine multiple triggers and send an on-demand test delivery from the alerting screen.
+
 ## 1.0.2
 
 ### Patch Changes

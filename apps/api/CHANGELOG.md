@@ -1,5 +1,12 @@
 # api
 
+## 1.0.3
+
+### Patch Changes
+
+- 36586b2: Build API assets on the native builder architecture to prevent QEMU crashes during arm64 image builds.
+- b4239eb: Allow alert rules to combine multiple triggers and send an on-demand test delivery from the alerting screen.
+
 ## 1.0.2
 
 ### Patch Changes
