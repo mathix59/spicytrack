@@ -1,0 +1,112 @@
+{{- if .Values.objectStorage.enabled }}
+{{- $name := include "spicytrack.objectStorageName" . }}
+{{- if not .Values.objectStorage.auth.existingSecret }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "spicytrack.objectStorageSecretName" . }}
+  labels:
+    {{- include "spicytrack.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  {{ .Values.objectStorage.auth.accessKeyKey }}: {{ required "objectStorage.auth.accessKey is required when bundled storage is enabled without an existing Secret" .Values.objectStorage.auth.accessKey | quote }}
+  {{ .Values.objectStorage.auth.secretKeyKey }}: {{ required "objectStorage.auth.secretKey is required when bundled storage is enabled without an existing Secret" .Values.objectStorage.auth.secretKey | quote }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "spicytrack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rustfs
+spec:
+  selector:
+    {{- include "spicytrack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rustfs
+  ports:
+    - { name: s3, port: {{ .Values.objectStorage.service.port }}, targetPort: s3 }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "spicytrack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rustfs
+spec:
+  serviceName: {{ $name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "spicytrack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rustfs
+  template:
+    metadata:
+      labels:
+        {{- include "spicytrack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rustfs
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: rustfs
+          image: {{ include "spicytrack.optionalDigestImage" .Values.objectStorage.image | quote }}
+          imagePullPolicy: {{ .Values.objectStorage.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          env:
+            - { name: RUSTFS_VOLUMES, value: /data }
+            - { name: RUSTFS_ADDRESS, value: 0.0.0.0:9000 }
+            - { name: RUSTFS_CONSOLE_ENABLE, value: "false" }
+            - name: RUSTFS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "spicytrack.objectStorageSecretName" . }}
+                  key: {{ .Values.objectStorage.auth.accessKeyKey }}
+            - name: RUSTFS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "spicytrack.objectStorageSecretName" . }}
+                  key: {{ .Values.objectStorage.auth.secretKeyKey }}
+          ports:
+            - { name: s3, containerPort: 9000 }
+          livenessProbe:
+            httpGet: { path: /health, port: s3 }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          readinessProbe:
+            httpGet: { path: /health/ready, port: s3 }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.objectStorage.resources | nindent 12 }}
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if not .Values.objectStorage.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.objectStorage.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.objectStorage.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.objectStorage.persistence.size }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,170 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: node scripts/run-checks.mjs lint:fast
+
+      - name: Format check
+        run: node scripts/run-checks.mjs format:check
+
+      - name: Typecheck
+        run: node scripts/run-checks.mjs typecheck
+
+      - name: Build
+        run: node scripts/run-checks.mjs build
+
+      - name: Validate operational scripts
+        run: |
+          node --check scripts/preproduction-smoke.mjs
+          node --check scripts/load-ingest.mjs
+
+      - name: Validate local compose files
+        env:
+          POSTGRES_PASSWORD: ci
+          BETTER_AUTH_SECRET: ci
+          SECRETS_ENCRYPTION_KEY: ci
+          STORAGE_SECRET_ACCESS_KEY: ci
+          APP_URL: http://localhost
+          PUBLIC_BASE_URL: http://localhost
+          WEB_ORIGIN: http://localhost
+          WEB_BASE_URL: http://localhost
+          BETTER_AUTH_URL: http://localhost/api/better-auth
+        run: |
+          docker compose -f docker-compose.base.yml -f docker-compose.dev.yml config >/tmp/compose-dev.yml
+          docker compose -f docker-compose.base.yml -f docker-compose.prod.yml config >/tmp/compose-prod.yml
+          docker compose -f docker-compose.release.yml config >/tmp/compose-release.yml
+          docker compose -f docker-compose.paas.yml config >/tmp/compose-paas.yml
+          COMPOSE_PROFILES=postgres,storage docker compose -f docker-compose.paas.yml config >/tmp/compose-paas-bundled.yml
+          COMPOSE_PROFILES=storage DATABASE_URL=postgresql://ci:ci@database.internal:5432/spicytrack docker compose -f docker-compose.paas.yml config >/tmp/compose-paas-external-db.yml
+          COMPOSE_PROFILES=postgres STORAGE_ENDPOINT=https://s3.example.com STORAGE_FORCE_PATH_STYLE=false docker compose -f docker-compose.paas.yml config >/tmp/compose-paas-external-storage.yml
+
+  k3s-end-to-end:
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install k3d
+        env:
+          K3D_VERSION: v5.9.0
+          K3D_LINUX_AMD64_SHA256: 06d8f25bc3a971c4eb29e0ff08429b180402db0f4dec838c9eac427e296800a0
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://github.com/k3d-io/k3d/releases/download/${K3D_VERSION}/k3d-linux-amd64" \
+            --output /tmp/k3d
+          echo "${K3D_LINUX_AMD64_SHA256}  /tmp/k3d" | sha256sum --check
+          sudo install -m 0755 /tmp/k3d /usr/local/bin/k3d
+
+      - name: Run K3s Helm end-to-end test
+        run: bash scripts/k3s-e2e.sh
+
+  docker-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [api-web, api-ingest, api-worker-admin, web]
+        platform: [linux/amd64, linux/arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: amd64,arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image
+        run: |
+          if [ "${TARGET}" = web ]; then
+            docker buildx build --platform "${PLATFORM}" \
+              -f apps/web/Dockerfile -t "spicytrack/web:ci-${ARCH}" .
+          else
+            docker buildx build --platform "${PLATFORM}" \
+              -f apps/api/Dockerfile --target "${TARGET}" \
+              -t "spicytrack/${TARGET}:ci-${ARCH}" .
+          fi
+        env:
+          TARGET: ${{ matrix.target }}
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.platform == 'linux/arm64' && 'arm64' || 'amd64' }}
+
+  end-to-end:
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      - name: Run isolated end-to-end suite
+        run: pnpm test:e2e
+
+      - name: Upload browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore

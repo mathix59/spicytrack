@@ -1,0 +1,7723 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/organizations/{orgSlug}/projects/{projectSlug}/alerts": {
+      "get": {
+        "operationId": "listProjectAlerts",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlertRuleDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "alerts"
+        ]
+      },
+      "post": {
+        "operationId": "createProjectAlert",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAlertRuleBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRuleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/alerts/{alertRuleId}": {
+      "patch": {
+        "operationId": "updateProjectAlert",
+        "parameters": [
+          {
+            "name": "alertRuleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAlertRuleBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRuleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "alerts"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteProjectAlert",
+        "parameters": [
+          {
+            "name": "alertRuleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/alerts/deliveries": {
+      "get": {
+        "operationId": "listProjectAlertDeliveries",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlertDeliveryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects": {
+      "get": {
+        "operationId": "listProjects",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      },
+      "post": {
+        "operationId": "createProject",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}": {
+      "get": {
+        "operationId": "getProject",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      },
+      "patch": {
+        "operationId": "updateProject",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/keys": {
+      "get": {
+        "operationId": "listProjectKeys",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectKeyDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      },
+      "post": {
+        "operationId": "createProjectKey",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectKeyBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectKeyDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/saved-searches": {
+      "get": {
+        "operationId": "listProjectSavedSearches",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectSavedSearchDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      },
+      "post": {
+        "operationId": "createProjectSavedSearch",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectSavedSearchBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectSavedSearchDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/saved-searches/{savedSearchId}": {
+      "delete": {
+        "operationId": "deleteProjectSavedSearch",
+        "parameters": [
+          {
+            "name": "savedSearchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/environments": {
+      "get": {
+        "operationId": "listProjectEnvironments",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectEnvironmentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/releases": {
+      "get": {
+        "operationId": "listProjectReleases",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectReleaseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/releases/{releaseVersion}": {
+      "get": {
+        "operationId": "getProjectRelease",
+        "parameters": [
+          {
+            "name": "releaseVersion",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectReleaseDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      },
+      "put": {
+        "operationId": "upsertProjectRelease",
+        "parameters": [
+          {
+            "name": "releaseVersion",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectReleaseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/keys/{keyId}": {
+      "patch": {
+        "operationId": "updateProjectKey",
+        "parameters": [
+          {
+            "name": "keyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectKeyBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectKeyDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/keys/{keyId}/rotate": {
+      "post": {
+        "operationId": "rotateProjectKey",
+        "parameters": [
+          {
+            "name": "keyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectKeyDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/audit": {
+      "get": {
+        "operationId": "listProjectAudit",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditLogDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/instance-admin/settings": {
+      "get": {
+        "operationId": "InstanceAdminController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "InstanceAdmin"
+        ]
+      },
+      "patch": {
+        "operationId": "InstanceAdminController_update",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "InstanceAdmin"
+        ]
+      }
+    },
+    "/instance-admin/users": {
+      "get": {
+        "operationId": "InstanceAdminController_users",
+        "parameters": [
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "InstanceAdmin"
+        ]
+      }
+    },
+    "/instance-admin/users/{userId}": {
+      "patch": {
+        "operationId": "InstanceAdminController_updateUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "InstanceAdmin"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/releases/{releaseVersion}/artifacts": {
+      "post": {
+        "operationId": "uploadReleaseArtifact",
+        "parameters": [
+          {
+            "name": "releaseVersion",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseArtifactDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "releases"
+        ]
+      },
+      "get": {
+        "operationId": "listReleaseArtifacts",
+        "parameters": [
+          {
+            "name": "releaseVersion",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReleaseArtifactDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/releases/{releaseVersion}/artifacts/{artifactId}": {
+      "delete": {
+        "operationId": "deleteReleaseArtifact",
+        "parameters": [
+          {
+            "name": "releaseVersion",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "getLiveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "getReadiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "getMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/auth/registration-status": {
+      "get": {
+        "operationId": "AuthController_registrationStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/tokens": {
+      "get": {
+        "operationId": "listPersonalAccessTokens",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonalAccessTokenDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "personal-tokens"
+        ]
+      },
+      "post": {
+        "operationId": "createPersonalAccessToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePersonalAccessTokenBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePersonalAccessTokenResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "personal-tokens"
+        ]
+      }
+    },
+    "/auth/tokens/{tokenId}": {
+      "delete": {
+        "operationId": "revokePersonalAccessToken",
+        "parameters": [
+          {
+            "name": "tokenId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "personal-tokens"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/mcp": {
+      "get": {
+        "operationId": "getOrganizationMcp",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organization-mcp"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/mcp/settings": {
+      "patch": {
+        "operationId": "updateOrganizationMcpSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organization-mcp"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/mcp/credentials": {
+      "post": {
+        "operationId": "createOrganizationMcpCredential",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organization-mcp"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/mcp/credentials/{credentialId}/verify": {
+      "post": {
+        "operationId": "verifyOrganizationMcpCredential",
+        "parameters": [
+          {
+            "name": "credentialId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organization-mcp"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/mcp/credentials/{credentialId}": {
+      "delete": {
+        "operationId": "revokeOrganizationMcpCredential",
+        "parameters": [
+          {
+            "name": "credentialId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organization-mcp"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/mcp/credentials/{credentialId}/rotate": {
+      "post": {
+        "operationId": "rotateOrganizationMcpCredential",
+        "parameters": [
+          {
+            "name": "credentialId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organization-mcp"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues": {
+      "get": {
+        "operationId": "listIssues",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priority",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assignedUserId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isRegressed",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "release",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortDir",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedIssuesDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}": {
+      "get": {
+        "operationId": "getIssue",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventPage",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "eventPageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/triage": {
+      "post": {
+        "operationId": "generateIssueTriage",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueTriageDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      },
+      "get": {
+        "operationId": "listIssueTriageRuns",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/events/{eventId}": {
+      "get": {
+        "operationId": "getEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/status": {
+      "patch": {
+        "operationId": "updateIssueStatus",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueStatusUpdateBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/assignee": {
+      "patch": {
+        "operationId": "updateIssueAssignee",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueAssigneeUpdateBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/priority": {
+      "patch": {
+        "operationId": "updateIssuePriority",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssuePriorityUpdateBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/external-link": {
+      "patch": {
+        "operationId": "updateIssueExternalLink",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueExternalLinkBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/merge": {
+      "post": {
+        "operationId": "mergeIssue",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeIssueBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/unmerge": {
+      "post": {
+        "operationId": "unmergeIssue",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/actions/status": {
+      "patch": {
+        "operationId": "bulkUpdateIssueStatus",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkIssueStatusUpdateBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkOperationResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/actions/priority": {
+      "patch": {
+        "operationId": "bulkUpdateIssuePriority",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkIssuePriorityUpdateBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkOperationResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/actions/assignee": {
+      "patch": {
+        "operationId": "bulkUpdateIssueAssignee",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkIssueAssigneeUpdateBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkOperationResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/comments": {
+      "get": {
+        "operationId": "listIssueComments",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IssueCommentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      },
+      "post": {
+        "operationId": "createIssueComment",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIssueCommentBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueCommentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/activity": {
+      "get": {
+        "operationId": "listIssueActivity",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IssueActivityDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/autofix/config": {
+      "get": {
+        "operationId": "getAutofixConfig",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutofixConfigDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "autofix"
+        ]
+      },
+      "put": {
+        "operationId": "updateAutofixConfig",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAutofixConfigBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutofixConfigDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "autofix"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/autofix": {
+      "post": {
+        "operationId": "triggerAutofix",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutofixRunDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "autofix"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/autofix/runs": {
+      "get": {
+        "operationId": "listIssueAutofixRuns",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AutofixRunDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "autofix"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/autofix/runs/{runId}": {
+      "get": {
+        "operationId": "getAutofixRun",
+        "parameters": [
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutofixRunDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "autofix"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/autofix/runs/{runId}/review": {
+      "post": {
+        "operationId": "reviewAutofixRun",
+        "parameters": [
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewAutofixBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutofixRunDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "autofix"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/ai": {
+      "get": {
+        "operationId": "getOrganizationAiSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationAiSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "operationId": "updateOrganizationAiSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationAiSettingsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationAiSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/ai/usage": {
+      "get": {
+        "operationId": "getOrganizationAiUsage",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/ai/pricing-overrides": {
+      "get": {
+        "operationId": "listOrganizationAiPricingOverrides",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "operationId": "replaceOrganizationAiPricingOverrides",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/integrations/repo-connection": {
+      "get": {
+        "operationId": "getRepoConnection",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoConnectionDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "integrations"
+        ]
+      },
+      "put": {
+        "operationId": "upsertRepoConnection",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertRepoConnectionBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoConnectionDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "integrations"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteRepoConnection",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/integrations/repo-connection/test": {
+      "post": {
+        "operationId": "testRepoConnection",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestRepoConnectionBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestRepoConnectionResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app": {
+      "get": {
+        "operationId": "getOrganizationGithubAppSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "operationId": "updateOrganizationGithubAppSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationGithubAppSettingsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/install-url": {
+      "get": {
+        "operationId": "getOrganizationGithubAppInstallUrl",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubAppInstallUrlDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/manifest": {
+      "post": {
+        "operationId": "createOrganizationGithubAppManifest",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGithubAppManifestBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubAppManifestDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/complete-manifest": {
+      "put": {
+        "operationId": "completeOrganizationGithubAppManifest",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteGithubAppManifestBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubAppManifestResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/repositories": {
+      "get": {
+        "operationId": "listOrganizationGithubRepositories",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GithubAppRepositoryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/repositories/sync": {
+      "post": {
+        "operationId": "syncOrganizationGithubRepositories",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GithubAppRepositoryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/complete-installation": {
+      "put": {
+        "operationId": "completeOrganizationGithubAppInstallation",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteGithubAppInstallationBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations": {
+      "get": {
+        "operationId": "listOrganizations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "operationId": "createOrganization",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}": {
+      "get": {
+        "operationId": "getOrganization",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/members": {
+      "get": {
+        "operationId": "listOrganizationMembers",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationMemberDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/roles": {
+      "get": {
+        "operationId": "listOrganizationRoles",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationRoleDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "operationId": "createOrganizationRole",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationRoleBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationRoleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/roles/{roleKey}": {
+      "patch": {
+        "operationId": "updateOrganizationRole",
+        "parameters": [
+          {
+            "name": "roleKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationRoleBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationRoleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteOrganizationRole",
+        "parameters": [
+          {
+            "name": "roleKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/overview": {
+      "get": {
+        "operationId": "getOrganizationOverview",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationOverviewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/jobs": {
+      "get": {
+        "operationId": "getOrganizationJobQueueOverview",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationJobQueueOverviewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/jobs/{jobId}/requeue": {
+      "post": {
+        "operationId": "requeueOrganizationJob",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationJobDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/invitations": {
+      "post": {
+        "operationId": "createOrganizationInvitation",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "get": {
+        "operationId": "listOrganizationInvitations",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationInvitationDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/invitations/{invitationId}/resend": {
+      "post": {
+        "operationId": "resendOrganizationInvitation",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/invitations/accept": {
+      "post": {
+        "operationId": "acceptOrganizationInvitation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/members/{memberId}": {
+      "patch": {
+        "operationId": "updateOrganizationMemberRole",
+        "parameters": [
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRoleBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationMemberDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "delete": {
+        "operationId": "removeOrganizationMember",
+        "parameters": [
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/teams": {
+      "get": {
+        "operationId": "listTeams",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      },
+      "post": {
+        "operationId": "createTeam",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/teams/{teamSlug}": {
+      "patch": {
+        "operationId": "updateTeam",
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteTeam",
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/teams/{teamSlug}/members": {
+      "get": {
+        "operationId": "listTeamMembers",
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMembersResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      },
+      "post": {
+        "operationId": "addTeamMember",
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTeamMemberBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMemberDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/teams/{teamSlug}/roles": {
+      "get": {
+        "operationId": "listTeamRoles",
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamRoleDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      },
+      "post": {
+        "operationId": "createTeamRole",
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamRoleBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamRoleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/teams/{teamSlug}/roles/{roleKey}": {
+      "delete": {
+        "operationId": "deleteTeamRole",
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roleKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      },
+      "patch": {
+        "operationId": "updateTeamRole",
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roleKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamRoleBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamRoleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/teams/{teamSlug}/members/{userId}": {
+      "delete": {
+        "operationId": "removeTeamMember",
+        "parameters": [
+          {
+            "name": "teamSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "teams"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "SpicyTrack API",
+    "description": "SpicyTrack product and ingest API",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "AlertRuleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "triggerType": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number",
+            "nullable": true
+          },
+          "cooldownMinutes": {
+            "type": "number"
+          },
+          "destinationType": {
+            "type": "string"
+          },
+          "destinationTarget": {
+            "type": "string"
+          },
+          "lastTriggeredAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "name",
+          "isActive",
+          "triggerType",
+          "cooldownMinutes",
+          "destinationType",
+          "destinationTarget",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateAlertRuleBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "triggerType": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number",
+            "nullable": true
+          },
+          "cooldownMinutes": {
+            "type": "number"
+          },
+          "destinationType": {
+            "type": "string"
+          },
+          "destinationTarget": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "triggerType",
+          "destinationType",
+          "destinationTarget"
+        ]
+      },
+      "UpdateAlertRuleBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "triggerType": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number",
+            "nullable": true
+          },
+          "cooldownMinutes": {
+            "type": "number"
+          },
+          "destinationType": {
+            "type": "string"
+          },
+          "destinationTarget": {
+            "type": "string"
+          }
+        }
+      },
+      "SuccessDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "AlertDeliveryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "alertRuleId": {
+            "type": "string"
+          },
+          "issueId": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "responseStatus": {
+            "type": "number",
+            "nullable": true
+          },
+          "responseBody": {
+            "type": "string",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "alertRuleId",
+          "status",
+          "payload",
+          "createdAt"
+        ]
+      },
+      "ProjectDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "number"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "retentionDays": {
+            "type": "number"
+          },
+          "inboundRules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "ownershipRules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "piiScrubFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "organizationId",
+          "name",
+          "slug",
+          "platform",
+          "status",
+          "visibility",
+          "retentionDays",
+          "inboundRules",
+          "ownershipRules",
+          "piiScrubFields"
+        ]
+      },
+      "CreateProjectBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateProjectBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string",
+            "nullable": true
+          },
+          "retentionDays": {
+            "type": "number"
+          },
+          "inboundRules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "ownershipRules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "piiScrubFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ProjectKeyDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "rateLimitPerMinute": {
+            "type": "number",
+            "nullable": true
+          },
+          "dsn": {
+            "type": "string"
+          },
+          "envelopeUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "name",
+          "publicKey",
+          "isActive"
+        ]
+      },
+      "ProjectSavedSearchFiltersDto": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "assignedUserId": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "release": {
+            "type": "string"
+          },
+          "isRegressed": {
+            "type": "string"
+          },
+          "sortBy": {
+            "type": "string"
+          },
+          "sortDir": {
+            "type": "string"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "level",
+          "assignedUserId",
+          "environment",
+          "release",
+          "isRegressed",
+          "sortBy",
+          "sortDir",
+          "pageSize"
+        ]
+      },
+      "ProjectSavedSearchDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ProjectSavedSearchFiltersDto"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "userId",
+          "name",
+          "filters",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateProjectSavedSearchBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/ProjectSavedSearchFiltersDto"
+          }
+        },
+        "required": [
+          "name",
+          "filters"
+        ]
+      },
+      "ProjectEnvironmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "eventCount": {
+            "type": "number"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "name",
+          "eventCount",
+          "createdAt"
+        ]
+      },
+      "ProjectReleaseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "eventCount": {
+            "type": "number"
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "version",
+          "eventCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "IssueDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "groupingKey": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "culprit": {
+            "type": "string",
+            "nullable": true
+          },
+          "level": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "isRegressed": {
+            "type": "boolean"
+          },
+          "firstSeenAt": {
+            "type": "string"
+          },
+          "lastSeenAt": {
+            "type": "string"
+          },
+          "timesSeen": {
+            "type": "number"
+          },
+          "assignedUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalIssueUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "mergedIntoIssueId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "groupingKey",
+          "title",
+          "level",
+          "priority",
+          "status",
+          "isRegressed",
+          "firstSeenAt",
+          "lastSeenAt",
+          "timesSeen"
+        ]
+      },
+      "ProjectReleaseDetailDto": {
+        "type": "object",
+        "properties": {
+          "release": {
+            "$ref": "#/components/schemas/ProjectReleaseDto"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueDto"
+            }
+          }
+        },
+        "required": [
+          "release",
+          "issues"
+        ]
+      },
+      "CreateProjectKeyBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "rateLimitPerMinute": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateProjectKeyBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "rateLimitPerMinute": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "AuditLogDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "action": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "action",
+          "targetType",
+          "payload",
+          "createdAt"
+        ]
+      },
+      "ReleaseArtifactDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "releaseId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "number"
+          },
+          "checksum": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "releaseId",
+          "name",
+          "size",
+          "checksum",
+          "createdAt"
+        ]
+      },
+      "HealthDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "dependencies": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "jobs": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "status",
+          "service",
+          "timestamp"
+        ]
+      },
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "emailVerifiedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "twoFactorEnabled"
+        ]
+      },
+      "OrganizationListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status",
+          "role"
+        ]
+      },
+      "MeResponseDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          },
+          "memberships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationListItemDto"
+            }
+          }
+        },
+        "required": [
+          "user",
+          "memberships"
+        ]
+      },
+      "PersonalAccessTokenDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tokenPreview": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tokenPreview",
+          "createdAt"
+        ]
+      },
+      "CreatePersonalAccessTokenBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "expiresInDays": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreatePersonalAccessTokenResponseDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "$ref": "#/components/schemas/PersonalAccessTokenDto"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "secret"
+        ]
+      },
+      "PaginatedIssuesDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "ResolvedFrameDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "function": {
+            "type": "string",
+            "nullable": true
+          },
+          "lineno": {
+            "type": "number"
+          },
+          "colno": {
+            "type": "number",
+            "nullable": true
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "sourcemap",
+              "proguard",
+              "dart_obfuscation",
+              "original"
+            ]
+          },
+          "diagnostic": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "lineno",
+          "resolved",
+          "resolution",
+          "diagnostic"
+        ]
+      },
+      "EventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "issueId": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "environmentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "environmentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseId": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "platform": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "rawPayload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "resolvedFrames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedFrameDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "issueId",
+          "eventId",
+          "platform",
+          "level",
+          "timestamp",
+          "rawPayload"
+        ]
+      },
+      "PaginatedEventsDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "IssueDetailDto": {
+        "type": "object",
+        "properties": {
+          "issue": {
+            "$ref": "#/components/schemas/IssueDto"
+          },
+          "events": {
+            "$ref": "#/components/schemas/PaginatedEventsDto"
+          }
+        },
+        "required": [
+          "issue",
+          "events"
+        ]
+      },
+      "IssueTriageDto": {
+        "type": "object",
+        "properties": {
+          "briefing": {
+            "type": "string",
+            "description": "Evidence-based AI triage briefing in Markdown."
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "briefing",
+          "generatedAt",
+          "evidence"
+        ]
+      },
+      "IssueStatusUpdateBodyDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "ignoredUntil": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "IssueAssigneeUpdateBodyDto": {
+        "type": "object",
+        "properties": {
+          "assignedUserId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "IssuePriorityUpdateBodyDto": {
+        "type": "object",
+        "properties": {
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          }
+        },
+        "required": [
+          "priority"
+        ]
+      },
+      "IssueExternalLinkBodyDto": {
+        "type": "object",
+        "properties": {
+          "externalIssueUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "MergeIssueBodyDto": {
+        "type": "object",
+        "properties": {
+          "targetIssueId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetIssueId"
+        ]
+      },
+      "BulkIssueStatusUpdateBodyDto": {
+        "type": "object",
+        "properties": {
+          "issueIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issueIds",
+          "status"
+        ]
+      },
+      "BulkOperationResultDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "updatedCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "success",
+          "updatedCount"
+        ]
+      },
+      "BulkIssuePriorityUpdateBodyDto": {
+        "type": "object",
+        "properties": {
+          "issueIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          }
+        },
+        "required": [
+          "issueIds",
+          "priority"
+        ]
+      },
+      "BulkIssueAssigneeUpdateBodyDto": {
+        "type": "object",
+        "properties": {
+          "issueIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assignedUserId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "issueIds"
+        ]
+      },
+      "IssueCommentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "issueId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "issueId",
+          "userId",
+          "body",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateIssueCommentBodyDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "IssueActivityDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "issueId": {
+            "type": "string"
+          },
+          "actorUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "issueId",
+          "type",
+          "payload",
+          "createdAt"
+        ]
+      },
+      "AutofixConfigDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "autoTriggerOnNewIssue": {
+            "type": "boolean"
+          },
+          "autoMerge": {
+            "type": "boolean"
+          },
+          "dailyCap": {
+            "type": "number"
+          },
+          "targetBranch": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "enabled",
+          "autoTriggerOnNewIssue",
+          "autoMerge",
+          "dailyCap"
+        ]
+      },
+      "UpdateAutofixConfigBodyDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "autoTriggerOnNewIssue": {
+            "type": "boolean"
+          },
+          "autoMerge": {
+            "type": "boolean"
+          },
+          "dailyCap": {
+            "type": "number"
+          },
+          "targetBranch": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "AutofixRunDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "issueId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "auto"
+            ]
+          },
+          "branch": {
+            "type": "object",
+            "nullable": true
+          },
+          "prUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "error": {
+            "type": "object",
+            "nullable": true
+          },
+          "summary": {
+            "type": "object",
+            "nullable": true
+          },
+          "inputTokens": {
+            "type": "object",
+            "nullable": true
+          },
+          "outputTokens": {
+            "type": "object",
+            "nullable": true
+          },
+          "cacheReadTokens": {
+            "type": "object"
+          },
+          "cacheWriteTokens": {
+            "type": "object"
+          },
+          "estimatedCostMicros": {
+            "type": "number",
+            "description": "Estimated USD cost in micros, when AI_PRICING_JSON is configured."
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          },
+          "reviewedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "reviewComment": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "finishedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "issueId",
+          "status",
+          "trigger",
+          "reviewStatus",
+          "createdAt"
+        ]
+      },
+      "ReviewAutofixBodyDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ]
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "OrganizationAiSettingsDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "anthropic",
+              "openai",
+              "google"
+            ]
+          },
+          "model": {
+            "type": "object",
+            "nullable": true,
+            "description": "Model id. Null means the provider default."
+          },
+          "apiKeySet": {
+            "type": "boolean"
+          },
+          "maskedKey": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "provider",
+          "apiKeySet"
+        ]
+      },
+      "UpdateOrganizationAiSettingsBodyDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "anthropic",
+              "openai",
+              "google"
+            ]
+          },
+          "model": {
+            "type": "object",
+            "nullable": true,
+            "description": "Model id. Pass null to use the provider default."
+          },
+          "apiKey": {
+            "type": "object",
+            "nullable": true,
+            "description": "Provider API key. Pass null to clear."
+          }
+        }
+      },
+      "RepoConnectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab"
+            ]
+          },
+          "baseUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "repoIdentifier": {
+            "type": "string"
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "tokenSet": {
+            "type": "boolean"
+          },
+          "lastValidatedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "repoIdentifier",
+          "defaultBranch",
+          "tokenSet",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpsertRepoConnectionBodyDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab"
+            ]
+          },
+          "baseUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "repoIdentifier": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string",
+            "description": "Personal access token. Optional on update to keep the stored one."
+          },
+          "defaultBranch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "repoIdentifier"
+        ]
+      },
+      "TestRepoConnectionBodyDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab"
+            ]
+          },
+          "baseUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "repoIdentifier": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "TestRepoConnectionResultDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "defaultBranch": {
+            "type": "object",
+            "nullable": true
+          },
+          "error": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "OrganizationGithubAppSettingsDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "cloud",
+              "enterprise"
+            ]
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "appSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "appId": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientId": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationAccountLogin": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationAccountType": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientSecretSet": {
+            "type": "boolean"
+          },
+          "privateKeySet": {
+            "type": "boolean"
+          },
+          "webhookSecretSet": {
+            "type": "boolean"
+          },
+          "maskedClientSecret": {
+            "type": "string",
+            "nullable": true
+          },
+          "maskedWebhookSecret": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "mode",
+          "clientSecretSet",
+          "privateKeySet",
+          "webhookSecretSet"
+        ]
+      },
+      "GithubAppInstallUrlDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "CreateGithubAppManifestBodyDto": {
+        "type": "object",
+        "properties": {
+          "githubOrganization": {
+            "type": "string",
+            "description": "GitHub organization that should own the App. Empty uses the personal account."
+          }
+        }
+      },
+      "GithubAppManifestDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "manifest": {
+            "type": "string",
+            "description": "JSON-encoded GitHub App manifest."
+          }
+        },
+        "required": [
+          "action",
+          "state",
+          "manifest"
+        ]
+      },
+      "CompleteGithubAppManifestBodyDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "state"
+        ]
+      },
+      "GithubAppManifestResultDto": {
+        "type": "object",
+        "properties": {
+          "installUrl": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
+          }
+        },
+        "required": [
+          "installUrl",
+          "settings"
+        ]
+      },
+      "GithubAppRepositoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "defaultBranch",
+          "private",
+          "archived",
+          "disabled"
+        ]
+      },
+      "CompleteGithubAppInstallationBodyDto": {
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "installationId"
+        ]
+      },
+      "UpdateOrganizationGithubAppSettingsBodyDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "cloud",
+              "enterprise"
+            ]
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "appSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "appId": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientId": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationAccountLogin": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationAccountType": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientSecret": {
+            "type": "string",
+            "nullable": true
+          },
+          "privateKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "webhookSecret": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateOrganizationBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ]
+      },
+      "OrganizationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "ownerUserId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status",
+          "ownerUserId"
+        ]
+      },
+      "OrganizationMemberDto": {
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "memberId",
+          "role",
+          "joinedAt",
+          "userId",
+          "email"
+        ]
+      },
+      "OrganizationRoleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isSystem": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "permissions",
+          "isSystem"
+        ]
+      },
+      "CreateOrganizationRoleBodyDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "permissions"
+        ]
+      },
+      "UpdateOrganizationRoleBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ]
+      },
+      "OrganizationOverviewRegressionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectSlug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "timesSeen": {
+            "type": "number"
+          },
+          "lastSeenAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "projectSlug",
+          "title",
+          "timesSeen",
+          "lastSeenAt"
+        ]
+      },
+      "OrganizationOverviewProjectDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "hasActiveKey": {
+            "type": "boolean"
+          },
+          "environmentCount": {
+            "type": "number"
+          },
+          "releaseCount": {
+            "type": "number"
+          },
+          "openIssueCount": {
+            "type": "number"
+          },
+          "regressedIssueCount": {
+            "type": "number"
+          },
+          "eventCount24h": {
+            "type": "number"
+          },
+          "newIssueCount24h": {
+            "type": "number"
+          },
+          "resolvedIssueCount24h": {
+            "type": "number"
+          },
+          "activeAlertCount": {
+            "type": "number"
+          },
+          "lastIssueSeenAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastEventAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "platform",
+          "status",
+          "visibility",
+          "hasActiveKey",
+          "environmentCount",
+          "releaseCount",
+          "openIssueCount",
+          "regressedIssueCount",
+          "eventCount24h",
+          "newIssueCount24h",
+          "resolvedIssueCount24h",
+          "activeAlertCount"
+        ]
+      },
+      "OrganizationOverviewDto": {
+        "type": "object",
+        "properties": {
+          "memberCount": {
+            "type": "number"
+          },
+          "teamCount": {
+            "type": "number"
+          },
+          "projectCount": {
+            "type": "number"
+          },
+          "connectedProjectCount": {
+            "type": "number"
+          },
+          "openIssueCount": {
+            "type": "number"
+          },
+          "regressedIssueCount": {
+            "type": "number"
+          },
+          "eventCount24h": {
+            "type": "number"
+          },
+          "newIssueCount24h": {
+            "type": "number"
+          },
+          "resolvedIssueCount24h": {
+            "type": "number"
+          },
+          "topRegressions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationOverviewRegressionDto"
+            }
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationOverviewProjectDto"
+            }
+          }
+        },
+        "required": [
+          "memberCount",
+          "teamCount",
+          "projectCount",
+          "connectedProjectCount",
+          "openIssueCount",
+          "regressedIssueCount",
+          "eventCount24h",
+          "newIssueCount24h",
+          "resolvedIssueCount24h",
+          "topRegressions",
+          "projects"
+        ]
+      },
+      "JobQueueSummaryDto": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "number"
+          },
+          "running": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "number"
+          },
+          "due": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pending",
+          "running",
+          "failed",
+          "due"
+        ]
+      },
+      "OrganizationJobDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "dedupeKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object"
+          },
+          "attempts": {
+            "type": "number"
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true
+          },
+          "runAt": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "finishedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "payload",
+          "attempts",
+          "runAt",
+          "createdAt"
+        ]
+      },
+      "OrganizationJobQueueOverviewDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/JobQueueSummaryDto"
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationJobDto"
+            }
+          }
+        },
+        "required": [
+          "summary",
+          "jobs"
+        ]
+      },
+      "CreateInvitationBodyDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "role"
+        ]
+      },
+      "InvitationResultDto": {
+        "type": "object",
+        "properties": {
+          "invitation": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invitation",
+          "token"
+        ]
+      },
+      "OrganizationInvitationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "createdAt",
+          "expiresAt"
+        ]
+      },
+      "AcceptInvitationBodyDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "UpdateMemberRoleBodyDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "TeamDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "name",
+          "slug"
+        ]
+      },
+      "CreateTeamBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ]
+      },
+      "UpdateTeamBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TeamMemberDto": {
+        "type": "object",
+        "properties": {
+          "teamMemberId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "teamMemberId",
+          "userId",
+          "email"
+        ]
+      },
+      "TeamMembersResponseDto": {
+        "type": "object",
+        "properties": {
+          "team": {
+            "$ref": "#/components/schemas/TeamDto"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberDto"
+            }
+          }
+        },
+        "required": [
+          "team",
+          "members"
+        ]
+      },
+      "TeamRoleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isSystem": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "permissions",
+          "isSystem"
+        ]
+      },
+      "CreateTeamRoleBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ]
+      },
+      "UpdateTeamRoleBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ]
+      },
+      "AddTeamMemberBodyDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      }
+    }
+  }
+}

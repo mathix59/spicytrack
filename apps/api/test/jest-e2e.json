@@ -1,0 +1,14 @@
+{
+  "moduleFileExtensions": ["js", "mjs", "json", "ts"],
+  "rootDir": ".",
+  "setupFiles": ["<rootDir>/e2e.setup.ts"],
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": { "allowJs": true } }],
+    "^.+\\.mjs$": ["ts-jest", { "tsconfig": { "allowJs": true } }]
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(\\.pnpm/)?(better-auth[@/]|better-call[@/]|@better-auth[+/]|@better-fetch[+/]|@noble[+/]|uncrypto[@/]|jose[@/]|nanostores[@/]|kysely[@/]|defu[@/]|rou3[@/]|ai[@/]|@ai-sdk[+/]|@standard-schema[+/]|eventsource-parser[@/]|@vercel[+/]|@workflow[+/]))"
+  ]
+}

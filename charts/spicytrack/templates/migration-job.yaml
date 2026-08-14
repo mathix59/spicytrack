@@ -1,0 +1,92 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  {{- if .Values.postgresql.enabled }}
+  name: {{ include "spicytrack.fullname" . }}-migrate-{{ .Release.Revision }}
+  {{- else }}
+  name: {{ include "spicytrack.fullname" . }}-migrate
+  {{- end }}
+  labels:
+    {{- include "spicytrack.labels" . | nindent 4 }}
+  {{- if not .Values.postgresql.enabled }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  {{- end }}
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "spicytrack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: migrate
+          image: "{{ .Values.images.apiWeb.repository }}@{{ required "images.apiWeb.digest is required" .Values.images.apiWeb.digest }}"
+          imagePullPolicy: {{ .Values.images.apiWeb.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          workingDir: /app/apps/api
+          {{- if .Values.postgresql.enabled }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              until node -e 'const { Client } = require("pg"); const client = new Client({ connectionString: process.env.DATABASE_URL }); client.connect().then(() => client.query("SELECT 1")).then(() => client.end()).catch(() => process.exit(1));'; do sleep 2; done
+              node node_modules/drizzle-kit/bin.cjs migrate --config drizzle.config.ts
+              node -e 'const { Client } = require("pg"); (async () => { const client = new Client({ connectionString: process.env.DATABASE_URL }); await client.connect(); await client.query("CREATE TABLE IF NOT EXISTS _spicytrack_helm_migrations (revision integer PRIMARY KEY, completed_at timestamptz NOT NULL DEFAULT now())"); await client.query("INSERT INTO _spicytrack_helm_migrations (revision) VALUES ($1) ON CONFLICT DO NOTHING", [Number(process.env.HELM_RELEASE_REVISION)]); await client.end(); })().catch((error) => { console.error(error); process.exit(1); });'
+          {{- else }}
+          command:
+            ["node", "node_modules/drizzle-kit/bin.cjs", "migrate", "--config", "drizzle.config.ts"]
+          {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ required "env.existingSecrets.apiWeb is required" .Values.env.existingSecrets.apiWeb }}
+          {{- if or .Values.postgresql.enabled .Values.objectStorage.enabled }}
+          env:
+            {{- if .Values.postgresql.enabled }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "spicytrack.postgresqlSecretName" . }}
+                  key: {{ .Values.postgresql.auth.databaseUrlKey }}
+            - name: HELM_RELEASE_REVISION
+              value: {{ .Release.Revision | quote }}
+            {{- end }}
+            {{- if .Values.objectStorage.enabled }}
+            - name: STORAGE_ENDPOINT
+              value: {{ printf "http://%s:%v" (include "spicytrack.objectStorageName" .) .Values.objectStorage.service.port | quote }}
+            - name: STORAGE_REGION
+              value: {{ .Values.objectStorage.region | quote }}
+            - name: STORAGE_BUCKET
+              value: {{ .Values.objectStorage.bucket | quote }}
+            - name: STORAGE_FORCE_PATH_STYLE
+              value: "true"
+            - name: STORAGE_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "spicytrack.objectStorageSecretName" . }}
+                  key: {{ .Values.objectStorage.auth.accessKeyKey }}
+            - name: STORAGE_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "spicytrack.objectStorageSecretName" . }}
+                  key: {{ .Values.objectStorage.auth.secretKeyKey }}
+            {{- end }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

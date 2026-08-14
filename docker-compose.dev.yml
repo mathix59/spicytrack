@@ -1,0 +1,141 @@
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  rustfs:
+    ports:
+      - "127.0.0.1:9002:9000"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+  migrate:
+    image: node:24-alpine
+    working_dir: /app
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+      mailpit:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/spicytrack
+      WEB_ORIGIN: http://localhost:5174
+      PUBLIC_BASE_URL: http://localhost:3000
+      WEB_BASE_URL: http://localhost:5174
+      BETTER_AUTH_URL: http://localhost:3000/api/better-auth
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY_ID: spicytrack
+      STORAGE_SECRET_ACCESS_KEY: spicytrack-secret
+      STORAGE_BUCKET: spicytrack-artifacts
+      STORAGE_FORCE_PATH_STYLE: "true"
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:-}
+    volumes:
+      - .:/app
+      - spicytrack_dev_node_modules:/app/node_modules
+      - spicytrack_dev_pnpm_store:/pnpm/store
+    command:
+      - sh
+      - -lc
+      - |
+        corepack enable
+        pnpm config set store-dir /pnpm/store
+        pnpm install --frozen-lockfile
+        pnpm --filter api db:migrate
+
+  api-web:
+    image: node:24-alpine
+    working_dir: /app
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/spicytrack
+      PORT: 3000
+      WEB_ORIGIN: http://localhost:5174
+      PUBLIC_BASE_URL: http://localhost:3000
+      INGEST_BASE_URL: ${INGEST_BASE_URL:-http://localhost:3000}
+      WEB_BASE_URL: http://localhost:5174
+      BETTER_AUTH_URL: http://localhost:3000/api/better-auth
+      AUTH_PASSWORD_ENABLED: ${AUTH_PASSWORD_ENABLED:-true}
+      OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_PROVIDER_ID: ${OIDC_PROVIDER_ID:-company-sso}
+      OIDC_PROVIDER_NAME: ${OIDC_PROVIDER_NAME:-Company SSO}
+      OIDC_ACCESS_MODE: ${OIDC_ACCESS_MODE:-}
+      OIDC_DISABLE_SIGN_UP: ${OIDC_DISABLE_SIGN_UP:-}
+      OIDC_REQUIRE_VERIFIED_EMAIL: ${OIDC_REQUIRE_VERIFIED_EMAIL:-true}
+      OIDC_AUTO_JOIN_ORGANIZATION_SLUG: ${OIDC_AUTO_JOIN_ORGANIZATION_SLUG:-}
+      OIDC_AUTO_JOIN_EMAIL_DOMAINS: ${OIDC_AUTO_JOIN_EMAIL_DOMAINS:-}
+      AUTH_SESSION_EXPIRES_IN_SECONDS: ${AUTH_SESSION_EXPIRES_IN_SECONDS:-604800}
+      AUTH_SESSION_UPDATE_AGE_SECONDS: ${AUTH_SESSION_UPDATE_AGE_SECONDS:-86400}
+      AUTH_RATE_LIMIT_WINDOW_SECONDS: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:-60}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-100}
+      AUTH_SIGN_IN_RATE_LIMIT_MAX: ${AUTH_SIGN_IN_RATE_LIMIT_MAX:-10}
+      ALLOW_PRIVATE_WEBHOOK_URLS: ${ALLOW_PRIVATE_WEBHOOK_URLS:-false}
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY_ID: spicytrack
+      STORAGE_SECRET_ACCESS_KEY: spicytrack-secret
+      STORAGE_BUCKET: spicytrack-artifacts
+      STORAGE_FORCE_PATH_STYLE: "true"
+      INGEST_MAX_EVENT_BYTES: ${INGEST_MAX_EVENT_BYTES:-1000000}
+      ARTIFACT_MAX_UPLOAD_BYTES: ${ARTIFACT_MAX_UPLOAD_BYTES:-20971520}
+      INGEST_PROJECT_EVENTS_PER_HOUR: ${INGEST_PROJECT_EVENTS_PER_HOUR:-10000}
+      INGEST_ORGANIZATION_EVENTS_PER_HOUR: ${INGEST_ORGANIZATION_EVENTS_PER_HOUR:-50000}
+      VCS_ALLOWED_HOSTS: ${VCS_ALLOWED_HOSTS:-}
+      VCS_ALLOW_INSECURE_HTTP: ${VCS_ALLOW_INSECURE_HTTP:-false}
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:-}
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - .:/app
+      - spicytrack_dev_node_modules:/app/node_modules
+      - spicytrack_dev_pnpm_store:/pnpm/store
+    command:
+      - sh
+      - -lc
+      - |
+        corepack enable
+        pnpm config set store-dir /pnpm/store
+        pnpm install --frozen-lockfile
+        pnpm --filter api dev
+
+  web:
+    image: node:24-alpine
+    working_dir: /app
+    restart: unless-stopped
+    depends_on:
+      - api-web
+    environment:
+      VITE_API_BASE_URL: http://localhost:3000/api
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "127.0.0.1:5174:5174"
+    volumes:
+      - .:/app
+      - spicytrack_dev_node_modules:/app/node_modules
+      - spicytrack_dev_pnpm_store:/pnpm/store
+    command:
+      - sh
+      - -lc
+      - |
+        corepack enable
+        pnpm config set store-dir /pnpm/store
+        pnpm install --frozen-lockfile
+        pnpm --filter web exec vite --host 0.0.0.0 --port 5174
+
+volumes:
+  spicytrack_dev_node_modules:
+  spicytrack_dev_pnpm_store:

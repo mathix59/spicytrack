@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: spicytrack-k3s-e2e
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/part-of: spicytrack-k3s-e2e
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          env:
+            - { name: POSTGRES_DB, value: spicytrack }
+            - { name: POSTGRES_USER, value: spicytrack }
+            - { name: POSTGRES_PASSWORD, value: spicytrack-k3s-e2e }
+          ports:
+            - { name: postgres, containerPort: 5432 }
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "spicytrack", "-d", "spicytrack"]
+            initialDelaySeconds: 2
+            periodSeconds: 2
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - { name: postgres, port: 5432, targetPort: postgres }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rustfs
+  labels:
+    app.kubernetes.io/name: rustfs
+    app.kubernetes.io/part-of: spicytrack-k3s-e2e
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rustfs
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rustfs
+        app.kubernetes.io/part-of: spicytrack-k3s-e2e
+    spec:
+      containers:
+        - name: rustfs
+          image: rustfs/rustfs:1.0.0-beta.9
+          env:
+            - { name: RUSTFS_VOLUMES, value: /data }
+            - { name: RUSTFS_ADDRESS, value: 0.0.0.0:9000 }
+            - { name: RUSTFS_CONSOLE_ENABLE, value: "false" }
+            - { name: RUSTFS_ACCESS_KEY, value: spicytrack }
+            - { name: RUSTFS_SECRET_KEY, value: spicytrack-k3s-e2e-secret }
+          ports:
+            - { name: s3, containerPort: 9000 }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: s3 }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rustfs
+spec:
+  selector:
+    app.kubernetes.io/name: rustfs
+  ports:
+    - { name: s3, port: 9000, targetPort: s3 }

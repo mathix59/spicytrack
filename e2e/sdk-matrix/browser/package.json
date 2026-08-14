@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild app.js --bundle --minify --sourcemap --outfile=dist/app.js"
+  },
+  "dependencies": {
+    "@sentry/browser": "10.69.0",
+    "@sentry/react": "10.69.0",
+    "esbuild": "0.28.2",
+    "react": "19.2.8"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "realm": "spicytrack",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "clients": [
+    {
+      "clientId": "spicytrack-e2e",
+      "name": "SpicyTrack E2E",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "spicytrack-e2e-secret",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1:55174/api/better-auth/oauth2/callback/keycloak"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:55174"
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "sso-user",
+      "email": "sso-user@spicytrack.local",
+      "emailVerified": true,
+      "firstName": "SSO",
+      "lastName": "User",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Sup3rSso!42",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "blocked-user",
+      "email": "blocked-user@spicytrack.local",
+      "emailVerified": true,
+      "firstName": "Blocked",
+      "lastName": "User",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Sup3rBlocked!42",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

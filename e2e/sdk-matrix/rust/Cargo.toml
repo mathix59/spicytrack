@@ -1,0 +1,7 @@
+[package]
+name = "sdk-probe"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sentry = "=0.49.1"

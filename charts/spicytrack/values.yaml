@@ -1,0 +1,151 @@
+# The application-only mode is the default. PostgreSQL and S3-compatible storage can
+# be enabled independently for compact/self-contained installations.
+imagePullSecrets: []
+
+env:
+  # Use a distinct least-privilege Secret for each backend. The web pod receives no Secret.
+  existingSecrets:
+    apiWeb: spicytrack-api-web
+    apiIngest: spicytrack-api-ingest
+    workerAdmin: spicytrack-worker-admin
+
+images:
+  apiWeb:
+    repository: ghcr.io/mathix59/spicytrack-api-web
+    digest: ""
+    pullPolicy: IfNotPresent
+  apiIngest:
+    repository: ghcr.io/mathix59/spicytrack-api-ingest
+    digest: ""
+    pullPolicy: IfNotPresent
+  workerAdmin:
+    repository: ghcr.io/mathix59/spicytrack-api-worker-admin
+    digest: ""
+    pullPolicy: IfNotPresent
+  web:
+    repository: ghcr.io/mathix59/spicytrack-web
+    digest: ""
+    pullPolicy: IfNotPresent
+
+apiWeb:
+  replicaCount: 2
+  resources: {}
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+apiIngest:
+  replicaCount: 2
+  resources: {}
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+
+workerAdmin:
+  replicaCount: 1
+  resources: {}
+  # CPU HPA is intentionally opt-in. Prefer KEDA or queue-depth metrics for workers.
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+web:
+  replicaCount: 2
+  resources: {}
+  service:
+    type: ClusterIP
+    port: 80
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+  host: spicytrack.example.com
+  tls: []
+  # Example:
+  # - secretName: spicytrack-tls
+  #   hosts:
+  #     - spicytrack.example.com
+
+migrations:
+  enabled: true
+  # External PostgreSQL uses pre-install/pre-upgrade hooks. Bundled PostgreSQL uses
+  # a revision-named Job that backend init containers wait for.
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 300
+
+postgresql:
+  enabled: false
+  image:
+    repository: postgres
+    tag: 17-alpine
+    # Optional immutable pin. When set, it takes precedence over tag.
+    digest: ""
+    pullPolicy: IfNotPresent
+  auth:
+    database: spicytrack
+    username: spicytrack
+    # Prefer existingSecret outside disposable environments. It must contain the
+    # keys configured below, including a complete PostgreSQL connection URL.
+    password: ""
+    existingSecret: ""
+    passwordKey: password
+    databaseUrlKey: database-url
+  service:
+    port: 5432
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  resources: {}
+
+objectStorage:
+  enabled: false
+  image:
+    repository: rustfs/rustfs
+    tag: 1.0.0-beta.9
+    # Optional immutable pin. When set, it takes precedence over tag.
+    digest: ""
+    pullPolicy: IfNotPresent
+  auth:
+    accessKey: ""
+    secretKey: ""
+    existingSecret: ""
+    accessKeyKey: access-key
+    secretKeyKey: secret-key
+  bucket: spicytrack-artifacts
+  region: us-east-1
+  service:
+    port: 9000
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  resources: {}
+
+podAnnotations: {}
+podLabels: {}
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: spicytrack
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - spicytrack_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d spicytrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    platform: linux/amd64
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ENABLE: "false"
+      RUSTFS_ACCESS_KEY: spicytrack
+      RUSTFS_SECRET_KEY: spicytrack-secret
+    volumes:
+      - spicytrack_rustfs_data:/data
+
+volumes:
+  spicytrack_postgres_data:
+  spicytrack_rustfs_data:

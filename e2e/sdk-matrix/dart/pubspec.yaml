@@ -1,0 +1,5 @@
+name: spicytrack_sdk_probe
+environment:
+  sdk: ^3.8.0
+dependencies:
+  sentry: 9.26.0

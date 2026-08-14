@@ -1,0 +1,9 @@
+import { Module } from "@nestjs/common";
+import { InstanceAdminController } from "./instance-admin.controller";
+import { InstanceAdminService } from "./instance-admin.service";
+@Module({
+  controllers: [InstanceAdminController],
+  providers: [InstanceAdminService],
+  exports: [InstanceAdminService],
+})
+export class InstanceAdminModule {}

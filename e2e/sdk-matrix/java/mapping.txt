@@ -1,0 +1,2 @@
+local.spicytrack.CheckoutProbe -> local.spicytrack.SdkProbe:
+    1:200:void start(java.lang.String[]):1:200 -> main

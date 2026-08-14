@@ -1,0 +1,20 @@
+{{- $root := . }}
+{{- range $component := list (dict "name" "api-web" "port" 3000) (dict "name" "api-ingest" "port" 3001) (dict "name" "web" "port" 80) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "spicytrack.componentName" (dict "root" $root "component" $component.name) }}
+  labels:
+    {{- include "spicytrack.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $component.name }}
+spec:
+  type: {{ if eq $component.name "web" }}{{ $root.Values.web.service.type }}{{ else }}ClusterIP{{ end }}
+  ports:
+    - name: http
+      port: {{ if eq $component.name "web" }}{{ $root.Values.web.service.port }}{{ else }}{{ $component.port }}{{ end }}
+      targetPort: http
+  selector:
+    {{- include "spicytrack.selectorLabels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $component.name }}
+---
+{{- end }}

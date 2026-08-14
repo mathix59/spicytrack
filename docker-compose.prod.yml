@@ -1,0 +1,134 @@
+services:
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: api-web
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/spicytrack
+      WEB_ORIGIN: http://localhost:8080
+      PUBLIC_BASE_URL: http://localhost:8080
+      WEB_BASE_URL: http://localhost:8080
+      BETTER_AUTH_URL: http://localhost:8080/api/better-auth
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY_ID: spicytrack
+      STORAGE_SECRET_ACCESS_KEY: spicytrack-secret
+      STORAGE_BUCKET: spicytrack-artifacts
+      STORAGE_FORCE_PATH_STYLE: "true"
+    working_dir: /app/apps/api
+    command:
+      ["node", "node_modules/drizzle-kit/bin.cjs", "migrate", "--config", "drizzle.config.ts"]
+
+  api-web:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: api-web
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/spicytrack
+      PORT: 3000
+      WEB_ORIGIN: http://localhost:8080
+      PUBLIC_BASE_URL: http://localhost:8080
+      INGEST_BASE_URL: ${INGEST_BASE_URL:-http://localhost:8080}
+      WEB_BASE_URL: http://localhost:8080
+      BETTER_AUTH_URL: http://localhost:8080/api/better-auth
+      AUTH_PASSWORD_ENABLED: ${AUTH_PASSWORD_ENABLED:-true}
+      OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_PROVIDER_ID: ${OIDC_PROVIDER_ID:-company-sso}
+      OIDC_PROVIDER_NAME: ${OIDC_PROVIDER_NAME:-Company SSO}
+      OIDC_ACCESS_MODE: ${OIDC_ACCESS_MODE:-}
+      OIDC_DISABLE_SIGN_UP: ${OIDC_DISABLE_SIGN_UP:-}
+      OIDC_REQUIRE_VERIFIED_EMAIL: ${OIDC_REQUIRE_VERIFIED_EMAIL:-true}
+      OIDC_AUTO_JOIN_ORGANIZATION_SLUG: ${OIDC_AUTO_JOIN_ORGANIZATION_SLUG:-}
+      OIDC_AUTO_JOIN_EMAIL_DOMAINS: ${OIDC_AUTO_JOIN_EMAIL_DOMAINS:-}
+      AUTH_SESSION_EXPIRES_IN_SECONDS: ${AUTH_SESSION_EXPIRES_IN_SECONDS:-604800}
+      AUTH_SESSION_UPDATE_AGE_SECONDS: ${AUTH_SESSION_UPDATE_AGE_SECONDS:-86400}
+      AUTH_RATE_LIMIT_WINDOW_SECONDS: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:-60}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-100}
+      AUTH_SIGN_IN_RATE_LIMIT_MAX: ${AUTH_SIGN_IN_RATE_LIMIT_MAX:-10}
+      ALLOW_PRIVATE_WEBHOOK_URLS: ${ALLOW_PRIVATE_WEBHOOK_URLS:-false}
+      VCS_ALLOWED_HOSTS: ${VCS_ALLOWED_HOSTS:-}
+      VCS_ALLOW_INSECURE_HTTP: ${VCS_ALLOW_INSECURE_HTTP:-false}
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY_ID: spicytrack
+      STORAGE_SECRET_ACCESS_KEY: spicytrack-secret
+      STORAGE_BUCKET: spicytrack-artifacts
+      STORAGE_FORCE_PATH_STYLE: "true"
+      INGEST_MAX_EVENT_BYTES: ${INGEST_MAX_EVENT_BYTES:-1000000}
+      ARTIFACT_MAX_UPLOAD_BYTES: ${ARTIFACT_MAX_UPLOAD_BYTES:-20971520}
+      INGEST_PROJECT_EVENTS_PER_HOUR: ${INGEST_PROJECT_EVENTS_PER_HOUR:-10000}
+      INGEST_ORGANIZATION_EVENTS_PER_HOUR: ${INGEST_ORGANIZATION_EVENTS_PER_HOUR:-50000}
+
+  api-ingest:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: api-ingest
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/spicytrack
+      PORT: 3001
+      WEB_ORIGIN: http://localhost:8080
+      PUBLIC_BASE_URL: http://localhost:8080
+      WEB_BASE_URL: http://localhost:8080
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY_ID: spicytrack
+      STORAGE_SECRET_ACCESS_KEY: spicytrack-secret
+      STORAGE_BUCKET: spicytrack-artifacts
+      STORAGE_FORCE_PATH_STYLE: "true"
+      INGEST_MAX_EVENT_BYTES: ${INGEST_MAX_EVENT_BYTES:-1000000}
+      INGEST_PROJECT_EVENTS_PER_HOUR: ${INGEST_PROJECT_EVENTS_PER_HOUR:-10000}
+      INGEST_ORGANIZATION_EVENTS_PER_HOUR: ${INGEST_ORGANIZATION_EVENTS_PER_HOUR:-50000}
+
+  api-worker-admin:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: api-worker-admin
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/spicytrack
+      PUBLIC_BASE_URL: http://localhost:8080
+      WEB_BASE_URL: http://localhost:8080
+      ALLOW_PRIVATE_WEBHOOK_URLS: ${ALLOW_PRIVATE_WEBHOOK_URLS:-false}
+      VCS_ALLOWED_HOSTS: ${VCS_ALLOWED_HOSTS:-}
+      VCS_ALLOW_INSECURE_HTTP: ${VCS_ALLOW_INSECURE_HTTP:-false}
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY_ID: spicytrack
+      STORAGE_SECRET_ACCESS_KEY: spicytrack-secret
+      STORAGE_BUCKET: spicytrack-artifacts
+      STORAGE_FORCE_PATH_STYLE: "true"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    restart: unless-stopped
+    depends_on:
+      - api-web
+    ports:
+      - "8080:8080"

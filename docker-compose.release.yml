@@ -1,0 +1,164 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-spicytrack}
+      POSTGRES_USER: ${POSTGRES_USER:-spicytrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    volumes:
+      - spicytrack_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-spicytrack} -d ${POSTGRES_DB:-spicytrack}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    platform: linux/amd64
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ENABLE: "false"
+      RUSTFS_ACCESS_KEY: ${STORAGE_ACCESS_KEY_ID:-spicytrack}
+      RUSTFS_SECRET_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set in .env}
+    volumes:
+      - spicytrack_rustfs_data:/data
+
+  migrate:
+    image: ${IMAGE_REPOSITORY_PREFIX:-ghcr.io/mathix59/spicytrack}-api-web:${VERSION:-latest}
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spicytrack}:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/${POSTGRES_DB:-spicytrack}
+      WEB_ORIGIN: ${WEB_ORIGIN:?set in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set in .env}
+      WEB_BASE_URL: ${WEB_BASE_URL:?set in .env}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set in .env}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set in .env}
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-spicytrack}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set in .env}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-spicytrack-artifacts}
+      STORAGE_FORCE_PATH_STYLE: "true"
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:?set in .env}
+      AUTOFIX_WORKDIR: ${AUTOFIX_WORKDIR:-/tmp/spicytrack-autofix}
+      CODEBASE_MEMORY_MCP_BIN: ${CODEBASE_MEMORY_MCP_BIN:-codebase-memory-mcp}
+      AUTOFIX_JOB_TIMEOUT_MS: ${AUTOFIX_JOB_TIMEOUT_MS:-900000}
+    working_dir: /app/apps/api
+    command:
+      ["node", "node_modules/drizzle-kit/bin.cjs", "migrate", "--config", "drizzle.config.ts"]
+
+  api-web:
+    image: ${IMAGE_REPOSITORY_PREFIX:-ghcr.io/mathix59/spicytrack}-api-web:${VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spicytrack}:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/${POSTGRES_DB:-spicytrack}
+      PORT: 3000
+      WEB_ORIGIN: ${WEB_ORIGIN:?set in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set in .env}
+      INGEST_BASE_URL: ${INGEST_BASE_URL:-${PUBLIC_BASE_URL:?set in .env}}
+      WEB_BASE_URL: ${WEB_BASE_URL:?set in .env}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set in .env}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set in .env}
+      AUTH_PASSWORD_ENABLED: ${AUTH_PASSWORD_ENABLED:-true}
+      OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_PROVIDER_ID: ${OIDC_PROVIDER_ID:-company-sso}
+      OIDC_PROVIDER_NAME: ${OIDC_PROVIDER_NAME:-Company SSO}
+      OIDC_ACCESS_MODE: ${OIDC_ACCESS_MODE:-}
+      OIDC_DISABLE_SIGN_UP: ${OIDC_DISABLE_SIGN_UP:-}
+      OIDC_REQUIRE_VERIFIED_EMAIL: ${OIDC_REQUIRE_VERIFIED_EMAIL:-true}
+      OIDC_AUTO_JOIN_ORGANIZATION_SLUG: ${OIDC_AUTO_JOIN_ORGANIZATION_SLUG:-}
+      OIDC_AUTO_JOIN_EMAIL_DOMAINS: ${OIDC_AUTO_JOIN_EMAIL_DOMAINS:-}
+      AUTH_SESSION_EXPIRES_IN_SECONDS: ${AUTH_SESSION_EXPIRES_IN_SECONDS:-604800}
+      AUTH_SESSION_UPDATE_AGE_SECONDS: ${AUTH_SESSION_UPDATE_AGE_SECONDS:-86400}
+      AUTH_RATE_LIMIT_WINDOW_SECONDS: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:-60}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-100}
+      AUTH_SIGN_IN_RATE_LIMIT_MAX: ${AUTH_SIGN_IN_RATE_LIMIT_MAX:-10}
+      ALLOW_PRIVATE_WEBHOOK_URLS: ${ALLOW_PRIVATE_WEBHOOK_URLS:-false}
+      VCS_ALLOWED_HOSTS: ${VCS_ALLOWED_HOSTS:-}
+      VCS_ALLOW_INSECURE_HTTP: ${VCS_ALLOW_INSECURE_HTTP:-false}
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-spicytrack}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set in .env}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-spicytrack-artifacts}
+      STORAGE_FORCE_PATH_STYLE: "true"
+      INGEST_MAX_EVENT_BYTES: ${INGEST_MAX_EVENT_BYTES:-1000000}
+      ARTIFACT_MAX_UPLOAD_BYTES: ${ARTIFACT_MAX_UPLOAD_BYTES:-20971520}
+      INGEST_PROJECT_EVENTS_PER_HOUR: ${INGEST_PROJECT_EVENTS_PER_HOUR:-10000}
+      INGEST_ORGANIZATION_EVENTS_PER_HOUR: ${INGEST_ORGANIZATION_EVENTS_PER_HOUR:-50000}
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:?set in .env}
+
+  api-ingest:
+    image: ${IMAGE_REPOSITORY_PREFIX:-ghcr.io/mathix59/spicytrack}-api-ingest:${VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spicytrack}:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/${POSTGRES_DB:-spicytrack}
+      PORT: 3001
+      WEB_ORIGIN: ${WEB_ORIGIN:?set in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set in .env}
+      WEB_BASE_URL: ${WEB_BASE_URL:?set in .env}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set in .env}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set in .env}
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-spicytrack}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set in .env}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-spicytrack-artifacts}
+      STORAGE_FORCE_PATH_STYLE: "true"
+      INGEST_MAX_EVENT_BYTES: ${INGEST_MAX_EVENT_BYTES:-1000000}
+      INGEST_PROJECT_EVENTS_PER_HOUR: ${INGEST_PROJECT_EVENTS_PER_HOUR:-10000}
+      INGEST_ORGANIZATION_EVENTS_PER_HOUR: ${INGEST_ORGANIZATION_EVENTS_PER_HOUR:-50000}
+
+  api-worker-admin:
+    image: ${IMAGE_REPOSITORY_PREFIX:-ghcr.io/mathix59/spicytrack}-api-worker-admin:${VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spicytrack}:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/${POSTGRES_DB:-spicytrack}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set in .env}
+      WEB_BASE_URL: ${WEB_BASE_URL:?set in .env}
+      ALLOW_PRIVATE_WEBHOOK_URLS: ${ALLOW_PRIVATE_WEBHOOK_URLS:-false}
+      VCS_ALLOWED_HOSTS: ${VCS_ALLOWED_HOSTS:-}
+      VCS_ALLOW_INSECURE_HTTP: ${VCS_ALLOW_INSECURE_HTTP:-false}
+      STORAGE_ENDPOINT: http://rustfs:9000
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-spicytrack}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set in .env}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-spicytrack-artifacts}
+      STORAGE_FORCE_PATH_STYLE: "true"
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:?set in .env}
+      AUTOFIX_WORKDIR: ${AUTOFIX_WORKDIR:-/tmp/spicytrack-autofix}
+      CODEBASE_MEMORY_MCP_BIN: ${CODEBASE_MEMORY_MCP_BIN:-codebase-memory-mcp}
+      AUTOFIX_JOB_TIMEOUT_MS: ${AUTOFIX_JOB_TIMEOUT_MS:-900000}
+
+  web:
+    image: ${IMAGE_REPOSITORY_PREFIX:-ghcr.io/mathix59/spicytrack}-web:${VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      - api-web
+      - api-ingest
+    ports:
+      - "${APP_PORT:-80}:8080"
+
+volumes:
+  spicytrack_postgres_data:
+  spicytrack_rustfs_data:
