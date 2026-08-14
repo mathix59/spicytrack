@@ -199,11 +199,11 @@ sentry.Flush(2 * time.Second)`;
   }
 
   if (platform === "dotnet") {
-    return "SentrySdk.CaptureMessage(\"SpicyTrack setup check\");";
+    return 'SentrySdk.CaptureMessage("SpicyTrack setup check");';
   }
 
   if (platform === "php") {
-    return "Sentry\\captureException(new Exception(\"SpicyTrack setup check\"));";
+    return 'Sentry\\captureException(new Exception("SpicyTrack setup check"));';
   }
 
   if (platform === "ruby") {
