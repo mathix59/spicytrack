@@ -109,6 +109,15 @@ const betterAuth = createBetterAuth({
     },
   },
   account: {
+    accountLinking: authenticationConfiguration.oidc
+      ? {
+          enabled: authenticationConfiguration.oidc.accountLinkingEnabled,
+          trustedProviders: authenticationConfiguration.oidc.accountLinkingEnabled
+            ? [authenticationConfiguration.oidc.providerId]
+            : [],
+          requireLocalEmailVerified: true,
+        }
+      : { enabled: false },
     fields: {
       userId: "user_id",
       accountId: "account_id",

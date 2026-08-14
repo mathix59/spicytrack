@@ -8,6 +8,7 @@ export type OidcConfiguration = {
   clientSecret: string;
   accessMode: "open" | "existing" | "invited";
   requireVerifiedEmail: boolean;
+  accountLinkingEnabled: boolean;
   autoJoinOrganizationSlug: string | null;
   autoJoinEmailDomains: string[];
 };
@@ -123,6 +124,11 @@ export function resolveAuthenticationConfiguration(
         environment.OIDC_REQUIRE_VERIFIED_EMAIL,
         true,
         "OIDC_REQUIRE_VERIFIED_EMAIL",
+      ),
+      accountLinkingEnabled: booleanValue(
+        environment.OIDC_ACCOUNT_LINKING_ENABLED,
+        true,
+        "OIDC_ACCOUNT_LINKING_ENABLED",
       ),
       autoJoinOrganizationSlug,
       autoJoinEmailDomains,

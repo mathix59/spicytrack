@@ -35,6 +35,7 @@ describe("OIDC configuration", () => {
         clientSecret: "secret",
         accessMode: "existing",
         requireVerifiedEmail: true,
+        accountLinkingEnabled: true,
         autoJoinOrganizationSlug: null,
         autoJoinEmailDomains: [],
       },
@@ -68,6 +69,30 @@ describe("OIDC configuration", () => {
     expect(() =>
       resolveAuthenticationConfiguration({ ...baseEnvironment, OIDC_ACCESS_MODE: "members" }),
     ).toThrow("OIDC_ACCESS_MODE");
+  });
+
+  it("enables same-email account linking by default and allows disabling it", () => {
+    const baseEnvironment = {
+      OIDC_DISCOVERY_URL: "https://login.example.com/.well-known/openid-configuration",
+      OIDC_CLIENT_ID: "spicytrack",
+      OIDC_CLIENT_SECRET: "secret",
+    };
+
+    expect(resolveAuthenticationConfiguration(baseEnvironment).oidc?.accountLinkingEnabled).toBe(
+      true,
+    );
+    expect(
+      resolveAuthenticationConfiguration({
+        ...baseEnvironment,
+        OIDC_ACCOUNT_LINKING_ENABLED: "false",
+      }).oidc?.accountLinkingEnabled,
+    ).toBe(false);
+    expect(() =>
+      resolveAuthenticationConfiguration({
+        ...baseEnvironment,
+        OIDC_ACCOUNT_LINKING_ENABLED: "yes",
+      }),
+    ).toThrow("OIDC_ACCOUNT_LINKING_ENABLED");
   });
 
   it("rejects partial OIDC credentials", () => {

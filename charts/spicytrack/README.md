@@ -132,6 +132,8 @@ Keep each optional value only in the Secret of the component that consumes it.
 Generic OAuth/OIDC login can be enabled through the same Secret with `OIDC_DISCOVERY_URL`,
 `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET`. Additional provider, account-creation, callback, and
 password-fallback settings are listed in [.env.example](../../.env.example) at the repository root.
+Same-email linking to an existing verified account is enabled by default and can be disabled with
+`OIDC_ACCOUNT_LINKING_ENABLED=false`.
 
 ## Scaling
 
