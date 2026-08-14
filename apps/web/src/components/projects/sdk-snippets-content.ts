@@ -199,7 +199,7 @@ sentry.Flush(2 * time.Second)`;
   }
 
   if (platform === "dotnet") {
-    return `SentrySdk.CaptureMessage("SpicyTrack setup check");`;
+    return "SentrySdk.CaptureMessage(\"SpicyTrack setup check\");";
   }
 
   if (platform === "php") {
@@ -215,10 +215,7 @@ end`;
   }
 
   if (platform === "rust") {
-    return `sentry::capture_message(
-  "SpicyTrack setup check",
-  sentry::Level::Info,
-);`;
+    return `sentry::capture_message("SpicyTrack setup check", sentry::Level::Info);`;
   }
 
   if (platform === "dart") {
@@ -268,10 +265,4 @@ function getSdkLanguage(platform: string) {
   return "javascript";
 }
 
-export {
-  getSdkInstallSnippet,
-  getSdkLanguage,
-  getSdkSnippet,
-  getSdkTestSnippet,
-  platformLabel,
-};
+export { getSdkInstallSnippet, getSdkLanguage, getSdkSnippet, getSdkTestSnippet, platformLabel };
