@@ -5,7 +5,7 @@ export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle("SpicyTrack API")
     .setDescription("SpicyTrack product and ingest API")
-    .setVersion("1.0.1")
+    .setVersion("1.0.2")
     .addBearerAuth()
     .build();
 

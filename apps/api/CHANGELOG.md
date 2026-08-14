@@ -1,5 +1,11 @@
 # api
 
+## 1.0.2
+
+### Patch Changes
+
+- 8ef480a: Add per-project browser origin allowlists for Sentry-compatible ingestion without broadening authenticated API CORS.
+
 ## 1.0.1
 
 ### Patch Changes
