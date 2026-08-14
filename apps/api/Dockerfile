@@ -17,18 +17,20 @@ WORKDIR /app
 COPY . .
 RUN pnpm --filter api build
 
-FROM --platform=$TARGETPLATFORM node:24-alpine AS runtime-base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-
-FROM runtime-base AS runtime-deps
+FROM build-base AS runtime-deps
+ARG TARGETARCH
 WORKDIR /app
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/api/package.json apps/api/package.json
-RUN pnpm install --prod --frozen-lockfile
+RUN case "$TARGETARCH" in \
+      amd64) target_cpu=x64 ;; \
+      arm64) target_cpu=arm64 ;; \
+      *) echo "Unsupported target architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+    && pnpm config set --location=project --json supportedArchitectures "{\"os\":[\"linux\"],\"cpu\":[\"$target_cpu\"],\"libc\":[\"musl\"]}" \
+    && pnpm install --prod --ignore-scripts --frozen-lockfile
 
-FROM runtime-base AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apk add --no-cache git
@@ -42,7 +44,7 @@ COPY --from=runtime-deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/drizzle ./apps/api/drizzle
 COPY --from=build /app/apps/api/drizzle.config.ts ./apps/api/drizzle.config.ts
-RUN node -e 'const fs = require("node:fs"); const path = require("node:path"); const addons = []; const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); if (entry.isDirectory()) walk(file); else if (entry.isFile() && file.endsWith(".node")) addons.push(path.resolve(file)); } }; walk("node_modules"); for (const addon of addons) require(addon); console.log(`Validated ${addons.length} native Node addon(s) for ${process.arch}`);'
+RUN node -e 'const fs = require("node:fs"); const path = require("node:path"); const packages = fs.readdirSync("node_modules/.pnpm"); const wrongArch = process.arch === "arm64" ? /linux-x64/ : /linux-arm64/; const mismatches = packages.filter((name) => wrongArch.test(name)); if (mismatches.length) throw new Error(`Found packages for the wrong architecture: ${mismatches.join(", ")}`); const addons = []; const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const file = path.join(dir, entry.name); if (entry.isDirectory()) walk(file); else if (entry.isFile() && file.endsWith(".node")) addons.push(path.resolve(file)); } }; walk("node_modules"); for (const addon of addons) require(addon); console.log(`Validated runtime dependencies for ${process.arch}`);'
 EXPOSE 3000
 USER 1000
 
