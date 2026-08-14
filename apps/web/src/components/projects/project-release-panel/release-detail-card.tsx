@@ -36,7 +36,7 @@ function ReleaseDetailCard({
   onDeleteArtifact: (artifactId: string) => void;
 }) {
   return (
-    <Card>
+    <Card className="min-w-0 overflow-hidden" data-testid="release-detail-card">
       {!selectedReleaseVersion || !releaseDetail ? (
         <CardContent className="flex min-h-[300px] items-center p-6">
           <div className="grid w-full gap-5 rounded-xl border border-dashed border-border bg-muted/10 p-6 md:grid-cols-[auto_1fr] md:items-center">
@@ -61,8 +61,8 @@ function ReleaseDetailCard({
         </CardContent>
       ) : (
         <>
-          <CardHeader>
-            <CardTitle>{releaseDetail.release.version}</CardTitle>
+          <CardHeader className="min-w-0">
+            <CardTitle className="break-all">{releaseDetail.release.version}</CardTitle>
             <CardDescription>
               {releaseDetail.release.eventCount} events · first seen{" "}
               {compactDate(releaseDetail.release.firstSeenAt)} · last seen{" "}
@@ -95,7 +95,7 @@ function ReleaseDetailCard({
                       onClick={() => onOpenIssue(issue.id)}
                       type="button"
                     >
-                      <span className="min-w-0">
+                      <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{issue.title}</span>
                         <span className="block text-xs text-muted-foreground">
                           {issue.level} · {issue.timesSeen} events
@@ -123,7 +123,7 @@ function ReleaseDetailCard({
                 <input
                   accept=".js,.map,.mjs,.cjs,.txt,.json"
                   aria-label="Artifact file"
-                  className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium focus-visible:border-ring"
+                  className="min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium focus-visible:border-ring"
                   name="file"
                   required
                   type="file"
@@ -155,7 +155,7 @@ function ReleaseDetailCard({
                       }
                       key={artifact.id}
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{artifact.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {formatBytes(artifact.size)} ·{" "}

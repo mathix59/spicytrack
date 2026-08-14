@@ -404,6 +404,26 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await page.getByRole("tab", { name: "Environments", exact: true }).click();
   await expect(page.getByText("production", { exact: true }).first()).toBeVisible();
 
+  const longReleaseVersion = "5c7f2ccb6656cdc6f47863a3c91c2e5343f5d239";
+  const longRelease = await api.put(
+    `/api/organizations/${orgSlug}/projects/${projectSlug}/releases/${longReleaseVersion}`,
+  );
+  expect(longRelease.ok(), await longRelease.text()).toBe(true);
+  await page.goto(`/orgs/${orgSlug}/projects/${projectSlug}?tab=inventory`);
+  await page.getByRole("button", { name: new RegExp(longReleaseVersion) }).click();
+  await expect(
+    page.getByTestId("release-detail-card").getByRole("heading", { name: longReleaseVersion }),
+  ).toBeVisible();
+  for (const testId of ["release-list-card", "release-detail-card"]) {
+    await expect
+      .poll(() =>
+        page
+          .getByTestId(testId)
+          .evaluate((element) => element.scrollWidth <= element.clientWidth),
+      )
+      .toBe(true);
+  }
+
   const limitedKey = await api.patch(
     `/api/organizations/${orgSlug}/projects/${projectSlug}/keys/${keys[0].id}`,
     { data: { rateLimitPerMinute: 1 } },

@@ -37,7 +37,7 @@ function ReleaseListCard({
   onCreateRelease: React.FormEventHandler<HTMLFormElement>;
 }) {
   return (
-    <Card>
+    <Card className="min-w-0 overflow-hidden" data-testid="release-list-card">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -99,14 +99,15 @@ function ReleaseListCard({
             <button
               className={
                 selectedReleaseVersion === release.version
-                  ? "flex items-center justify-between gap-3 rounded-md bg-accent px-3 py-2 text-left"
-                  : "flex items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                  ? "flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden rounded-md bg-accent px-3 py-2 text-left"
+                  : "flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
               }
               key={release.id}
               onClick={() => onSelectRelease(release.version)}
+              title={release.version}
               type="button"
             >
-              <span className="flex min-w-0 items-center gap-2">
+              <span className="flex min-w-0 flex-1 items-center gap-2">
                 <GitBranch className="size-4 shrink-0 text-muted-foreground" />
                 <span className="truncate text-sm font-medium">{release.version}</span>
               </span>
