@@ -3,7 +3,7 @@
  * Do not edit manually.
  * SpicyTrack API
  * SpicyTrack product and ingest API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 1.0.1
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {

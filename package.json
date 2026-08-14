@@ -1,7 +1,7 @@
 {
   "name": "spicytrack",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "FSL-1.1-Apache-2.0",
   "packageManager": "pnpm@11.21.0",
   "scripts": {
