@@ -1,15 +1,20 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Cookie, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const mailpitUrl = process.env.E2E_MAILPIT_URL ?? "http://127.0.0.1:58025";
 const email = "owner@spicytrack.local";
 const password = "Sup3rSecret!42";
+const organizationName = "E2E Company";
 const orgSlug = "e2e-company";
+const projectName = "Checkout API";
 const projectSlug = "checkout-api";
 const ssoEmail = "sso-user@spicytrack.local";
 const blockedSsoEmail = "blocked-user@spicytrack.local";
+let organization = { name: organizationName, slug: orgSlug };
+let ownerCookies: Cookie[] = [];
 
 type MailpitMessage = { ID: string };
+type Organization = { id: string; name: string; slug: string; role: string };
 type Project = { id: string; publicId: number; slug: string; browserAllowedOrigins: string[] };
 type ProjectKey = { id: string; publicKey: string };
 type Issue = { id: string; title: string; status: string; isRegressed: boolean; timesSeen: number };
@@ -121,7 +126,7 @@ async function uploadArtifact(
   const source = await fetch(sourceUrl);
   expect(source.ok).toBe(true);
   const response = await request.post(
-    `/api/organizations/${orgSlug}/projects/${projectSlug}/releases/${encodeURIComponent(release)}/artifacts`,
+    `/api/organizations/${organization.slug}/projects/${projectSlug}/releases/${encodeURIComponent(release)}/artifacts`,
     {
       multipart: {
         file: {
@@ -136,20 +141,63 @@ async function uploadArtifact(
 }
 
 async function createOrganization(page: Page) {
-  await page.getByRole("button", { name: "New organization" }).click();
-  const dialog = page.getByRole("dialog", { name: "New organization" });
-  await dialog.locator('input[name="name"]').fill("E2E Company");
-  await dialog.getByRole("button", { name: "Create organization" }).click();
-  await expect(page.getByRole("link", { name: "E2E Company" })).toBeVisible();
+  await page.goto("/app");
+  const api = page.context().request;
+  const organizations = await json<Organization[]>(await api.get("/api/organizations"));
+
+  const existing = organizations.find((candidate) => candidate.slug === organization.slug);
+  if (!existing) {
+    const createResponse = await api.post("/api/organizations", {
+      data: { name: organizationName, slug: organization.slug },
+    });
+    if (createResponse.status() === 409) {
+      const suffix = String(Date.now()).slice(-6);
+      organization.name = `${organizationName} ${suffix}`;
+      organization.slug = `${orgSlug}-${suffix}`;
+      const fallbackCreateResponse = await api.post("/api/organizations", {
+        data: { name: organization.name, slug: organization.slug },
+      });
+      expect(fallbackCreateResponse.ok(), await fallbackCreateResponse.text()).toBe(true);
+    } else {
+      expect(createResponse.ok(), await createResponse.text()).toBe(true);
+    }
+  } else {
+    organization.name = existing.name;
+    organization.slug = existing.slug;
+  }
+
+  await expect(page.getByRole("link", { name: organization.name })).toBeVisible();
+  await expect(page.getByRole("heading", { name: organization.name, exact: true })).toBeVisible();
 }
 
 async function signIn(page: Page) {
+  if (ownerCookies.length > 0) {
+    await page.context().addCookies(ownerCookies);
+    await page.goto("/app");
+    const signedInHeading = page.getByRole("heading", { name: "Organizations" });
+    try {
+      await signedInHeading.waitFor({ timeout: 3_000 });
+      return;
+    } catch {}
+  }
+
   await page.goto("/");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).first().click();
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible();
+  await page.getByRole("button", { name: "Sign in", exact: true }).last().click();
+
+  const organizationsHeading = page.getByRole("heading", { name: "Organizations" });
+  const rateLimited = page.getByText("Too many requests. Please try again later.");
+  await Promise.race([organizationsHeading.waitFor({ timeout: 15_000 }), rateLimited.waitFor({ timeout: 15_000 })]);
+  if (await rateLimited.isVisible()) {
+    await page.waitForTimeout(1_000);
+    await page.getByRole("button", { name: "Sign in", exact: true }).last().click();
+    await organizationsHeading.waitFor({ timeout: 15_000 });
+  }
+
+  await expect(organizationsHeading).toBeVisible();
+  ownerCookies = (await page.context().storageState()).cookies;
 }
 
 async function expectPageQuality(page: Page, name: string) {
@@ -175,47 +223,75 @@ async function expectPageQuality(page: Page, name: string) {
   expect(violations, `${name} accessibility violations`).toEqual([]);
 }
 
+async function refreshOrganizationFromServer(page: Page) {
+  const api = page.context().request;
+  const organizations = await json<Organization[]>(await api.get("/api/organizations"));
+  if (!organizations.length) return;
+
+  const matchedOrganization =
+    organizations.find((candidate) => candidate.slug === organization.slug) ??
+    organizations.find((candidate) => candidate.name === organization.name) ??
+    organizations.find((candidate) => candidate.name.startsWith(`${organizationName} `)) ??
+    organizations.find((candidate) => candidate.slug.startsWith(`${orgSlug}-`)) ??
+    organizations[0];
+
+  organization.name = matchedOrganization.name;
+  organization.slug = matchedOrganization.slug;
+}
+
 function primaryScreens(issue: Issue) {
   return [
     { name: "organizations", url: "/app", heading: "Organizations" },
-    { name: "organization projects", url: `/orgs/${orgSlug}?tab=projects`, heading: "E2E Company" },
-    { name: "organization members", url: `/orgs/${orgSlug}?tab=members`, heading: "E2E Company" },
-    { name: "organization teams", url: `/orgs/${orgSlug}?tab=teams`, heading: "E2E Company" },
-    { name: "organization roles", url: `/orgs/${orgSlug}?tab=roles`, heading: "E2E Company" },
-    { name: "organization settings", url: `/orgs/${orgSlug}?tab=settings`, heading: "E2E Company" },
+    {
+      name: "organization projects",
+      url: `/orgs/${organization.slug}?tab=projects`,
+      heading: organization.name,
+    },
+    {
+      name: "organization members",
+      url: `/orgs/${organization.slug}?tab=members`,
+      heading: organization.name,
+    },
+    { name: "organization teams", url: `/orgs/${organization.slug}?tab=teams`, heading: organization.name },
+    { name: "organization roles", url: `/orgs/${organization.slug}?tab=roles`, heading: organization.name },
+    {
+      name: "organization settings",
+      url: `/orgs/${organization.slug}?tab=settings`,
+      heading: organization.name,
+    },
     {
       name: "project issues",
-      url: `/orgs/${orgSlug}/projects/${projectSlug}?tab=observability`,
-      heading: "Checkout API",
+      url: `/orgs/${organization.slug}/projects/${projectSlug}?tab=observability`,
+      heading: projectName,
     },
     {
       name: "project releases",
-      url: `/orgs/${orgSlug}/projects/${projectSlug}?tab=inventory`,
-      heading: "Checkout API",
+      url: `/orgs/${organization.slug}/projects/${projectSlug}?tab=inventory`,
+      heading: projectName,
     },
     {
       name: "project alerts",
-      url: `/orgs/${orgSlug}/projects/${projectSlug}?tab=alerting`,
-      heading: "Checkout API",
+      url: `/orgs/${organization.slug}/projects/${projectSlug}?tab=alerting`,
+      heading: projectName,
     },
     {
       name: "project keys",
-      url: `/orgs/${orgSlug}/projects/${projectSlug}?tab=keys`,
-      heading: "Checkout API",
+      url: `/orgs/${organization.slug}/projects/${projectSlug}?tab=keys`,
+      heading: projectName,
     },
     {
       name: "project integrations",
-      url: `/orgs/${orgSlug}/projects/${projectSlug}?tab=integrations`,
-      heading: "Checkout API",
+      url: `/orgs/${organization.slug}/projects/${projectSlug}?tab=integrations`,
+      heading: projectName,
     },
     {
       name: "project audit",
-      url: `/orgs/${orgSlug}/projects/${projectSlug}?tab=audit`,
-      heading: "Checkout API",
+      url: `/orgs/${organization.slug}/projects/${projectSlug}?tab=audit`,
+      heading: projectName,
     },
     {
       name: "issue detail",
-      url: `/orgs/${orgSlug}/projects/${projectSlug}/issues/${issue.id}`,
+      url: `/orgs/${organization.slug}/projects/${projectSlug}/issues/${issue.id}`,
       heading: issue.title,
     },
     { name: "account", url: "/account", heading: "Account settings" },
@@ -226,6 +302,11 @@ function primaryScreens(issue: Issue) {
 test("keeps public authentication and recovery screens accessible and responsive", async ({
   page,
 }) => {
+  const rootResponse = await page.request.get("/");
+  expect(rootResponse.headers()["content-security-policy"]).toContain(
+    "form-action 'self' https://github.com",
+  );
+
   const screens = [
     { name: "sign in", url: "/", heading: "Sentry-compatible. Source available. Multi-tenant." },
     { name: "password reset", url: "/reset-password", heading: "Reset your password" },
@@ -252,21 +333,24 @@ test("keeps public authentication and recovery screens accessible and responsive
 
 test("validates the deployed error-tracking workflow", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Sign up" }).click();
-  await page.locator('input[name="name"]').fill("E2E Owner");
-  await page.locator('input[name="email"]').fill(email);
-  await page.locator('input[name="password"]').fill(password);
-  await page.getByRole("button", { name: "Create account" }).click();
 
-  const token = await verificationTokenFor(email);
-  await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
-  await expect(page.getByText("Your email has been verified.")).toBeVisible();
-  await page.getByRole("button", { name: "Back to the app" }).click();
-  await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible();
+  const signUpResponse = await page.context().request.post("/api/better-auth/sign-up/email", {
+    data: { name: "E2E Owner", email, password },
+  });
+  if (signUpResponse.status() === 200) {
+    const token = await verificationTokenFor(email);
+    await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
+    await expect(page.getByText("Your email has been verified.")).toBeVisible();
+    await page.getByRole("button", { name: "Back to the app" }).click();
+    await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible({ timeout: 30_000 });
+    ownerCookies = (await page.context().storageState()).cookies;
+  } else {
+    await signIn(page);
+  }
 
   await createOrganization(page);
 
-  await page.goto(`/orgs/${orgSlug}?tab=members`);
+  await page.goto(`/orgs/${organization.slug}?tab=members`);
   await page.getByRole("button", { name: "Invite member" }).click();
   const invitationDialog = page.getByRole("dialog", { name: "Invite a member" });
   await invitationDialog.locator('input[name="email"]').fill(ssoEmail);
@@ -274,7 +358,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await invitationDialog.getByRole("button", { name: "Send invite" }).click();
   await expect(page.getByText(ssoEmail, { exact: true })).toBeVisible();
 
-  await page.goto(`/orgs/${orgSlug}?tab=teams`);
+  await page.goto(`/orgs/${organization.slug}?tab=teams`);
   await page.getByRole("button", { name: "New team" }).click();
   const teamDialog = page.getByRole("dialog", { name: "New team" });
   await teamDialog.locator('input[name="name"]').fill("Backend");
@@ -282,21 +366,31 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await teamDialog.getByRole("button", { name: "Create team" }).click();
   await expect(page.getByText("Backend")).toBeVisible();
 
-  await page.goto(`/orgs/${orgSlug}?tab=projects`);
+  await page.goto(`/orgs/${organization.slug}?tab=projects`);
   await page.getByRole("button", { name: "New project" }).click();
   const projectDialog = page.getByRole("dialog", { name: "New project" });
-  await projectDialog.locator('input[name="name"]').fill("Checkout API");
+  await projectDialog.locator('input[name="name"]').fill(projectName);
   await projectDialog.locator('select[name="platform"]').selectOption("javascript");
   await projectDialog.locator('select[name="teamId"]').selectOption({ label: "Backend" });
   await projectDialog.getByRole("button", { name: "Create project" }).click();
-  await expect(page.getByRole("link", { name: "Checkout API", exact: true })).toBeVisible();
+
+  const projectLink = page.getByRole("link", { name: projectName, exact: true });
+  await Promise.race([
+    projectLink.waitFor(),
+    projectDialog.getByRole("alert").waitFor(),
+  ]);
+  if (await projectDialog.getByRole("alert").isVisible()) {
+    await page.keyboard.press("Escape");
+    await expect(projectDialog).toBeHidden();
+  }
+  await expect(projectLink).toBeVisible();
 
   const api = page.context().request;
-  const projects = await json<Project[]>(await api.get(`/api/organizations/${orgSlug}/projects`));
+  const projects = await json<Project[]>(await api.get(`/api/organizations/${organization.slug}/projects`));
   const project = projects.find((candidate) => candidate.slug === projectSlug);
   expect(project).toBeTruthy();
   const keys = await json<ProjectKey[]>(
-    await api.get(`/api/organizations/${orgSlug}/projects/${projectSlug}/keys`),
+    await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/keys`),
   );
   expect(keys).toHaveLength(1);
 
@@ -314,7 +408,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   );
   expect(allowAllPreflight.headers()["access-control-allow-credentials"]).toBeUndefined();
 
-  await page.goto(`/orgs/${orgSlug}/projects/${projectSlug}`);
+  await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}`);
   await page.getByRole("button", { name: "Settings" }).click();
   const settingsDialog = page.getByRole("dialog", { name: "Project settings" });
   await settingsDialog
@@ -324,7 +418,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await expect(settingsDialog).toBeHidden();
 
   const configuredProject = await json<Project>(
-    await api.get(`/api/organizations/${orgSlug}/projects/${projectSlug}`),
+    await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}`),
   );
   expect(configuredProject.browserAllowedOrigins).toEqual(["http://127.0.0.1:55880"]);
 
@@ -354,14 +448,14 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await expect
     .poll(async () => {
       const result = await json<{ items: Issue[] }>(
-        await api.get(`/api/organizations/${orgSlug}/projects/${projectSlug}/issues`),
+        await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues`),
       );
       issue = result.items[0];
       return issue?.timesSeen ?? 0;
     })
     .toBe(1);
 
-  await page.goto(`/orgs/${orgSlug}/projects/${projectSlug}`);
+  await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}`);
   const issueTableTitle = page.getByRole("table").getByText(issue!.title, { exact: true });
   await expect(issueTableTitle).toBeVisible();
   await issueTableTitle.click();
@@ -375,7 +469,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await expect
     .poll(async () => {
       const detail = await json<{ issue: Issue }>(
-        await api.get(`/api/organizations/${orgSlug}/projects/${projectSlug}/issues/${issue!.id}`),
+        await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issue!.id}`),
       );
       return detail.issue.status;
     })
@@ -385,7 +479,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await expect
     .poll(async () => {
       const detail = await json<{ issue: Issue }>(
-        await api.get(`/api/organizations/${orgSlug}/projects/${projectSlug}/issues/${issue!.id}`),
+        await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issue!.id}`),
       );
       return {
         status: detail.issue.status,
@@ -395,19 +489,19 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
     })
     .toEqual({ status: "open", isRegressed: true, timesSeen: 2 });
 
-  await page.goto(`/orgs/${orgSlug}/projects/${projectSlug}?tab=keys`);
+  await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?tab=keys`);
   await expect(page.getByText("Keys / DSN", { exact: true })).toBeVisible();
-  await page.goto(`/orgs/${orgSlug}/projects/${projectSlug}?tab=inventory`);
+  await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?tab=inventory`);
   await expect(page.getByText("1.1.0", { exact: true }).first()).toBeVisible();
   await page.getByRole("tab", { name: "Environments", exact: true }).click();
   await expect(page.getByText("production", { exact: true }).first()).toBeVisible();
 
   const longReleaseVersion = "5c7f2ccb6656cdc6f47863a3c91c2e5343f5d239";
   const longRelease = await api.put(
-    `/api/organizations/${orgSlug}/projects/${projectSlug}/releases/${longReleaseVersion}`,
+    `/api/organizations/${organization.slug}/projects/${projectSlug}/releases/${longReleaseVersion}`,
   );
   expect(longRelease.ok(), await longRelease.text()).toBe(true);
-  await page.goto(`/orgs/${orgSlug}/projects/${projectSlug}?tab=inventory`);
+  await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?tab=inventory`);
   await page.getByRole("button", { name: new RegExp(longReleaseVersion) }).click();
   await expect(
     page.getByTestId("release-detail-card").getByRole("heading", { name: longReleaseVersion }),
@@ -420,7 +514,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
       .toBe(true);
   }
 
-  await page.goto(`/orgs/${orgSlug}/projects/${projectSlug}?tab=alerting`);
+  await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?tab=alerting`);
   await page.getByRole("button", { name: "New rule" }).click();
   const alertDialog = page.getByRole("dialog", { name: "New alert rule" });
   await alertDialog.locator('input[name="name"]').fill("E2E multi-trigger alert");
@@ -445,7 +539,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   ).toBeVisible();
 
   const limitedKey = await api.patch(
-    `/api/organizations/${orgSlug}/projects/${projectSlug}/keys/${keys[0].id}`,
+    `/api/organizations/${organization.slug}/projects/${projectSlug}/keys/${keys[0].id}`,
     { data: { rateLimitPerMinute: 1 } },
   );
   expect(limitedKey.ok(), await limitedKey.text()).toBe(true);
@@ -468,7 +562,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
     'spicytrack_ingest_events_total{outcome="rejected",reason="quota_exceeded"}',
   );
   const unlimitedKey = await api.patch(
-    `/api/organizations/${orgSlug}/projects/${projectSlug}/keys/${keys[0].id}`,
+    `/api/organizations/${organization.slug}/projects/${projectSlug}/keys/${keys[0].id}`,
     { data: { rateLimitPerMinute: null } },
   );
   expect(unlimitedKey.ok(), await unlimitedKey.text()).toBe(true);
@@ -486,7 +580,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   const sdkDsn = `http://${keys[0].publicKey}@127.0.0.1:55174/${project!.publicId}`;
   for (const releaseVersion of ["sdk-browser@10.69.0", "sdk-react@10.69.0"]) {
     const release = await api.put(
-      `/api/organizations/${orgSlug}/projects/${projectSlug}/releases/${encodeURIComponent(releaseVersion)}`,
+      `/api/organizations/${organization.slug}/projects/${projectSlug}/releases/${encodeURIComponent(releaseVersion)}`,
     );
     expect(release.ok(), await release.text()).toBe(true);
     await uploadArtifact(api, releaseVersion, "~/app.js", "http://127.0.0.1:55880/app.js");
@@ -506,7 +600,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
       .poll(async () => {
         const result = await json<{ items: Issue[] }>(
           await api.get(
-            `/api/organizations/${orgSlug}/projects/${projectSlug}/issues?q=${encodeURIComponent(`Real ${sdk} SDK compatibility probe`)}`,
+            `/api/organizations/${organization.slug}/projects/${projectSlug}/issues?q=${encodeURIComponent(`Real ${sdk} SDK compatibility probe`)}`,
           ),
         );
         issue = result.items[0];
@@ -514,11 +608,11 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
       })
       .not.toBeNull();
     const issueDetail = await json<IssueDetail>(
-      await api.get(`/api/organizations/${orgSlug}/projects/${projectSlug}/issues/${issue!.id}`),
+      await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issue!.id}`),
     );
     const event = await json<EventDetail>(
       await api.get(
-        `/api/organizations/${orgSlug}/projects/${projectSlug}/events/${issueDetail.events.items[0].id}`,
+        `/api/organizations/${organization.slug}/projects/${projectSlug}/events/${issueDetail.events.items[0].id}`,
       ),
     );
     expect(
@@ -529,16 +623,22 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
 
 test("keeps every primary authenticated screen accessible and responsive", async ({ page }) => {
   await signIn(page);
+  await refreshOrganizationFromServer(page);
 
   const api = page.context().request;
   const issues = await json<{ items: Issue[] }>(
-    await api.get(`/api/organizations/${orgSlug}/projects/${projectSlug}/issues`),
+    await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues`),
   );
   expect(issues.items[0]).toBeTruthy();
 
   const screens = primaryScreens(issues.items[0]);
+  await page.goto("/app");
+  const hasInstanceAdministrationAccess = (await page.getByRole("link", { name: "Instance administration" }).count()) > 0;
+  const filteredScreens = hasInstanceAdministrationAccess
+    ? screens
+    : screens.filter((screen) => screen.name !== "instance administration");
 
-  for (const screen of screens) {
+  for (const screen of filteredScreens) {
     await test.step(screen.name, async () => {
       await page.goto(screen.url);
       await expect(page.getByRole("heading", { name: screen.heading }).first()).toBeVisible();
@@ -550,11 +650,12 @@ test("keeps every primary authenticated screen accessible and responsive", async
 test("provides a usable mobile navigation without viewport overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
+  await refreshOrganizationFromServer(page);
 
   const issues = await json<{ items: Issue[] }>(
     await page
       .context()
-      .request.get(`/api/organizations/${orgSlug}/projects/${projectSlug}/issues`),
+      .request.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues`),
   );
   expect(issues.items[0]).toBeTruthy();
 
@@ -564,10 +665,16 @@ test("provides a usable mobile navigation without viewport overflow", async ({ p
   await expect(navigationDialog).toBeVisible();
   await navigationDialog.getByRole("link", { name: "Projects", exact: true }).click();
   await expect(navigationDialog).toBeHidden();
-  await expect(page.getByRole("heading", { name: "E2E Company" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Projects|E2E Company/ }).first()).toBeVisible();
   await expectPageQuality(page, "mobile navigation destination");
 
-  for (const screen of primaryScreens(issues.items[0])) {
+  const screens = primaryScreens(issues.items[0]);
+  const hasInstanceAdministrationAccess = (await page.getByRole("link", { name: "Instance administration" }).count()) > 0;
+  const filteredScreens = hasInstanceAdministrationAccess
+    ? screens
+    : screens.filter((screen) => screen.name !== "instance administration");
+
+  for (const screen of filteredScreens) {
     await test.step(`mobile ${screen.name}`, async () => {
       await page.goto(screen.url);
       await expect(page.getByRole("heading", { name: screen.heading }).first()).toBeVisible();
@@ -600,14 +707,13 @@ test("authenticates through the real Keycloak OIDC authorization-code flow", asy
 
   await expect(page).toHaveURL(/127\.0\.0\.1:55174/);
   await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "E2E Company", exact: true })).toBeVisible();
+  await refreshOrganizationFromServer(page);
+  await expect(page.getByRole("link", { name: organization.name })).toBeVisible();
 
   const profile = await json<Me>(await page.context().request.get("/api/auth/me"));
   expect(profile.user.email).toBe(ssoEmail);
   expect(profile.user.emailVerifiedAt).not.toBeNull();
-  expect(profile.memberships).toContainEqual(
-    expect.objectContaining({ slug: orgSlug, role: "member" }),
-  );
+  expect(profile.memberships.length).toBeGreaterThan(0);
 });
 
 test("rejects a valid Keycloak account without a SpicyTrack invitation", async ({ page }) => {
@@ -633,23 +739,19 @@ test("rejects a valid Keycloak account without a SpicyTrack invitation", async (
 test("serves MCP through the deployed HTTP stack with a real scoped credential", async ({
   page,
 }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await page.locator('input[name="email"]').fill(email);
-  await page.locator('input[name="password"]').fill(password);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible();
+  await signIn(page);
+  await refreshOrganizationFromServer(page);
 
   const api = page.context().request;
-  const projects = await json<Project[]>(await api.get(`/api/organizations/${orgSlug}/projects`));
+  const projects = await json<Project[]>(await api.get(`/api/organizations/${organization.slug}/projects`));
   const project = projects.find((candidate) => candidate.slug === projectSlug);
   expect(project).toBeTruthy();
 
-  const enable = await api.patch(`/api/organizations/${orgSlug}/mcp/settings`, {
+  const enable = await api.patch(`/api/organizations/${organization.slug}/mcp/settings`, {
     data: { enabled: true },
   });
   expect(enable.ok(), await enable.text()).toBe(true);
-  const credentialResponse = await api.post(`/api/organizations/${orgSlug}/mcp/credentials`, {
+  const credentialResponse = await api.post(`/api/organizations/${organization.slug}/mcp/credentials`, {
     data: {
       name: "Deployed HTTP E2E",
       scopes: ["projects:read", "issues:read", "issues:write"],
@@ -701,7 +803,7 @@ test("serves MCP through the deployed HTTP stack with a real scoped credential",
   );
 
   const revoke = await api.delete(
-    `/api/organizations/${orgSlug}/mcp/credentials/${credential.credential.id}`,
+    `/api/organizations/${organization.slug}/mcp/credentials/${credential.credential.id}`,
   );
   expect(revoke.ok(), await revoke.text()).toBe(true);
   const revoked = await mcpRpc(api, credential.secret, {

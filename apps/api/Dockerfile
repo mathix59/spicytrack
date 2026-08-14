@@ -1,9 +1,12 @@
-FROM node:24-alpine AS base
+# Build the TypeScript application on the native runner architecture. The
+# generated JavaScript is architecture-independent, so Node and pnpm never need
+# to run through QEMU during a multi-platform build.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build-base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
-FROM base AS deps
+FROM build-base AS deps
 WORKDIR /app
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/api/package.json apps/api/package.json
@@ -14,7 +17,10 @@ WORKDIR /app
 COPY . .
 RUN pnpm --filter api build
 
-FROM base AS runner
+# Docker selects TARGETPLATFORM for the final image automatically. Runtime API
+# dependencies are architecture-independent; native packages in this workspace
+# are build-only tooling and are never executed by the application.
+FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apk add --no-cache git

@@ -194,6 +194,8 @@ smoke_test() {
 
   root_headers="$(curl "${curl_args[@]}" -D - -o /tmp/spicytrack-k3s-root.html "$base_url/")"
   grep -qi '^Content-Security-Policy:' <<<"$root_headers" || fail "CSP header missing from ingress response"
+  grep -qi "^Content-Security-Policy:.*form-action 'self' https://github.com" <<<"$root_headers" \
+    || fail "CSP does not allow GitHub App manifest submission"
   grep -q '<div id="root"></div>' /tmp/spicytrack-k3s-root.html || fail "frontend HTML was not returned"
 
   live="$(curl "${curl_args[@]}" "$base_url/api/health/live")"

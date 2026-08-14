@@ -37,8 +37,28 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if and (or (and $root.Values.postgresql.enabled $root.Values.migrations.enabled) $root.Values.objectStorage.enabled) (ne $component.name "web") }}
+      {{- if or (eq $component.name "web") (and (or (and $root.Values.postgresql.enabled $root.Values.migrations.enabled) $root.Values.objectStorage.enabled) (ne $component.name "web")) }}
       initContainers:
+        {{- if eq $component.name "web" }}
+        - name: wait-for-api-dns
+          image: "{{ $component.image.repository }}@{{ required "images.web.digest is required" $component.image.digest }}"
+          imagePullPolicy: {{ $component.image.pullPolicy }}
+          securityContext:
+            {{- toYaml $root.Values.containerSecurityContext | nindent 12 }}
+          command: ["sh", "-ec"]
+          args:
+            - |
+              attempts=0
+              until nslookup "{{ include "spicytrack.componentName" (dict "root" $root "component" "api-web") }}.{{ $root.Release.Namespace }}.svc.cluster.local" >/dev/null 2>&1 \
+                && nslookup "{{ include "spicytrack.componentName" (dict "root" $root "component" "api-ingest") }}.{{ $root.Release.Namespace }}.svc.cluster.local" >/dev/null 2>&1; do
+                attempts=$((attempts + 1))
+                if [ "$attempts" -ge 60 ]; then
+                  echo "API service DNS records were not available after 120 seconds" >&2
+                  exit 1
+                fi
+                sleep 2
+              done
+        {{- else }}
         {{- if and $root.Values.postgresql.enabled $root.Values.migrations.enabled }}
         - name: wait-for-migrations
           image: "{{ $root.Values.images.apiWeb.repository }}@{{ required "images.apiWeb.digest is required" $root.Values.images.apiWeb.digest }}"
@@ -133,6 +153,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "spicytrack.objectStorageSecretName" $root }}
                   key: {{ $root.Values.objectStorage.auth.secretKeyKey }}
+        {{- end }}
         {{- end }}
       {{- end }}
       containers:

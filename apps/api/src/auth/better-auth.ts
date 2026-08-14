@@ -312,7 +312,10 @@ export const handleBetterAuthRequest = async (request: Request) => {
       "SELECT registrations_enabled FROM instance_settings WHERE id = true",
     );
     if (result.rows[0] && !result.rows[0].registrations_enabled) {
-      return Response.json({ message: "Registrations are disabled." }, { status: 403 });
+      const usersResult = await betterAuthPool.query("SELECT 1 FROM users LIMIT 1");
+      if (usersResult.rowCount) {
+        return Response.json({ message: "Registrations are disabled." }, { status: 403 });
+      }
     }
   }
   return betterAuth.handler(request);
