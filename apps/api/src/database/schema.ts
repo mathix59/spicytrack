@@ -315,6 +315,7 @@ export const projects = pgTable(
     inboundRules: jsonb("inbound_rules").notNull().default([]),
     ownershipRules: jsonb("ownership_rules").notNull().default([]),
     piiScrubFields: jsonb("pii_scrub_fields").notNull().default([]),
+    browserAllowedOrigins: jsonb("browser_allowed_origins").notNull().default([]),
     firstEventAt: timestamp("first_event_at", { withTimezone: true }),
     lastEventAt: timestamp("last_event_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

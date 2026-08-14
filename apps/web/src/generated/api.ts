@@ -105,6 +105,7 @@ export interface ProjectDto {
   inboundRules: ProjectDtoInboundRulesItem[];
   ownershipRules: ProjectDtoOwnershipRulesItem[];
   piiScrubFields: string[];
+  browserAllowedOrigins: string[];
 }
 
 export interface CreateProjectBodyDto {
@@ -130,6 +131,7 @@ export interface UpdateProjectBodyDto {
   inboundRules?: UpdateProjectBodyDtoInboundRulesItem[];
   ownershipRules?: UpdateProjectBodyDtoOwnershipRulesItem[];
   piiScrubFields?: string[];
+  browserAllowedOrigins?: string[];
 }
 
 export interface ProjectKeyDto {

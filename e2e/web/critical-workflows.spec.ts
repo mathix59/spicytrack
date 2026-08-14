@@ -10,7 +10,7 @@ const ssoEmail = "sso-user@spicytrack.local";
 const blockedSsoEmail = "blocked-user@spicytrack.local";
 
 type MailpitMessage = { ID: string };
-type Project = { id: string; publicId: number; slug: string };
+type Project = { id: string; publicId: number; slug: string; browserAllowedOrigins: string[] };
 type ProjectKey = { id: string; publicKey: string };
 type Issue = { id: string; title: string; status: string; isRegressed: boolean; timesSeen: number };
 type Me = {
@@ -299,6 +299,56 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
     await api.get(`/api/organizations/${orgSlug}/projects/${projectSlug}/keys`),
   );
   expect(keys).toHaveLength(1);
+
+  const allowAllPreflight = await api.fetch(`/api/${project!.publicId}/envelope/`, {
+    method: "OPTIONS",
+    headers: {
+      origin: "https://unconfigured.example.com",
+      "access-control-request-method": "POST",
+      "access-control-request-headers": "content-type,x-sentry-auth",
+    },
+  });
+  expect(allowAllPreflight.status()).toBe(204);
+  expect(allowAllPreflight.headers()["access-control-allow-origin"]).toBe(
+    "https://unconfigured.example.com",
+  );
+  expect(allowAllPreflight.headers()["access-control-allow-credentials"]).toBeUndefined();
+
+  await page.goto(`/orgs/${orgSlug}/projects/${projectSlug}`);
+  await page.getByRole("button", { name: "Settings" }).click();
+  const settingsDialog = page.getByRole("dialog", { name: "Project settings" });
+  await settingsDialog
+    .locator('textarea[name="browserAllowedOrigins"]')
+    .fill("http://127.0.0.1:55880");
+  await settingsDialog.getByRole("button", { name: "Save project" }).click();
+  await expect(settingsDialog).toBeHidden();
+
+  const configuredProject = await json<Project>(
+    await api.get(`/api/organizations/${orgSlug}/projects/${projectSlug}`),
+  );
+  expect(configuredProject.browserAllowedOrigins).toEqual(["http://127.0.0.1:55880"]);
+
+  const allowedPreflight = await api.fetch(`/api/${project!.publicId}/envelope/`, {
+    method: "OPTIONS",
+    headers: {
+      origin: "http://127.0.0.1:55880",
+      "access-control-request-method": "POST",
+      "access-control-request-headers": "content-type,x-sentry-auth",
+    },
+  });
+  expect(allowedPreflight.status()).toBe(204);
+  expect(allowedPreflight.headers()["access-control-allow-origin"]).toBe(
+    "http://127.0.0.1:55880",
+  );
+
+  const rejectedPreflight = await api.fetch(`/api/${project!.publicId}/envelope/`, {
+    method: "OPTIONS",
+    headers: {
+      origin: "https://blocked.example.com",
+      "access-control-request-method": "POST",
+    },
+  });
+  expect(rejectedPreflight.headers()["access-control-allow-origin"]).toBeUndefined();
 
   await sendError(api, project!, keys[0], "11111111111111111111111111111111", "1.0.0");
 

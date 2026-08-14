@@ -5326,6 +5326,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "browserAllowedOrigins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -5340,7 +5346,8 @@
           "retentionDays",
           "inboundRules",
           "ownershipRules",
-          "piiScrubFields"
+          "piiScrubFields",
+          "browserAllowedOrigins"
         ]
       },
       "CreateProjectBodyDto": {
@@ -5401,6 +5408,12 @@
             }
           },
           "piiScrubFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "browserAllowedOrigins": {
             "type": "array",
             "items": {
               "type": "string"

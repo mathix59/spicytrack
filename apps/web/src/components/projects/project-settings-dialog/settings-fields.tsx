@@ -92,6 +92,17 @@ function ProjectSettingsFields({ project, teams }: { project: ProjectDto; teams:
         <Input defaultValue={project.retentionDays} min="1" name="retentionDays" type="number" />
       </Field>
       <Field
+        label="Allowed browser origins"
+        hint="One exact HTTP(S) origin per line for browser SDK ingestion, for example https://app.example.com. Leave empty to allow every browser origin."
+      >
+        <textarea
+          className="min-h-20 rounded-md border border-input bg-background px-3 py-2 font-mono text-xs"
+          defaultValue={(project.browserAllowedOrigins ?? []).join("\n")}
+          name="browserAllowedOrigins"
+          placeholder={"https://app.example.com\nhttps://staging.example.com"}
+        />
+      </Field>
+      <Field
         label="Noise and grouping rules"
         hint='JSON array. Example: [{"action":"ignore","pattern":"ResizeObserver"}] or [{"action":"fingerprint","pattern":"timeout","fingerprint":"network-timeout"}]'
       >

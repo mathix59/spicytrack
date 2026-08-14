@@ -185,6 +185,7 @@ export class ProjectsService {
     inboundRules?: Array<Record<string, unknown>>;
     ownershipRules?: Array<Record<string, unknown>>;
     piiScrubFields?: string[];
+    browserAllowedOrigins?: string[];
   }) {
     await this.assertOwnershipRuleMembers(input.organizationId, input.ownershipRules);
     await this.assertTeamBelongsToOrganization(input.organizationId, input.teamId);
@@ -206,6 +207,7 @@ export class ProjectsService {
         inboundRules: input.inboundRules,
         ownershipRules: input.ownershipRules,
         piiScrubFields: input.piiScrubFields,
+        browserAllowedOrigins: input.browserAllowedOrigins,
         updatedAt: new Date(),
       })
       .where(
@@ -235,6 +237,7 @@ export class ProjectsService {
         inboundRules: input.inboundRules,
         ownershipRules: input.ownershipRules,
         piiScrubFields: input.piiScrubFields,
+        browserAllowedOrigins: input.browserAllowedOrigins,
       },
     });
 

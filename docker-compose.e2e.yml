@@ -5,7 +5,7 @@ x-api-environment: &api-environment
   # Same server, but PostgreSQL enforces a read-only session. This proves that
   # Drizzle never routes mutations or transactions through the replica client.
   DATABASE_READ_REPLICA_URL: postgresql://spicytrack:spicytrack@postgres:5432/spicytrack?options=-c%20default_transaction_read_only%3Don&application_name=spicytrack-read-replica
-  WEB_ORIGIN: http://127.0.0.1:55174,http://127.0.0.1:55880
+  WEB_ORIGIN: http://127.0.0.1:55174
   PUBLIC_BASE_URL: http://127.0.0.1:55174
   WEB_BASE_URL: http://127.0.0.1:55174
   BETTER_AUTH_URL: http://127.0.0.1:55174/api/better-auth

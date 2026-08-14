@@ -116,6 +116,14 @@ pnpm test:e2e
 
 This command creates and removes its own containers and volumes.
 
+### Browser SDK origins
+
+Browser ingestion CORS is configured per project under **Project settings → Allowed browser
+origins**. Enter one exact HTTP(S) origin per line for production, staging, or local frontends.
+An empty list allows every browser origin for backward compatibility. This setting applies only to
+the public `store` and `envelope` ingestion endpoints, never to the authenticated product API, and
+does not enable cookies or replace project-key and quota controls.
+
 When the backend OpenAPI contract changes, regenerate the frontend client with:
 
 ```bash

@@ -123,6 +123,10 @@ function useProjectPage(): ProjectPageData | null {
             inboundRules: JSON.parse(String(formData.get("inboundRules") ?? "[]")),
             ownershipRules: JSON.parse(String(formData.get("ownershipRules") ?? "[]")),
             piiScrubFields: JSON.parse(String(formData.get("piiScrubFields") ?? "[]")),
+            browserAllowedOrigins: String(formData.get("browserAllowedOrigins") ?? "")
+              .split(/\r?\n/)
+              .map((origin) => origin.trim())
+              .filter(Boolean),
           },
         }),
       onSuccess: async (response) => {

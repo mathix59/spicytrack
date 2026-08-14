@@ -1,6 +1,7 @@
 import { BadRequestException } from "@nestjs/common";
 
 import { assertString, optionalNullableString, optionalNumber } from "../common/validators";
+import { normalizeBrowserIngestOrigins } from "../ingest/browser-ingest-origins";
 
 function parseCreateProjectBody(body: Record<string, unknown>) {
   return {
@@ -22,6 +23,7 @@ function parseUpdateProjectBody(body: Record<string, unknown>) {
     inboundRules: normalizeInboundRules(body.inboundRules),
     ownershipRules: normalizeOwnershipRules(body.ownershipRules),
     piiScrubFields: normalizeStringList(body.piiScrubFields, "piiScrubFields"),
+    browserAllowedOrigins: normalizeBrowserIngestOrigins(body.browserAllowedOrigins),
   };
 }
 

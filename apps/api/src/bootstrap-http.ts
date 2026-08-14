@@ -4,9 +4,11 @@ import { Type, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
 import { fromNodeHeaders } from "better-auth/node";
+import type { FastifyRequest } from "fastify";
 import { handleBetterAuthRequest } from "./auth/better-auth";
 import { buildBetterAuthRequestUrl } from "./auth/auth-request-url";
 import { decodeSentryBody } from "./ingest/sentry-body";
+import { BrowserIngestCorsService } from "./ingest/browser-ingest-cors.service";
 import { setupSwagger } from "./openapi/swagger";
 import { artifactMaxUploadBytes } from "./artifacts/artifact-upload-limits";
 
@@ -16,6 +18,7 @@ type HttpBootstrapOptions = {
   registerRawBodyParsers?: boolean;
   setupOpenApi?: boolean;
   bodyLimit?: number;
+  projectAwareIngestCors?: boolean;
 };
 
 const browserOrigins = () =>
@@ -26,20 +29,30 @@ const browserOrigins = () =>
 
 async function createHttpApplication(
   rootModule: Type<unknown>,
-  bodyLimit?: number,
+  options: Pick<HttpBootstrapOptions, "bodyLimit" | "projectAwareIngestCors">,
 ): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(
     rootModule,
-    new FastifyAdapter({ ignoreTrailingSlash: true, ...(bodyLimit ? { bodyLimit } : {}) }),
+    new FastifyAdapter({
+      ignoreTrailingSlash: true,
+      ...(options.bodyLimit ? { bodyLimit: options.bodyLimit } : {}),
+    }),
     { rawBody: true },
   );
 
   app.setGlobalPrefix("api");
-  app.enableCors({
-    origin: browserOrigins(),
-    credentials: true,
-    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  });
+  if (options.projectAwareIngestCors) {
+    const ingestCors = app.get(BrowserIngestCorsService);
+    app.enableCors({
+      delegator: (request: FastifyRequest) => ingestCors.optionsFor(request),
+    });
+  } else {
+    app.enableCors({
+      origin: browserOrigins(),
+      credentials: true,
+      methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    });
+  }
   app
     .getHttpAdapter()
     .getInstance()
@@ -107,7 +120,7 @@ export async function bootstrapHttpApplication(
   rootModule: Type<unknown>,
   options: HttpBootstrapOptions,
 ): Promise<void> {
-  const app = await createHttpApplication(rootModule, options.bodyLimit);
+  const app = await createHttpApplication(rootModule, options);
 
   await app.register(cookie);
 

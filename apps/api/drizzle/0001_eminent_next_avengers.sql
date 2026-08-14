@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "browser_allowed_origins" jsonb DEFAULT '[]'::jsonb NOT NULL;

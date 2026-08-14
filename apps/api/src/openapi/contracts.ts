@@ -429,6 +429,9 @@ export class ProjectDto {
 
   @ApiProperty({ type: [String] })
   piiScrubFields!: string[];
+
+  @ApiProperty({ type: [String] })
+  browserAllowedOrigins!: string[];
 }
 
 export class ProjectSavedSearchFiltersDto {
@@ -673,6 +676,9 @@ export class UpdateProjectBodyDto {
 
   @ApiPropertyOptional({ type: [String] })
   piiScrubFields?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  browserAllowedOrigins?: string[];
 }
 
 export class UpdateProjectKeyBodyDto {

@@ -47,7 +47,7 @@ function ProjectSettingsDialog({
         <DialogHeader>
           <DialogTitle>Project settings</DialogTitle>
           <DialogDescription>
-            Rename the project, change its platform, visibility, owning team, or retention window.
+            Configure project metadata, retention, ingestion origins, and processing rules.
           </DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={onSubmit}>
