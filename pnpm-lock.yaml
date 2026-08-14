@@ -83,6 +83,9 @@ importers:
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
+      drizzle-kit:
+        specifier: ^0.31.10
+        version: 0.31.10
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.21.0)(kysely@0.29.4)(pg@8.22.0)
@@ -126,9 +129,6 @@ importers:
       class-validator:
         specifier: ^0.15.1
         version: 0.15.1
-      drizzle-kit:
-        specifier: ^0.31.10
-        version: 0.31.10
       jest:
         specifier: ^30.4.2
         version: 30.4.2(@types/node@24.13.3)(supports-color@8.1.1)(ts-node@10.9.2(@types/node@24.13.3)(typescript@5.9.3))
