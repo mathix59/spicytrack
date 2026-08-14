@@ -1,5 +1,11 @@
 # api
 
+## 1.0.4
+
+### Patch Changes
+
+- ec11242: Install production dependencies on each target architecture so ARM64 images never contain AMD64 native modules.
+
 ## 1.0.3
 
 ### Patch Changes
