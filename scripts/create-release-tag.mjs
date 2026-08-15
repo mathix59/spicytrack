@@ -24,11 +24,17 @@ async function gitTagExists(tagName) {
   }
 }
 
+async function gitTagCommit(tagName) {
+  const { stdout } = await execFileAsync("git", ["rev-list", "-n", "1", tagName]);
+  return stdout.trim();
+}
+
 async function main() {
   const shouldPush = process.argv.includes("--push");
   const isDryRun = process.argv.includes("--dry-run");
   const packages = await Promise.all(packageFiles.map(readPackageVersion));
   const versions = [...new Set(packages.map((pkg) => pkg.version))];
+  const headCommit = (await execFileAsync("git", ["rev-parse", "HEAD"])).stdout.trim();
 
   if (versions.length !== 1) {
     const details = packages.map((pkg) => `${pkg.name}@${pkg.version}`).join(", ");
@@ -37,10 +43,17 @@ async function main() {
 
   const version = versions[0];
   const tagName = `v${version}`;
+  const existingTagCommit = await gitTagExists(tagName) ? await gitTagCommit(tagName) : null;
 
-  if (await gitTagExists(tagName)) {
-    console.log(`Git tag ${tagName} already exists, skipping tag creation`);
-    return;
+  if (existingTagCommit) {
+    if (existingTagCommit === headCommit) {
+      console.log(`Git tag ${tagName} already exists at HEAD (${headCommit}), skipping tag creation`);
+      return;
+    }
+
+    throw new Error(
+      `Git tag ${tagName} exists at ${existingTagCommit}, but HEAD is ${headCommit}. Refusing to overwrite an existing tag.`
+    );
   }
 
   if (isDryRun) {

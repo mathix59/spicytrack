@@ -43,6 +43,7 @@ jobs:
 
       - name: Create or update release PR
         uses: changesets/action@v1
+        id: changesets
         with:
           version: pnpm changeset:version
           commit: "chore(release): version packages"
@@ -51,5 +52,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push release tag
+        if: ${{ steps.changesets.outputs.published == 'true' }}
         run: |
           pnpm release:tag:push
