@@ -1,3 +1,9 @@
+## 1.0.7
+
+### Patch Changes
+
+- aae6209: Fix GitHub repository connection testing in the app for GitHub App mode without requiring a saved connection first.
+
 ## 1.0.6
 
 ### Patch Changes
