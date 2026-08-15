@@ -1,3 +1,9 @@
+## 1.0.9
+
+### Patch Changes
+
+- 52e7188: fix: stabilize web and api release process and UI polish
+
 ## 1.0.8
 
 ### Patch Changes
