@@ -8,6 +8,12 @@ on:
     workflows: [Version Packages]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to publish (e.g. 1.0.8 or v1.0.8). Defaults to latest workspace version."
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -36,6 +42,11 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
             VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            if [ -z "$VERSION" ]; then
+              VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
+            fi
           else
             VERSION="${GITHUB_REF_NAME}"
           fi
@@ -125,6 +136,11 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
             VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            if [ -z "$VERSION" ]; then
+              VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
+            fi
           else
             VERSION="${GITHUB_REF_NAME}"
           fi

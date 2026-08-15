@@ -13,6 +13,7 @@ import {
   AppShellProjectsNav,
   AppShellUserMenu,
 } from "./app-shell-sections";
+import webPackage from "../../../package.json";
 import { useAppShell } from "./use-app-shell";
 
 function AppShell({
@@ -85,6 +86,9 @@ function AppShell({
         </Button>
         <img alt="" className="size-5" src="/logo.svg" />
         <span className="truncate text-sm font-semibold tracking-tight">SpicyTrack</span>
+        <span className="ms-2 rounded-full border border-muted-foreground/30 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+          {webPackage.version}
+        </span>
       </header>
 
       <Dialog onOpenChange={setMobileNavigationOpen} open={mobileNavigationOpen}>

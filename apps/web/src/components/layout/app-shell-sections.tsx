@@ -28,14 +28,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import webPackage from "../../../package.json";
 
 import { ProjectSectionLink, ShellLink } from "./app-shell-links";
 
 function AppShellBrand() {
+  const appVersion = webPackage.version;
+
   return (
     <div className="flex items-center gap-2 border-b border-border px-4 py-4">
       <img alt="" className="size-5" src="/logo.svg" />
       <span className="text-sm font-semibold tracking-tight">SpicyTrack</span>
+      <span className="ms-2 rounded-full border border-muted-foreground/30 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+        {appVersion}
+      </span>
     </div>
   );
 }
