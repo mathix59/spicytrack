@@ -94,6 +94,9 @@ jobs:
           sudo install -m 0755 /tmp/k3d /usr/local/bin/k3d
 
       - name: Run K3s Helm end-to-end test
+        env:
+          K3S_E2E_TIMEOUT: 10m
+          K3S_E2E_BUNDLED_SERVICES: false
         run: bash scripts/k3s-e2e.sh
 
   docker-build:
