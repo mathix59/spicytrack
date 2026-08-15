@@ -5,6 +5,7 @@ import { useLocation } from "react-router-dom";
 import type { MeResponseDto } from "@/generated/api";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { APP_VERSION } from "@/lib/app-version";
 
 import {
   AppShellBrand,
@@ -13,7 +14,6 @@ import {
   AppShellProjectsNav,
   AppShellUserMenu,
 } from "./app-shell-sections";
-import webPackage from "../../../package.json";
 import { useAppShell } from "./use-app-shell";
 
 function AppShell({
@@ -87,7 +87,7 @@ function AppShell({
         <img alt="" className="size-5" src="/logo.svg" />
         <span className="truncate text-sm font-semibold tracking-tight">SpicyTrack</span>
         <span className="ms-2 rounded-full border border-muted-foreground/30 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-          {webPackage.version}
+          {APP_VERSION}
         </span>
       </header>
 
