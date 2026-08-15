@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*"
+  workflow_run:
+    workflows: [Version Packages]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -13,6 +16,7 @@ permissions:
 
 jobs:
   publish-api:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -26,6 +30,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Resolve release version
+        id: release
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+
+          VERSION_NO_V="${VERSION#v}"
+          MAJOR="${VERSION_NO_V%%.*}"
+          MINOR="$(printf '%s' "$VERSION_NO_V" | cut -d. -f2)"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version_no_v=${VERSION_NO_V}" >> "$GITHUB_OUTPUT"
+          echo "major=${MAJOR}" >> "$GITHUB_OUTPUT"
+          echo "minor=${MINOR}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -51,12 +72,12 @@ jobs:
         with:
           images: ghcr.io/mathix59/spicytrack-${{ matrix.target }}
           tags: |
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=raw,value=${{ steps.release.outputs.version }}
+            type=raw,value=${{ steps.release.outputs.version_no_v }}
+            type=raw,value=${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}
+            type=raw,value=${{ steps.release.outputs.major }}
             type=sha
-            type=raw,value=latest,enable=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-') }}
+            type=raw,value=latest
 
       - name: Build and push
         id: build
@@ -91,12 +112,30 @@ jobs:
         run: cosign sign --yes "${IMAGE}@${DIGEST}"
 
   publish-web:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Resolve release version
+        id: release
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+
+          VERSION_NO_V="${VERSION#v}"
+          MAJOR="${VERSION_NO_V%%.*}"
+          MINOR="$(printf '%s' "$VERSION_NO_V" | cut -d. -f2)"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version_no_v=${VERSION_NO_V}" >> "$GITHUB_OUTPUT"
+          echo "major=${MAJOR}" >> "$GITHUB_OUTPUT"
+          echo "minor=${MINOR}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -122,12 +161,12 @@ jobs:
         with:
           images: ghcr.io/mathix59/spicytrack-web
           tags: |
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=raw,value=${{ steps.release.outputs.version }}
+            type=raw,value=${{ steps.release.outputs.version_no_v }}
+            type=raw,value=${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}
+            type=raw,value=${{ steps.release.outputs.major }}
             type=sha
-            type=raw,value=latest,enable=${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && !contains(github.ref_name, '-') }}
+            type=raw,value=latest
 
       - name: Build and push
         id: build
