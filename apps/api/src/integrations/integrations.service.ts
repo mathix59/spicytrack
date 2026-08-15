@@ -747,7 +747,9 @@ export class IntegrationsService {
       .where(eq(organizationGithubAppRepositories.organizationId, input.organizationId));
 
     return {
-      installUrl: `https://github.com/apps/${encodeURIComponent(conversion.slug)}/installations/new?state=${encodeURIComponent(input.state)}`,
+      installUrl:
+        `https://github.com/apps/${encodeURIComponent(conversion.slug)}/installations/new?` +
+        `state=${encodeURIComponent(input.state)}`,
       settings: await this.getOrgGithubAppSettings(input.organizationId),
     };
   }
