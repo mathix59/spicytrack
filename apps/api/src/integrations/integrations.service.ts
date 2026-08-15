@@ -259,27 +259,27 @@ export class IntegrationsService {
             "No stored connection to test; provide provider, repoIdentifier, and token",
           );
         }
-      }
+      } else {
+        if (input.provider && input.provider !== stored.provider && !input.token) {
+          return {
+            ok: false,
+            defaultBranch: null,
+            error: "A new token is required when changing provider",
+          };
+        }
 
-      if (input.provider && input.provider !== stored.provider && !input.token) {
-        return {
-          ok: false,
-          defaultBranch: null,
-          error: "A new token is required when changing provider",
+        provider = (input.provider ?? stored.provider) as VcsProviderKind;
+        connectionInput = {
+          ...stored.input,
+          baseUrl: input.baseUrl !== undefined ? input.baseUrl : stored.input.baseUrl,
+          htmlUrl: input.htmlUrl !== undefined ? input.htmlUrl : stored.input.htmlUrl,
+          apiUrl: input.apiUrl !== undefined ? input.apiUrl : stored.input.apiUrl,
+          gitUser: input.gitUser !== undefined ? input.gitUser : stored.input.gitUser,
+          gitPort: input.gitPort !== undefined ? input.gitPort : stored.input.gitPort,
+          repoIdentifier: normalizeRepoIdentifier(input.repoIdentifier ?? stored.repoIdentifier),
+          token: input.token ?? stored.input.token,
         };
       }
-
-      provider = (input.provider ?? stored.provider) as VcsProviderKind;
-      connectionInput = {
-        ...stored.input,
-        baseUrl: input.baseUrl !== undefined ? input.baseUrl : stored.input.baseUrl,
-        htmlUrl: input.htmlUrl !== undefined ? input.htmlUrl : stored.input.htmlUrl,
-        apiUrl: input.apiUrl !== undefined ? input.apiUrl : stored.input.apiUrl,
-        gitUser: input.gitUser !== undefined ? input.gitUser : stored.input.gitUser,
-        gitPort: input.gitPort !== undefined ? input.gitPort : stored.input.gitPort,
-        repoIdentifier: normalizeRepoIdentifier(input.repoIdentifier ?? stored.repoIdentifier),
-        token: input.token ?? stored.input.token,
-      };
     }
 
     assertAllowedVcsEndpoints(provider, connectionInput);
