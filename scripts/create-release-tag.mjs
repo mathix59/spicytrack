@@ -39,7 +39,8 @@ async function main() {
   const tagName = `v${version}`;
 
   if (await gitTagExists(tagName)) {
-    throw new Error(`Git tag ${tagName} already exists`);
+    console.log(`Git tag ${tagName} already exists, skipping tag creation`);
+    return;
   }
 
   if (isDryRun) {
