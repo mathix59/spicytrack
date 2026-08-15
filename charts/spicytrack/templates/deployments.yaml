@@ -95,7 +95,7 @@ spec:
             - name: HELM_RELEASE_REVISION
               value: {{ $root.Release.Revision | quote }}
         {{- end }}
-        {{- if $root.Values.objectStorage.enabled }}
+        {{- if and $root.Values.objectStorage.enabled (ne $component.name "worker-admin") }}
         - name: ensure-artifact-bucket
           image: "{{ $root.Values.images.apiWeb.repository }}@{{ required "images.apiWeb.digest is required" $root.Values.images.apiWeb.digest }}"
           imagePullPolicy: {{ $root.Values.images.apiWeb.pullPolicy }}
