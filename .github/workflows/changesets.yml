@@ -4,6 +4,12 @@ on:
   workflow_run:
     workflows: [CI]
     types: [completed]
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/changesets.yml"
   workflow_dispatch:
 
 permissions:
@@ -16,7 +22,7 @@ concurrency:
 
 jobs:
   version-packages:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
