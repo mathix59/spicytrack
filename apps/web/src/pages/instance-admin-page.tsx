@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Settings2 } from "lucide-react";
+import { LoadingScreen } from "@/components/common/loading-screen";
 import { PageHeader } from "@/components/common/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { orvalFetch } from "@/lib/orval-fetch";
@@ -29,6 +30,7 @@ export function InstanceAdminPage() {
   const [users, setUsers] = useState<InstanceUser[]>([]);
   const [usersMeta, setUsersMeta] = useState({ total: 0, page: 1, pageSize: 20 });
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const loadUsers = useCallback(async (search = "", page = 1) => {
     const r = await orvalFetch<{ data: UsersResponse }>("/instance-admin/users", {
       method: "GET",
@@ -38,19 +40,29 @@ export function InstanceAdminPage() {
     setUsersMeta(r.data);
   }, []);
   useEffect(() => {
-    void Promise.all([
-      orvalFetch<{ data: InstanceSettings }>("/instance-admin/settings", { method: "GET" }),
-      loadUsers(),
-    ])
-      .then(([s]) => setSettings(s.data))
-      .catch(() => setMessage("Instance administrator access is required."));
+    void (async () => {
+      setIsLoading(true);
+      setMessage("");
+      try {
+        const [s] = await Promise.all([
+          orvalFetch<{ data: InstanceSettings }>("/instance-admin/settings", { method: "GET" }),
+          loadUsers(),
+        ]);
+        setSettings(s.data);
+      } catch (error) {
+        console.error(error);
+        setMessage("Instance administrator access is required.");
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, [loadUsers]);
-  if (!settings)
-    return (
-      <div className="text-sm text-muted-foreground">
-        {message || "Loading instance administration…"}
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingScreen compact label="Loading instance administration..." />;
+  }
+  if (!settings) {
+    return <div className="text-sm text-muted-foreground">{message || "No instance data."}</div>;
+  }
   const save = async (next: Partial<InstanceSettings> & { smtpPass?: string }) => {
     const r = await orvalFetch<{ data: InstanceSettings }>("/instance-admin/settings", {
       method: "PATCH",
