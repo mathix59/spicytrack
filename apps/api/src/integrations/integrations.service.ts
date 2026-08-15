@@ -237,9 +237,28 @@ export class IntegrationsService {
       storedConnection = stored;
 
       if (!stored) {
-        throw new BadRequestException(
-          "No stored connection to test; provide provider, repoIdentifier, and token",
-        );
+        if (input.provider === "github" && input.organizationId && input.repoIdentifier) {
+          const githubBacked = await this.getGithubAppBackedConnection(input.organizationId, {
+            baseUrl: input.baseUrl ?? null,
+            htmlUrl: input.htmlUrl ?? null,
+            apiUrl: input.apiUrl ?? null,
+            gitUser: input.gitUser ?? null,
+            gitPort: input.gitPort ?? null,
+            repoIdentifier: normalizeRepoIdentifier(input.repoIdentifier),
+            token: "",
+          });
+
+          if (!githubBacked) {
+            throw new BadRequestException("GitHub App installation is required before testing this connection");
+          }
+
+          provider = "github";
+          connectionInput = githubBacked;
+        } else {
+          throw new BadRequestException(
+            "No stored connection to test; provide provider, repoIdentifier, and token",
+          );
+        }
       }
 
       if (input.provider && input.provider !== stored.provider && !input.token) {

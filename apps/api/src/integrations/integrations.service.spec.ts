@@ -277,4 +277,48 @@ describe("IntegrationsService", () => {
     expect(result?.input.apiUrl).toBe("https://api.github.com");
     expect(result?.input.htmlUrl).toBe("https://github.com");
   });
+
+  it("can test a new GitHub App-backed connection without a stored repo connection", async () => {
+    const db = {
+      select: jest
+        .fn()
+        .mockImplementationOnce(() => createSelectChain([[null]]))
+        .mockImplementationOnce(() => createSelectChain([[githubSettings]])),
+      insert: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ token: "ghs_installation_token" }),
+      text: async () => "",
+    });
+
+    const service = new IntegrationsService(
+      db as never,
+      vcsFactory as never,
+      auditService as never,
+    );
+    jest.spyOn(service as any, "buildGithubAppJwt").mockReturnValue("jwt");
+
+    const result = await service.testConnection({
+      projectId: "project-1",
+      organizationId: "org-1",
+      provider: "github",
+      repoIdentifier: "acme/spicytrack",
+    });
+
+    expect(validateConnection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        repoIdentifier: "acme/spicytrack",
+        token: "ghs_installation_token",
+      }),
+    );
+    expect(result).toEqual({
+      ok: true,
+      defaultBranch: "main",
+      error: null,
+    });
+  });
 });
