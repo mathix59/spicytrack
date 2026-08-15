@@ -1,3 +1,10 @@
+## 1.0.6
+
+### Patch Changes
+
+- d921ea8: Allow testing GitHub App repository connections without requiring a saved token.
+- 5159d8d: Fix GitHub App connection test flow when no repository connection is stored.
+
 # web
 
 ## 1.0.5
