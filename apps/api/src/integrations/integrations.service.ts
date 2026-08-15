@@ -249,7 +249,9 @@ export class IntegrationsService {
           });
 
           if (!githubBacked) {
-            throw new BadRequestException("GitHub App installation is required before testing this connection");
+            throw new BadRequestException(
+              "GitHub App installation is required before testing this connection",
+            );
           }
 
           provider = "github";
@@ -746,10 +748,12 @@ export class IntegrationsService {
       .delete(organizationGithubAppRepositories)
       .where(eq(organizationGithubAppRepositories.organizationId, input.organizationId));
 
+    const appSlug = encodeURIComponent(conversion.slug);
+    const appState = encodeURIComponent(input.state);
+    const installUrl = `https://github.com/apps/${appSlug}/installations/new?state=${appState}`;
+
     return {
-      installUrl:
-        `https://github.com/apps/${encodeURIComponent(conversion.slug)}/installations/new?` +
-        `state=${encodeURIComponent(input.state)}`,
+      installUrl,
       settings: await this.getOrgGithubAppSettings(input.organizationId),
     };
   }
