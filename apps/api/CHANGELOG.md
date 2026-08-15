@@ -1,5 +1,11 @@
 # api
 
+## 1.0.5
+
+### Patch Changes
+
+- 38ff41f: Remove unsupported installation events from generated GitHub App manifests.
+
 ## 1.0.4
 
 ### Patch Changes
