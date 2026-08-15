@@ -668,7 +668,7 @@ export class IntegrationsService {
           metadata: "read",
           pull_requests: "write",
         },
-        default_events: ["installation", "installation_repositories", "repository"],
+        default_events: ["repository"],
       }),
     };
   }

@@ -203,6 +203,7 @@ describe("GitHub App settings (e2e)", () => {
           metadata: "read",
           pull_requests: "write",
         },
+        default_events: ["repository"],
       }),
     );
 
