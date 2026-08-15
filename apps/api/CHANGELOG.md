@@ -1,3 +1,13 @@
+## 1.0.8
+
+### Patch Changes
+
+- 9beb75a: Fix formatting in GitHub App installation URL construction to satisfy CI `oxfmt --check`.
+
+  ***
+
+  EOF && git add .changeset/fresh-wolves-mix.md && git commit -m "chore: add patch changeset for format fix"
+
 ## 1.0.7
 
 ### Patch Changes
