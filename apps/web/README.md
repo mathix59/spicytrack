@@ -8,6 +8,8 @@ It provides:
 - issue and event exploration
 - releases, teams, and settings views
 - authentication flows
+- hosted product at [spicytrack.io](https://spicytrack.io)
+- hosted documentation at [docs.spicytrack.io](https://docs.spicytrack.io)
 
 ## Stack
 

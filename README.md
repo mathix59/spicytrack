@@ -20,8 +20,8 @@ accept events from existing Sentry SDKs, group them into useful issues, and give
 SpicyTrack is source-available under the Functional Source License 1.1. Each released version
 converts to the Apache License 2.0 two years after its release date.
 
-> **Coming shortly:** The SpicyTrack website and hosted documentation will be available within
-> 24 hours.
+The SpicyTrack website is available at [spicytrack.io](https://spicytrack.io), and the hosted
+documentation is available at [docs.spicytrack.io](https://docs.spicytrack.io).
 
 ## Production Status
 
