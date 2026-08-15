@@ -189,7 +189,7 @@ persistence, migrations, upgrades, and health checks.
 An install script is available at [scripts/install.sh](scripts/install.sh). It is designed to be pipeable in the same style as tools like Coolify:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mathix59/spicytrack/main/scripts/install.sh | sudo bash
+curl -fsSL https://spicytrack.io/install.sh | sudo bash
 ```
 
 The installer starts a direct HTTP deployment by default; it does not configure DNS or TLS.
