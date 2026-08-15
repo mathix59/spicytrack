@@ -4,12 +4,6 @@ on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/ci.yml"
-      - ".github/workflows/changesets.yml"
   workflow_dispatch:
 
 permissions:
