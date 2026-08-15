@@ -1,9 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="title">
-  <title id="title">SpicyTrack</title>
-  <g transform="translate(-6)">
-  <path d="M40 18c2-4 6-6 10-5-1 4-4 7-8 8Z" fill="#22c55e"/>
-  <path d="M39 20c11-1 18 7 16 18-2 12-11 20-23 21-7 0-12-4-10-10 2-7 9-10 11-17 2-5 1-10 6-12Z" fill="#f43f5e" stroke="#9f1239" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M40 26c6 0 10 4 11 9" stroke="#fecdd3" stroke-width="3" stroke-linecap="round"/>
-  <path d="M27 50c3 5 11 6 18 2" stroke="#be123c" stroke-width="3" stroke-linecap="round"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs><linearGradient id="p" x1="15" y1="11" x2="50" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#ff9a66"/><stop offset=".42" stop-color="#ff4d3f"/><stop offset="1" stop-color="#c20f35"/></linearGradient><linearGradient id="l" x1="34" y1="17" x2="54" y2="7" gradientUnits="userSpaceOnUse"><stop stop-color="#d8b4ff"/><stop offset=".48" stop-color="#a56bff"/><stop offset="1" stop-color="#7047eb"/></linearGradient></defs>
+  <rect width="64" height="64" rx="16" fill="#101212"/>
+  <path d="M17 23C21.3 15.4 30.7 13.2 38 17.2C47.1 22.2 48.6 33 42.6 41.8C37.1 49.8 27.2 54.5 10 54C20.4 47.7 20.8 38.5 16.5 32.6C14.2 29.4 14.5 26.8 17 23Z" fill="url(#p)"/>
+  <path d="M18.7 26C22.5 19.5 30.8 17.9 37.2 21.4C40.2 23 42.2 25.5 43.1 28.3" stroke="#ffd0b6" stroke-width="3" stroke-linecap="round" opacity=".72"/>
+  <path d="M34.3 16.8C37.7 11 43.8 8.3 52.7 8.9C49.4 15 44.2 18.3 37.2 18.9" fill="url(#l)"/>
 </svg>
