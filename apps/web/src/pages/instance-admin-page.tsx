@@ -67,7 +67,7 @@ export function InstanceAdminPage() {
     await loadUsers("", usersMeta.page);
   };
   return (
-    <div className="mx-auto grid w-full max-w-4xl gap-6">
+    <div className="grid w-full gap-6">
       <PageHeader
         eyebrow="System"
         icon={Settings2}
