@@ -1,3 +1,9 @@
+## 1.0.11
+
+### Patch Changes
+
+- 84a60a3: feat(api): enhance autofix flow with analysis capability warnings and refactor workflows for improved clarity
+
 ## 1.0.10
 
 ### Patch Changes
