@@ -1,3 +1,9 @@
+## 1.0.10
+
+### Patch Changes
+
+- 0d069a4: api: improve autofix reliability when MCP is unavailable by supporting optional auto-install of codebase-memory-mcp.
+
 ## 1.0.9
 
 ### Patch Changes
