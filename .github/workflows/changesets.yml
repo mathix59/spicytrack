@@ -52,6 +52,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push release tag
-        if: ${{ steps.changesets.outputs.published == 'true' }}
+        if: ${{ steps.changesets.outputs.hasChangesets == 'false' }}
         run: |
+          VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
+          if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null; then
+            echo "Release tag ${VERSION} already exists; skipping."
+            exit 0
+          fi
+
           pnpm release:tag:push

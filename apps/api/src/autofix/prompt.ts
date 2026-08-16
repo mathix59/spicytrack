@@ -31,6 +31,7 @@ How to work:
 - Make the smallest, most targeted change that fixes the root cause of the error. Do not refactor, reformat, rename, or "improve" unrelated code. Match the existing code style.
 - Only validate at real boundaries; do not add speculative error handling around code that cannot fail.
 - Write complete file contents with write_file when you edit a file.
+- If the task prompt includes an analysis capability warning, continue with the local repository tools and state that limitation in report_fix.
 - When the fix is complete, call report_fix exactly once with a clear summary (it becomes the pull-request description) and the list of changed files, then stop.
 - If you conclude the bug cannot be fixed from this repository (e.g. the error originates in a dependency or the stack trace does not match this codebase), call report_fix with an explanation and an empty files_changed list, without editing anything.`;
 
@@ -48,6 +49,7 @@ export function buildTaskPrompt(input: {
     rawPayload: Record<string, unknown>;
   };
   resolvedFrames: ResolvedFrame[];
+  analysisCapabilityWarning?: string;
 }): string {
   const exception = getPrimaryException(input.event.rawPayload);
   const tags = input.event.rawPayload.tags;
@@ -73,6 +75,10 @@ ${truncate(formatFrames(input.resolvedFrames))}`,
 
   if (contexts && Object.keys(contexts as object).length > 0) {
     sections.push(`## Contexts\n${truncate(JSON.stringify(contexts, null, 2), 10_000)}`);
+  }
+
+  if (input.analysisCapabilityWarning) {
+    sections.push(`## Analysis capability warning\n${input.analysisCapabilityWarning}`);
   }
 
   sections.push("Investigate the repository, apply the fix, then call report_fix.");

@@ -4,9 +4,6 @@ on:
   push:
     tags:
       - "v*"
-  workflow_run:
-    workflows: [Version Packages]
-    types: [completed]
   workflow_dispatch:
     inputs:
       version:
@@ -22,7 +19,6 @@ permissions:
 
 jobs:
   publish-api:
-    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -40,9 +36,7 @@ jobs:
       - name: Resolve release version
         id: release
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
             if [ -z "$VERSION" ]; then
               VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
@@ -123,7 +117,6 @@ jobs:
         run: cosign sign --yes "${IMAGE}@${DIGEST}"
 
   publish-web:
-    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -134,9 +127,7 @@ jobs:
       - name: Resolve release version
         id: release
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
             if [ -z "$VERSION" ]; then
               VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
