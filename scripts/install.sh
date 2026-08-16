@@ -179,6 +179,7 @@ main() {
   upsert_env "STORAGE_BUCKET" "spicytrack-artifacts"
   upsert_env "AUTOFIX_WORKDIR" "/tmp/spicytrack-autofix"
   upsert_env "CODEBASE_MEMORY_MCP_BIN" "codebase-memory-mcp"
+  upsert_env "CODEBASE_MEMORY_MCP_AUTO_INSTALL" "true"
   upsert_env "AUTOFIX_JOB_TIMEOUT_MS" "900000"
 
   log "Pulling images..."

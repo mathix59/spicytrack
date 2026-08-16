@@ -206,7 +206,7 @@ export class AutofixJobHandler {
       // individual files; the agent still has bounded local file tools and
       // should be allowed to continue when that happens.
       if (mcpConnected) {
-        await mcp.callTool("index_repository", { path: repoDir }).catch(() => undefined);
+        await mcp.callTool("index_repository", { repo_path: repoDir }).catch(() => undefined);
       }
 
       const taskPrompt = buildTaskPrompt({
