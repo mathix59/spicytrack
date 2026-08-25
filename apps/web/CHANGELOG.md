@@ -1,3 +1,9 @@
+## 1.1.4
+
+### Patch Changes
+
+- 280b5d9: Restore the bottom spacing around the update notification in the application sidebar.
+
 ## 1.1.3
 
 ### Patch Changes
