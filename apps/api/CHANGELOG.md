@@ -1,3 +1,9 @@
+## 1.1.1
+
+### Patch Changes
+
+- 25d7635: fix(release): publish release images after Changesets creates a version tag
+
 ## 1.1.0
 
 ### Minor Changes
