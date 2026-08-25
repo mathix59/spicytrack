@@ -38,8 +38,12 @@ export function renderReleaseNotes(version, entries) {
   return `# SpicyTrack ${version}\n\n${body}\n`;
 }
 
+export function releaseVersionFromArgs(args) {
+  return args.find((argument) => argument !== "--");
+}
+
 async function main() {
-  const version = process.argv[2];
+  const version = releaseVersionFromArgs(process.argv.slice(2));
   if (!version) throw new Error("Usage: node scripts/render-release-notes.mjs <version>");
 
   const entries = await Promise.all(

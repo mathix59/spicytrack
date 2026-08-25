@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractVersionSection, renderReleaseNotes } from "./render-release-notes.mjs";
+import {
+  extractVersionSection,
+  releaseVersionFromArgs,
+  renderReleaseNotes,
+} from "./render-release-notes.mjs";
 
 const apiChangelog = `## 1.2.0
 
@@ -44,4 +48,9 @@ test("renderReleaseNotes labels different package notes", () => {
   assert.match(notes, /## API/);
   assert.match(notes, /## Web/);
   assert.match(notes, /Add web feature/);
+});
+
+test("releaseVersionFromArgs accepts pnpm's argument separator", () => {
+  assert.equal(releaseVersionFromArgs(["--", "1.2.0"]), "1.2.0");
+  assert.equal(releaseVersionFromArgs(["1.2.0"]), "1.2.0");
 });
