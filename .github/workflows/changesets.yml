@@ -42,6 +42,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Resolve current release version
+        id: current-version
+        run: node -p "'version=v' + require('./apps/api/package.json').version" >> "$GITHUB_OUTPUT"
+
       - name: Create or update release PR
         uses: changesets/action@v1
         id: changesets
@@ -55,8 +59,9 @@ jobs:
       - name: Create and push release tag
         if: ${{ steps.changesets.outputs.hasChangesets == 'false' }}
         id: release
+        env:
+          VERSION: ${{ steps.current-version.outputs.version }}
         run: |
-          VERSION="v$(node -e "const fs = require('fs'); process.stdout.write(JSON.parse(fs.readFileSync('apps/api/package.json', 'utf8')).version);")"
           if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null; then
             echo "Release tag ${VERSION} already exists; skipping."
           else
@@ -66,16 +71,19 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Create or update GitHub release notes
-        if: ${{ steps.changesets.outputs.hasChangesets == 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.release.outputs.version }}
+          VERSION: ${{ steps.current-version.outputs.version }}
         run: |
-          pnpm release:notes -- "${VERSION#v}" > /tmp/release-notes.md
-          if gh release view "${VERSION}" >/dev/null 2>&1; then
-            gh release edit "${VERSION}" --title "${VERSION}" --notes-file /tmp/release-notes.md
+          if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null; then
+            pnpm release:notes -- "${VERSION#v}" > /tmp/release-notes.md
+            if gh release view "${VERSION}" >/dev/null 2>&1; then
+              gh release edit "${VERSION}" --title "${VERSION}" --notes-file /tmp/release-notes.md
+            else
+              gh release create "${VERSION}" --verify-tag --title "${VERSION}" --notes-file /tmp/release-notes.md
+            fi
           else
-            gh release create "${VERSION}" --verify-tag --title "${VERSION}" --notes-file /tmp/release-notes.md
+            echo "Release tag ${VERSION} does not exist yet; skipping release notes."
           fi
 
       - name: Publish release images

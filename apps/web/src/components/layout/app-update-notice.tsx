@@ -44,7 +44,7 @@ export function AppUpdateNotice({ enabled }: { enabled: boolean }) {
   }
 
   return (
-    <div className="border-t border-border p-3 pb-0">
+    <div className="border-t border-border p-3">
       <Dialog>
         <DialogTrigger asChild>
           <button
