@@ -7,28 +7,8 @@
       "model": "claude-sonnet-5",
       "currency": "USD",
       "effectiveFrom": "2026-01-01T00:00:00Z",
-      "effectiveTo": "2026-08-31T23:59:59Z",
       "pricingConfig": {
         "baseRatesPerMillion": { "base_input_tokens": 2, "output_tokens": 10 },
-        "derivedUsageRates": {
-          "cache_write_5m_input_tokens": { "from": "base_input_tokens", "multiplier": 1.25 },
-          "cache_write_1h_input_tokens": { "from": "base_input_tokens", "multiplier": 2 },
-          "cache_read_input_tokens": { "from": "base_input_tokens", "multiplier": 0.1 }
-        },
-        "modifiers": [
-          { "when": { "processingMode": "batch" }, "multiplier": 0.5, "appliesTo": "all_token_usage" },
-          { "when": { "inferenceGeo": "us" }, "multiplier": 1.1, "appliesTo": "all_token_usage" }
-        ]
-      },
-      "ratesPerMillion": {}
-    },
-    {
-      "provider": "anthropic",
-      "model": "claude-sonnet-5",
-      "currency": "USD",
-      "effectiveFrom": "2026-09-01T00:00:00Z",
-      "pricingConfig": {
-        "baseRatesPerMillion": { "base_input_tokens": 3, "output_tokens": 15 },
         "derivedUsageRates": {
           "cache_write_5m_input_tokens": { "from": "base_input_tokens", "multiplier": 1.25 },
           "cache_write_1h_input_tokens": { "from": "base_input_tokens", "multiplier": 2 },
