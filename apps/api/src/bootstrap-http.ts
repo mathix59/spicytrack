@@ -7,6 +7,7 @@ import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyRequest } from "fastify";
 import { handleBetterAuthRequest } from "./auth/better-auth";
 import { buildBetterAuthRequestUrl } from "./auth/auth-request-url";
+import { webOrigins } from "./auth/web-origins";
 import { decodeSentryBody } from "./ingest/sentry-body";
 import { BrowserIngestCorsService } from "./ingest/browser-ingest-cors.service";
 import { setupSwagger } from "./openapi/swagger";
@@ -20,12 +21,6 @@ type HttpBootstrapOptions = {
   bodyLimit?: number;
   projectAwareIngestCors?: boolean;
 };
-
-const browserOrigins = () =>
-  (process.env.WEB_ORIGIN ?? "http://localhost:5174")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
 
 async function createHttpApplication(
   rootModule: Type<unknown>,
@@ -48,7 +43,7 @@ async function createHttpApplication(
     });
   } else {
     app.enableCors({
-      origin: browserOrigins(),
+      origin: webOrigins(),
       credentials: true,
       methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     });

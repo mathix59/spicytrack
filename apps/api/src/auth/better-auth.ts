@@ -5,10 +5,11 @@ import { createDatabasePool } from "../database/database.provider";
 import { hashPassword, verifyPassword } from "./auth.utils";
 import { sendAuthEmail } from "./auth-email";
 import { authenticationConfiguration } from "./oidc-config";
+import { webOrigins } from "./web-origins";
 
 const databaseUrl =
   process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5433/spicytrack";
-const trustedOrigins = (process.env.WEB_ORIGIN ?? "http://localhost:5174").split(",");
+const trustedOrigins = webOrigins();
 
 export const betterAuthPool = createDatabasePool(databaseUrl, "Better Auth");
 
