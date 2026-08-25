@@ -1,3 +1,10 @@
+## 1.1.3
+
+### Patch Changes
+
+- aa72fd1: Keep local browser requests same-origin through the Vite development proxy and accept explicit
+  loopback host aliases for API CORS and authentication in non-production environments.
+
 ## 1.1.2
 
 ### Patch Changes
