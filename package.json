@@ -42,6 +42,8 @@
     "seed": "pnpm --filter api seed",
     "release:tag": "node scripts/create-release-tag.mjs",
     "release:tag:push": "node scripts/create-release-tag.mjs --push",
+    "release:notes": "node scripts/render-release-notes.mjs",
+    "test:release-notes": "node --test scripts/render-release-notes.test.mjs",
     "smoke:preprod": "node scripts/preproduction-smoke.mjs",
     "pilot:preprod": "node scripts/preproduction-pilot.mjs",
     "backup:compose": "node scripts/backup-compose.mjs",
