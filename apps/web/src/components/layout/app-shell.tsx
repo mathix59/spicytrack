@@ -14,6 +14,7 @@ import {
   AppShellProjectsNav,
   AppShellUserMenu,
 } from "./app-shell-sections";
+import { AppUpdateNotice } from "./app-update-notice";
 import { useAppShell } from "./use-app-shell";
 
 function AppShell({
@@ -61,6 +62,7 @@ function AppShell({
         />
       </nav>
 
+      <AppUpdateNotice enabled={Boolean((me.user as { isSuperAdmin?: boolean }).isSuperAdmin)} />
       <AppShellUserMenu
         displayName={state.displayName}
         initials={state.initials}

@@ -955,6 +955,43 @@ test("keeps every primary authenticated screen accessible and responsive", async
   }
 });
 
+test("informs instance administrators about updates without offering automatic installation", async ({
+  page,
+}) => {
+  await page.route("**/api/instance-admin/update", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        enabled: true,
+        latestVersion: "99.0.0",
+        releaseNotesUrl: "https://github.com/mathix59/spicytrack/releases/tag/v99.0.0",
+        upgradeGuideUrl: "https://docs.spicytrack.io/operations/production#upgrades",
+        checkedAt: new Date().toISOString(),
+      },
+    });
+  });
+  await signIn(page);
+  await page.goto("/app");
+
+  const notice = page.getByRole("button", { name: "Update available", exact: true });
+  await expect(notice).toBeVisible();
+  await notice.click();
+
+  const dialog = page.getByRole("dialog", { name: "SpicyTrack update available" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("v99.0.0", { exact: true })).toBeVisible();
+  await expect(dialog.getByText(/will not perform the update automatically/i)).toBeVisible();
+  await expect(dialog.getByRole("link", { name: /Release notes/ })).toHaveAttribute(
+    "href",
+    "https://github.com/mathix59/spicytrack/releases/tag/v99.0.0",
+  );
+  await expect(dialog.getByRole("link", { name: /Upgrade guide/ })).toHaveAttribute(
+    "href",
+    "https://docs.spicytrack.io/operations/production#upgrades",
+  );
+  await expect(dialog.getByRole("button", { name: /Update|Install/i })).toHaveCount(0);
+});
+
 test("provides a usable mobile navigation without viewport overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);

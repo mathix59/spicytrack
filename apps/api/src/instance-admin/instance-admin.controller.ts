@@ -3,12 +3,16 @@ import { CurrentUser } from "../common/current-user.decorator";
 import { AuthGuard } from "../auth/auth.guard";
 import { EndpointAccess } from "../auth/endpoint-access.decorator";
 import { InstanceAdminService } from "./instance-admin.service";
+import { UpdateCheckService } from "./update-check.service";
 
 @UseGuards(AuthGuard)
 @EndpointAccess("instance-admin")
 @Controller("instance-admin")
 export class InstanceAdminController {
-  constructor(private readonly service: InstanceAdminService) {}
+  constructor(
+    private readonly service: InstanceAdminService,
+    private readonly updateCheck: UpdateCheckService,
+  ) {}
   @Get("settings") async get(@CurrentUser() user: { id: string }) {
     await this.service.assertSuperAdmin(user.id);
     return this.service.get();
@@ -18,6 +22,10 @@ export class InstanceAdminController {
     @Body() body: Record<string, unknown>,
   ) {
     return this.service.update(user.id, body as Parameters<InstanceAdminService["update"]>[1]);
+  }
+  @Get("update") async updateInformation(@CurrentUser() user: { id: string }) {
+    await this.service.assertSuperAdmin(user.id);
+    return this.updateCheck.getLatest();
   }
   @Get("users") async users(
     @CurrentUser() user: { id: string },
