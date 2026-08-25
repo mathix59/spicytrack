@@ -597,11 +597,9 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?tab=keys`);
   await expect(page.getByText("Keys / DSN", { exact: true })).toBeVisible();
   await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?tab=inventory`);
-  await expect(page.getByText("1.1.0", { exact: true }).filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "1.1.0 1 events", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Environments", exact: true }).click();
-  await expect(
-    page.getByText("production", { exact: true }).filter({ visible: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("tabpanel").getByText("production", { exact: true })).toBeVisible();
 
   const longReleaseVersion = "5c7f2ccb6656cdc6f47863a3c91c2e5343f5d239";
   const longRelease = await api.put(
