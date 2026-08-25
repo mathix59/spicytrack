@@ -1,3 +1,9 @@
+## 1.1.0
+
+### Minor Changes
+
+- d2230f2: feat(api): add automatic frontend source map uploads and symbolication support for popular frameworks
+
 ## 1.0.11
 
 ### Patch Changes
