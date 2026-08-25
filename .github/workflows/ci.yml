@@ -47,7 +47,7 @@ jobs:
           node --check scripts/preproduction-smoke.mjs
           node --check scripts/load-ingest.mjs
           pnpm test:release-notes
-          pnpm release:notes -- "$(node -p "require('./apps/api/package.json').version")" >/tmp/release-notes.md
+          node scripts/render-release-notes.mjs "$(node -p "require('./apps/api/package.json').version")" >/tmp/release-notes.md
 
       - name: Validate local compose files
         env:

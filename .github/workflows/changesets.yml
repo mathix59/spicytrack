@@ -76,7 +76,7 @@ jobs:
           VERSION: ${{ steps.current-version.outputs.version }}
         run: |
           if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null; then
-            pnpm release:notes -- "${VERSION#v}" > /tmp/release-notes.md
+            node scripts/render-release-notes.mjs "${VERSION#v}" > /tmp/release-notes.md
             if gh release view "${VERSION}" >/dev/null 2>&1; then
               gh release edit "${VERSION}" --title "${VERSION}" --notes-file /tmp/release-notes.md
             else
