@@ -93,6 +93,96 @@ describe("SourcemapResolverService", () => {
     expect(frame).toEqual(expect.objectContaining({ resolved: true, diagnostic: "resolved" }));
   });
 
+  it("matches Next.js /_next URLs against artifacts uploaded from .next", async () => {
+    const nextMap = Buffer.from(
+      JSON.stringify({
+        version: 3,
+        file: "page-abc.js",
+        names: ["Page"],
+        sources: ["webpack://_N_E/./app/page.tsx"],
+        sourcesContent: ["export default function Page() {}"],
+        mappings: "AAAAA",
+      }),
+    );
+    const service = serviceWith([artifact(".next/static/chunks/app/page-abc.js.map", "next-map")], {
+      "next-map": nextMap,
+    });
+
+    const [frame] = await service.resolveFrames({
+      releaseId: "release-id",
+      sdkName: "sentry.javascript.nextjs",
+      frames: [
+        {
+          filename: "https://shop.example.test/_next/static/chunks/app/page-abc.js",
+          function: "a",
+          lineno: 1,
+          colno: 0,
+        },
+      ],
+    });
+
+    expect(frame).toEqual(
+      expect.objectContaining({
+        filename: "app/page.tsx",
+        function: "Page",
+        resolved: true,
+        diagnostic: "resolved",
+      }),
+    );
+  });
+
+  it("resolves inline base64 maps emitted by webpack and esbuild", async () => {
+    const inlineMap = Buffer.from(
+      JSON.stringify({
+        version: 3,
+        file: "app.js",
+        names: ["start"],
+        sources: ["vite:///src/main.ts"],
+        mappings: "AAAAA",
+      }),
+    ).toString("base64");
+    const service = serviceWith([artifact("dist/assets/app.js", "bundle")], {
+      bundle: Buffer.from(
+        `minified();\n/*# sourceMappingURL=data:application/json;base64,${inlineMap} */`,
+      ),
+    });
+
+    const [frame] = await service.resolveFrames({
+      releaseId: "release-id",
+      sdkName: "sentry.javascript.browser",
+      frames: [{ filename: "/assets/app.js", lineno: 1, colno: 0 }],
+    });
+
+    expect(frame).toEqual(
+      expect.objectContaining({
+        filename: "src/main.ts",
+        function: "start",
+        resolved: true,
+        diagnostic: "resolved",
+      }),
+    );
+  });
+
+  it.each([
+    ["Vite", "dist/assets/app.js.map", "/assets/app.js"],
+    ["Create React App", "build/static/js/main.js.map", "/static/js/main.js"],
+    ["Nuxt", ".output/public/_nuxt/app.js.map", "/_nuxt/app.js"],
+    ["SvelteKit", ".svelte-kit/output/client/_app/app.js.map", "/_app/app.js"],
+    ["Angular", "dist/browser/main.js.map", "/main.js"],
+  ])("matches %s build output paths", async (_framework, artifactName, frameName) => {
+    const service = serviceWith([artifact(artifactName, "framework-map")], {
+      "framework-map": sourceMap,
+    });
+
+    const [frame] = await service.resolveFrames({
+      releaseId: "release-id",
+      sdkName: "sentry.javascript.browser",
+      frames: [{ filename: frameName, lineno: 1, colno: 0 }],
+    });
+
+    expect(frame).toEqual(expect.objectContaining({ resolved: true, diagnostic: "resolved" }));
+  });
+
   it("does not guess when only an ambiguous basename is available", async () => {
     const service = serviceWith([artifact("~/web/app.js"), artifact("~/admin/app.js")], {});
 

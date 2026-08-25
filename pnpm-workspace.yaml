@@ -1,5 +1,6 @@
 packages:
   - "apps/*"
+  - "packages/*"
 
 overrides:
   fastify: 5.11.3

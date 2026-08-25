@@ -38,7 +38,8 @@ export interface ResolvedFrame {
     | "resolution_error";
 }
 
-const SOURCE_MAPPING_URL_RE = /\/\/# sourceMappingURL=(\S+)/;
+const SOURCE_MAPPING_URL_RE =
+  /(?:\/\/[#@][ \t]*sourceMappingURL[ \t]*=[ \t]*([^\s'"]+)|\/\*[#@][ \t]*sourceMappingURL[ \t]*=[ \t]*([^*\s]+)[ \t]*\*\/)/g;
 
 type Artifact = typeof releaseArtifacts.$inferSelect;
 
@@ -73,27 +74,94 @@ function canonicalArtifactPath(value: string): string {
   } catch {
     // Keep malformed percent-encoding matchable instead of failing resolution.
   }
-  candidate = candidate.replace(/^(?:webpack|app):\/+/i, "");
+  candidate = candidate.replace(/^(?:webpack|webpack-internal|app|vite|ng):\/+/i, "");
   candidate = candidate.replace(/^~\//, "").replace(/^\.\//, "").replace(/^\/+/, "");
   return path.posix.normalize(candidate);
 }
 
+function artifactPathCandidates(value: string): string[] {
+  const canonical = canonicalArtifactPath(value);
+  const candidates = new Set([canonical]);
+
+  // Next.js serves `.next/static` as `/_next/static`. Upload tools commonly retain the
+  // build-directory name, so accept both representations without requiring renaming.
+  if (canonical.startsWith("_next/")) candidates.add(`.next/${canonical.slice(6)}`);
+  if (canonical.startsWith(".next/")) candidates.add(`_next/${canonical.slice(6)}`);
+
+  // Framework build outputs often retain their public/build directory while stack frames do not.
+  for (const prefix of [
+    "dist/",
+    "build/",
+    "public/",
+    ".output/public/",
+    ".svelte-kit/output/client/",
+    "build/client/",
+  ]) {
+    if (canonical.startsWith(prefix)) candidates.add(canonical.slice(prefix.length));
+  }
+
+  return [...candidates];
+}
+
 function findArtifact(value: string, artifacts: Artifact[]): Artifact | null {
-  const target = canonicalArtifactPath(value);
-  const exact = artifacts.filter((artifact) => canonicalArtifactPath(artifact.name) === target);
+  const targets = artifactPathCandidates(value);
+  const exact = artifacts.filter((artifact) => {
+    const artifactCandidates = artifactPathCandidates(artifact.name);
+    return artifactCandidates.some((candidate) => targets.includes(candidate));
+  });
   if (exact.length === 1) return exact[0];
 
   const suffix = artifacts.filter((artifact) => {
-    const artifactPath = canonicalArtifactPath(artifact.name);
-    return artifactPath.endsWith(`/${target}`) || target.endsWith(`/${artifactPath}`);
+    const artifactCandidates = artifactPathCandidates(artifact.name);
+    return artifactCandidates.some((artifactPath) =>
+      targets.some(
+        (target) => artifactPath.endsWith(`/${target}`) || target.endsWith(`/${artifactPath}`),
+      ),
+    );
   });
   if (suffix.length === 1) return suffix[0];
 
-  const basename = path.posix.basename(target);
-  const basenameMatches = artifacts.filter(
-    (artifact) => path.posix.basename(canonicalArtifactPath(artifact.name)) === basename,
+  const basenames = new Set(targets.map((target) => path.posix.basename(target)));
+  const basenameMatches = artifacts.filter((artifact) =>
+    basenames.has(path.posix.basename(canonicalArtifactPath(artifact.name))),
   );
   return basenameMatches.length === 1 ? basenameMatches[0] : null;
+}
+
+function lastSourceMappingUrl(source: string): string | null {
+  let reference: string | null = null;
+  SOURCE_MAPPING_URL_RE.lastIndex = 0;
+  for (const match of source.matchAll(SOURCE_MAPPING_URL_RE)) {
+    reference = match[1] ?? match[2] ?? null;
+  }
+  return reference;
+}
+
+function traceMapFromDataUrl(reference: string): TraceMap | null {
+  const match =
+    /^data:application\/(?:json|octet-stream)(?:;charset=[^;,]+)?(;base64)?,(.*)$/is.exec(
+      reference,
+    );
+  if (!match) return null;
+
+  try {
+    const source = match[1]
+      ? Buffer.from(match[2], "base64").toString("utf8")
+      : decodeURIComponent(match[2]);
+    return new TraceMap(source);
+  } catch {
+    return null;
+  }
+}
+
+function canonicalSourcePath(value: string): string {
+  let source = value.replaceAll("\\", "/");
+  source = source.replace(/^(?:webpack|webpack-internal|vite|ng):\/+/i, "");
+  source = source.replace(/^\([^)]*\)\//, "");
+  source = source.replace(/^(?:_N_E|webpack)\//, "");
+  source = source.replace(/^[^/]+\/\.\//, "");
+  source = source.replace(/^(?:\.\/)+/, "");
+  return source || value;
 }
 
 @Injectable()
@@ -207,13 +275,19 @@ export class SourcemapResolverService {
     try {
       const jsArtifact = findArtifact(framePath, artifacts);
       const mapResult = await this.findMapArtifact(framePath, jsArtifact, artifacts);
-      if (!mapResult.artifact) return unresolved(mapResult.diagnostic);
-      const mapArtifact = mapResult.artifact;
+      if (!mapResult.artifact && !mapResult.inlineTraceMap) {
+        return unresolved(mapResult.diagnostic);
+      }
 
-      let traceMap = traceMapCache.get(mapArtifact.storageKey);
-      if (traceMap === undefined) {
-        traceMap = await this.loadTraceMap(mapArtifact.storageKey);
-        traceMapCache.set(mapArtifact.storageKey, traceMap);
+      let traceMap = mapResult.inlineTraceMap;
+      if (!traceMap && mapResult.artifact) {
+        const cachedTraceMap = traceMapCache.get(mapResult.artifact.storageKey);
+        if (cachedTraceMap === undefined) {
+          traceMap = await this.loadTraceMap(mapResult.artifact.storageKey);
+          traceMapCache.set(mapResult.artifact.storageKey, traceMap);
+        } else {
+          traceMap = cachedTraceMap;
+        }
       }
 
       if (!traceMap) return unresolved("invalid_sourcemap");
@@ -226,7 +300,7 @@ export class SourcemapResolverService {
       if (!original.source || original.line == null) return unresolved("position_not_found");
 
       return {
-        filename: original.source,
+        filename: canonicalSourcePath(original.source),
         function: original.name ?? frame.function,
         lineno: original.line,
         colno: original.column,
@@ -308,20 +382,31 @@ export class SourcemapResolverService {
     artifacts: Artifact[],
   ): Promise<{
     artifact: Artifact | null;
+    inlineTraceMap: TraceMap | null;
     diagnostic: "artifact_not_found" | "sourcemap_not_found" | "unsupported_sourcemap";
   }> {
     const direct = findArtifact(`${canonicalArtifactPath(framePath)}.map`, artifacts);
-    if (direct) return { artifact: direct, diagnostic: "sourcemap_not_found" };
-    if (!jsArtifact) return { artifact: null, diagnostic: "artifact_not_found" };
+    if (direct) {
+      return { artifact: direct, inlineTraceMap: null, diagnostic: "sourcemap_not_found" };
+    }
+    if (!jsArtifact) {
+      return { artifact: null, inlineTraceMap: null, diagnostic: "artifact_not_found" };
+    }
 
     const jsBytes = await this.storageService.getObject(jsArtifact.storageKey);
-    const tail = jsBytes.subarray(Math.max(0, jsBytes.length - 500)).toString("utf8");
-    const match = SOURCE_MAPPING_URL_RE.exec(tail);
-    if (!match) return { artifact: null, diagnostic: "sourcemap_not_found" };
+    const tail = jsBytes.subarray(Math.max(0, jsBytes.length - 4096)).toString("utf8");
+    const reference = lastSourceMappingUrl(tail);
+    if (!reference) {
+      return { artifact: null, inlineTraceMap: null, diagnostic: "sourcemap_not_found" };
+    }
 
-    const reference = match[1];
     if (reference.startsWith("data:")) {
-      return { artifact: null, diagnostic: "unsupported_sourcemap" };
+      const inlineTraceMap = traceMapFromDataUrl(reference);
+      return {
+        artifact: null,
+        inlineTraceMap,
+        diagnostic: inlineTraceMap ? "sourcemap_not_found" : "unsupported_sourcemap",
+      };
     }
 
     const jsPath = canonicalArtifactPath(jsArtifact.name);
@@ -330,6 +415,7 @@ export class SourcemapResolverService {
       : path.posix.join(path.posix.dirname(jsPath), reference);
     return {
       artifact: findArtifact(referencedPath, artifacts),
+      inlineTraceMap: null,
       diagnostic: "sourcemap_not_found",
     };
   }

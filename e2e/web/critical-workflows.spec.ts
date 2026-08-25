@@ -1,5 +1,12 @@
 import { expect, test, type APIRequestContext, type Cookie, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { execFile } from "node:child_process";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { promisify } from "node:util";
+
+const execute = promisify(execFile);
 
 const mailpitUrl = process.env.E2E_MAILPIT_URL ?? "http://127.0.0.1:58025";
 const email = "owner@spicytrack.local";
@@ -24,7 +31,14 @@ type Me = {
 };
 type IssueDetail = { events: { items: Array<{ id: string }> } };
 type EventDetail = {
-  resolvedFrames?: Array<{ resolved: boolean; resolution: string; diagnostic: string }>;
+  resolvedFrames?: Array<{
+    filename: string;
+    function?: string | null;
+    lineno: number;
+    resolved: boolean;
+    resolution: string;
+    diagnostic: string;
+  }>;
 };
 type McpResponse = {
   result?: {
@@ -140,6 +154,81 @@ async function uploadArtifact(
   expect(response.ok(), await response.text()).toBe(true);
 }
 
+async function uploadArtifactWithCli(input: {
+  release: string;
+  artifactName: string;
+  buffer: Buffer;
+  token: string;
+}) {
+  const cwd = await mkdtemp(path.join(tmpdir(), "spicytrack-framework-e2e-"));
+  const filename = path.join(cwd, input.artifactName);
+  await mkdir(path.dirname(filename), { recursive: true });
+  await writeFile(filename, input.buffer);
+  await writeFile(
+    path.join(cwd, ".spicytrack.json"),
+    JSON.stringify({
+      url: "http://127.0.0.1:55174",
+      organization: organization.slug,
+      project: projectSlug,
+      roots: [input.artifactName.split("/")[0]],
+    }),
+  );
+  const cli = path.resolve("packages/build/src/cli.js");
+  const { stdout: cliOutput } = await execute(
+    process.execPath,
+    [cli, "upload", "--release", input.release],
+    {
+      cwd,
+      env: { ...process.env, SPICYTRACK_AUTH_TOKEN: input.token },
+    },
+  );
+  expect(cliOutput).toContain("Uploaded 1 artifacts");
+}
+
+async function sendFrameworkError(
+  request: APIRequestContext,
+  project: Project,
+  key: ProjectKey,
+  input: { eventId: string; release: string; runtimeUrl: string; framework: string },
+) {
+  const response = await request.post(
+    `/api/${project.publicId}/store/?sentry_key=${encodeURIComponent(key.publicKey)}`,
+    {
+      data: {
+        event_id: input.eventId,
+        timestamp: new Date().toISOString(),
+        platform: "javascript",
+        level: "error",
+        environment: "production",
+        release: input.release,
+        message: `${input.framework} sourcemap E2E probe`,
+        exception: {
+          values: [
+            {
+              type: `${input.framework}Error`,
+              value: `${input.framework} sourcemap E2E probe`,
+              stacktrace: {
+                frames: [
+                  {
+                    filename: input.runtimeUrl,
+                    abs_path: input.runtimeUrl,
+                    function: "a",
+                    lineno: 1,
+                    colno: 0,
+                    in_app: true,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        sdk: { name: "sentry.javascript.browser", version: "10.69.0" },
+      },
+    },
+  );
+  expect(response.ok(), await response.text()).toBe(true);
+}
+
 async function createOrganization(page: Page) {
   await page.goto("/app");
   const api = page.context().request;
@@ -189,7 +278,10 @@ async function signIn(page: Page) {
 
   const organizationsHeading = page.getByRole("heading", { name: "Organizations" });
   const rateLimited = page.getByText("Too many requests. Please try again later.");
-  await Promise.race([organizationsHeading.waitFor({ timeout: 15_000 }), rateLimited.waitFor({ timeout: 15_000 })]);
+  await Promise.race([
+    organizationsHeading.waitFor({ timeout: 15_000 }),
+    rateLimited.waitFor({ timeout: 15_000 }),
+  ]);
   if (await rateLimited.isVisible()) {
     await page.waitForTimeout(1_000);
     await page.getByRole("button", { name: "Sign in", exact: true }).last().click();
@@ -252,8 +344,16 @@ function primaryScreens(issue: Issue) {
       url: `/orgs/${organization.slug}?tab=members`,
       heading: organization.name,
     },
-    { name: "organization teams", url: `/orgs/${organization.slug}?tab=teams`, heading: organization.name },
-    { name: "organization roles", url: `/orgs/${organization.slug}?tab=roles`, heading: organization.name },
+    {
+      name: "organization teams",
+      url: `/orgs/${organization.slug}?tab=teams`,
+      heading: organization.name,
+    },
+    {
+      name: "organization roles",
+      url: `/orgs/${organization.slug}?tab=roles`,
+      heading: organization.name,
+    },
     {
       name: "organization settings",
       url: `/orgs/${organization.slug}?tab=settings`,
@@ -342,7 +442,9 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
     await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
     await expect(page.getByText("Your email has been verified.")).toBeVisible();
     await page.getByRole("button", { name: "Back to the app" }).click();
-    await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible({
+      timeout: 30_000,
+    });
     ownerCookies = (await page.context().storageState()).cookies;
   } else {
     await signIn(page);
@@ -375,10 +477,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await projectDialog.getByRole("button", { name: "Create project" }).click();
 
   const projectLink = page.getByRole("link", { name: projectName, exact: true });
-  await Promise.race([
-    projectLink.waitFor(),
-    projectDialog.getByRole("alert").waitFor(),
-  ]);
+  await Promise.race([projectLink.waitFor(), projectDialog.getByRole("alert").waitFor()]);
   if (await projectDialog.getByRole("alert").isVisible()) {
     await page.keyboard.press("Escape");
     await expect(projectDialog).toBeHidden();
@@ -386,7 +485,9 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await expect(projectLink).toBeVisible();
 
   const api = page.context().request;
-  const projects = await json<Project[]>(await api.get(`/api/organizations/${organization.slug}/projects`));
+  const projects = await json<Project[]>(
+    await api.get(`/api/organizations/${organization.slug}/projects`),
+  );
   const project = projects.find((candidate) => candidate.slug === projectSlug);
   expect(project).toBeTruthy();
   const keys = await json<ProjectKey[]>(
@@ -469,7 +570,9 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await expect
     .poll(async () => {
       const detail = await json<{ issue: Issue }>(
-        await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issue!.id}`),
+        await api.get(
+          `/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issue!.id}`,
+        ),
       );
       return detail.issue.status;
     })
@@ -479,7 +582,9 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await expect
     .poll(async () => {
       const detail = await json<{ issue: Issue }>(
-        await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issue!.id}`),
+        await api.get(
+          `/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issue!.id}`,
+        ),
       );
       return {
         status: detail.issue.status,
@@ -608,7 +713,9 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
       })
       .not.toBeNull();
     const issueDetail = await json<IssueDetail>(
-      await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issue!.id}`),
+      await api.get(
+        `/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issue!.id}`,
+      ),
     );
     const event = await json<EventDetail>(
       await api.get(
@@ -619,6 +726,206 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
       event.resolvedFrames?.some((frame) => frame.resolved && frame.resolution === "sourcemap"),
     ).toBe(true);
   }
+});
+
+test("symbolicates real HTTP events for popular frontend build layouts", async ({ page }) => {
+  await signIn(page);
+  await refreshOrganizationFromServer(page);
+
+  const api = page.context().request;
+  const projects = await json<Project[]>(
+    await api.get(`/api/organizations/${organization.slug}/projects`),
+  );
+  const project = projects.find((candidate) => candidate.slug === projectSlug);
+  expect(project).toBeTruthy();
+  const keys = await json<ProjectKey[]>(
+    await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/keys`),
+  );
+  expect(keys[0]).toBeTruthy();
+  const cliToken = await json<{ secret: string }>(
+    await api.post("/api/auth/tokens", {
+      data: { name: `Source map E2E ${Date.now()}`, expiresInDays: 1 },
+    }),
+  );
+  expect(cliToken.secret).toMatch(/^pat_/);
+
+  const frameworks = [
+    {
+      name: "Next.js",
+      artifact: ".next/static/chunks/app/checkout-a1.js.map",
+      runtimeUrl: "https://shop.example.test/_next/static/chunks/app/checkout-a1.js",
+      source: "webpack://_N_E/./app/checkout/page.tsx",
+      expectedSource: "app/checkout/page.tsx",
+    },
+    {
+      name: "Vite",
+      artifact: "dist/assets/checkout-b2.js.map",
+      runtimeUrl: "https://shop.example.test/assets/checkout-b2.js",
+      source: "vite:///src/checkout.tsx",
+      expectedSource: "src/checkout.tsx",
+    },
+    {
+      name: "Create React App",
+      artifact: "build/static/js/main.c3.js.map",
+      runtimeUrl: "https://shop.example.test/static/js/main.c3.js",
+      source: "webpack:///src/App.tsx",
+      expectedSource: "src/App.tsx",
+    },
+    {
+      name: "Nuxt",
+      artifact: ".output/public/_nuxt/checkout-d4.js.map",
+      runtimeUrl: "https://shop.example.test/_nuxt/checkout-d4.js",
+      source: "webpack:///pages/checkout.vue",
+      expectedSource: "pages/checkout.vue",
+    },
+    {
+      name: "SvelteKit",
+      artifact: ".svelte-kit/output/client/_app/immutable/checkout-e5.js.map",
+      runtimeUrl: "https://shop.example.test/_app/immutable/checkout-e5.js",
+      source: "../../src/routes/checkout/+page.svelte",
+      expectedSource: "../../src/routes/checkout/+page.svelte",
+    },
+    {
+      name: "Angular",
+      artifact: "dist/browser/main.f6.js.map",
+      runtimeUrl: "https://shop.example.test/main.f6.js",
+      source: "ng:///src/app/checkout.component.ts",
+      expectedSource: "src/app/checkout.component.ts",
+    },
+    {
+      name: "Webpack",
+      artifact: "dist/js/checkout-g7.js.map",
+      runtimeUrl: "https://shop.example.test/js/checkout-g7.js",
+      source: "webpack:///src/checkout.js",
+      expectedSource: "src/checkout.js",
+    },
+  ] as const;
+
+  for (const [index, framework] of frameworks.entries()) {
+    await test.step(framework.name, async () => {
+      const release = `e2e-sourcemap-${framework.name.toLowerCase().replaceAll(/[^a-z]+/g, "-")}@1.0.0`;
+      const releaseResponse = await api.put(
+        `/api/organizations/${organization.slug}/projects/${projectSlug}/releases/${encodeURIComponent(release)}`,
+      );
+      expect(releaseResponse.ok(), await releaseResponse.text()).toBe(true);
+
+      const sourceMap = Buffer.from(
+        JSON.stringify({
+          version: 3,
+          file: framework.artifact.replace(/\.map$/, ""),
+          names: ["submitOrder"],
+          sources: [framework.source],
+          sourcesContent: ["export function submitOrder() { throw new Error('declined') }"],
+          mappings: "AAAAA",
+        }),
+      );
+      await uploadArtifactWithCli({
+        release,
+        artifactName: framework.artifact,
+        buffer: sourceMap,
+        token: cliToken.secret,
+      });
+      await sendFrameworkError(api, project!, keys[0], {
+        eventId: `f${String(index + 1).padStart(31, "0")}`,
+        release,
+        runtimeUrl: framework.runtimeUrl,
+        framework: framework.name,
+      });
+
+      let event: EventDetail | undefined;
+      await expect
+        .poll(async () => {
+          const issues = await json<{ items: Issue[] }>(
+            await api.get(
+              `/api/organizations/${organization.slug}/projects/${projectSlug}/issues?release=${encodeURIComponent(release)}`,
+            ),
+          );
+          if (!issues.items[0]) return null;
+          const detail = await json<IssueDetail>(
+            await api.get(
+              `/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issues.items[0].id}`,
+            ),
+          );
+          if (!detail.events.items[0]) return null;
+          event = await json<EventDetail>(
+            await api.get(
+              `/api/organizations/${organization.slug}/projects/${projectSlug}/events/${detail.events.items[0].id}`,
+            ),
+          );
+          return event.resolvedFrames?.find((frame) => frame.resolution === "sourcemap") ?? null;
+        })
+        .toEqual(
+          expect.objectContaining({
+            filename: framework.expectedSource,
+            function: "submitOrder",
+            lineno: 1,
+            resolved: true,
+            diagnostic: "resolved",
+          }),
+        );
+    });
+  }
+
+  await test.step("esbuild inline sourcemap", async () => {
+    const release = "e2e-sourcemap-esbuild@1.0.0";
+    const releaseResponse = await api.put(
+      `/api/organizations/${organization.slug}/projects/${projectSlug}/releases/${release}`,
+    );
+    expect(releaseResponse.ok(), await releaseResponse.text()).toBe(true);
+    const inlineMap = Buffer.from(
+      JSON.stringify({
+        version: 3,
+        file: "checkout-h8.js",
+        names: ["submitOrder"],
+        sources: ["../src/checkout.ts"],
+        mappings: "AAAAA",
+      }),
+    ).toString("base64");
+    await uploadArtifactWithCli({
+      release,
+      artifactName: "dist/assets/checkout-h8.js",
+      buffer: Buffer.from(
+        `function a(){throw Error("declined")}\n//# sourceMappingURL=data:application/json;base64,${inlineMap}`,
+      ),
+      token: cliToken.secret,
+    });
+    await sendFrameworkError(api, project!, keys[0], {
+      eventId: "fe000000000000000000000000000008",
+      release,
+      runtimeUrl: "https://shop.example.test/assets/checkout-h8.js",
+      framework: "esbuild",
+    });
+
+    await expect
+      .poll(async () => {
+        const issues = await json<{ items: Issue[] }>(
+          await api.get(
+            `/api/organizations/${organization.slug}/projects/${projectSlug}/issues?release=${encodeURIComponent(release)}`,
+          ),
+        );
+        if (!issues.items[0]) return null;
+        const detail = await json<IssueDetail>(
+          await api.get(
+            `/api/organizations/${organization.slug}/projects/${projectSlug}/issues/${issues.items[0].id}`,
+          ),
+        );
+        if (!detail.events.items[0]) return null;
+        const event = await json<EventDetail>(
+          await api.get(
+            `/api/organizations/${organization.slug}/projects/${projectSlug}/events/${detail.events.items[0].id}`,
+          ),
+        );
+        return event.resolvedFrames?.find((frame) => frame.resolution === "sourcemap") ?? null;
+      })
+      .toEqual(
+        expect.objectContaining({
+          filename: "../src/checkout.ts",
+          function: "submitOrder",
+          resolved: true,
+          diagnostic: "resolved",
+        }),
+      );
+  });
 });
 
 test("keeps every primary authenticated screen accessible and responsive", async ({ page }) => {
@@ -633,7 +940,8 @@ test("keeps every primary authenticated screen accessible and responsive", async
 
   const screens = primaryScreens(issues.items[0]);
   await page.goto("/app");
-  const hasInstanceAdministrationAccess = (await page.getByRole("link", { name: "Instance administration" }).count()) > 0;
+  const hasInstanceAdministrationAccess =
+    (await page.getByRole("link", { name: "Instance administration" }).count()) > 0;
   const filteredScreens = hasInstanceAdministrationAccess
     ? screens
     : screens.filter((screen) => screen.name !== "instance administration");
@@ -669,7 +977,8 @@ test("provides a usable mobile navigation without viewport overflow", async ({ p
   await expectPageQuality(page, "mobile navigation destination");
 
   const screens = primaryScreens(issues.items[0]);
-  const hasInstanceAdministrationAccess = (await page.getByRole("link", { name: "Instance administration" }).count()) > 0;
+  const hasInstanceAdministrationAccess =
+    (await page.getByRole("link", { name: "Instance administration" }).count()) > 0;
   const filteredScreens = hasInstanceAdministrationAccess
     ? screens
     : screens.filter((screen) => screen.name !== "instance administration");
@@ -743,7 +1052,9 @@ test("serves MCP through the deployed HTTP stack with a real scoped credential",
   await refreshOrganizationFromServer(page);
 
   const api = page.context().request;
-  const projects = await json<Project[]>(await api.get(`/api/organizations/${organization.slug}/projects`));
+  const projects = await json<Project[]>(
+    await api.get(`/api/organizations/${organization.slug}/projects`),
+  );
   const project = projects.find((candidate) => candidate.slug === projectSlug);
   expect(project).toBeTruthy();
 
@@ -751,14 +1062,17 @@ test("serves MCP through the deployed HTTP stack with a real scoped credential",
     data: { enabled: true },
   });
   expect(enable.ok(), await enable.text()).toBe(true);
-  const credentialResponse = await api.post(`/api/organizations/${organization.slug}/mcp/credentials`, {
-    data: {
-      name: "Deployed HTTP E2E",
-      scopes: ["projects:read", "issues:read", "issues:write"],
-      allProjects: true,
-      projectIds: [],
+  const credentialResponse = await api.post(
+    `/api/organizations/${organization.slug}/mcp/credentials`,
+    {
+      data: {
+        name: "Deployed HTTP E2E",
+        scopes: ["projects:read", "issues:read", "issues:write"],
+        allProjects: true,
+        projectIds: [],
+      },
     },
-  });
+  );
   expect(credentialResponse.ok(), await credentialResponse.text()).toBe(true);
   const credential = (await credentialResponse.json()) as {
     credential: { id: string };

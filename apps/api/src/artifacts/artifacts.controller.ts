@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -17,6 +18,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
 import { AuthGuard } from "../auth/auth.guard";
@@ -29,6 +31,22 @@ import { PermissionGuard } from "../rbac/permission.guard";
 import { ProjectContextGuard } from "../rbac/project-context.guard";
 import { RequirePermissions } from "../rbac/permissions.decorator";
 import { ArtifactsService } from "./artifacts.service";
+
+const MAX_ARTIFACT_NAME_LENGTH = 1024;
+
+function artifactNameFromUpload(override: string | undefined, filename: string): string {
+  const name = (override?.trim() || filename).replaceAll("\\", "/");
+  if (
+    !name ||
+    name.length > MAX_ARTIFACT_NAME_LENGTH ||
+    name.includes("\0") ||
+    name.startsWith("/") ||
+    name.split("/").includes("..")
+  ) {
+    throw new BadRequestException("artifactName must be a safe relative build path");
+  }
+  return name;
+}
 
 @ApiTags("releases")
 @ApiBearerAuth()
@@ -61,6 +79,12 @@ export class ArtifactsController {
   @ApiOperation({ operationId: "uploadReleaseArtifact" })
   @ApiParam({ name: "releaseVersion", type: String })
   @ApiConsumes("multipart/form-data")
+  @ApiQuery({
+    name: "artifactName",
+    required: false,
+    type: String,
+    description: "Public build path to preserve when multipart strips directory names",
+  })
   @ApiBody({
     schema: {
       type: "object",
@@ -74,6 +98,7 @@ export class ArtifactsController {
     @CurrentOrganization() organization: OrganizationRecord,
     @CurrentProject() project: ProjectRecord,
     @Param("releaseVersion") releaseVersion: string,
+    @Query("artifactName") artifactName: string | undefined,
     @Req() request: FastifyRequest,
   ) {
     const file = await request.file();
@@ -85,7 +110,7 @@ export class ArtifactsController {
       organizationId: organization.id,
       projectId: project.id,
       releaseVersion,
-      name: file.filename,
+      name: artifactNameFromUpload(artifactName, file.filename),
       contentType: file.mimetype,
       body: await file.toBuffer(),
     });

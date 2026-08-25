@@ -1,0 +1,57 @@
+{
+  "name": "@spicytrack/build",
+  "version": "0.1.0",
+  "description": "Zero-config source map uploads for SpicyTrack",
+  "keywords": [
+    "nextjs",
+    "sentry",
+    "source-map",
+    "sourcemap",
+    "spicytrack",
+    "vite",
+    "webpack"
+  ],
+  "homepage": "https://github.com/mathix59/spicytrack#readme",
+  "bugs": {
+    "url": "https://github.com/mathix59/spicytrack/issues"
+  },
+  "license": "FSL-1.1-Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mathix59/spicytrack.git",
+    "directory": "packages/build"
+  },
+  "bin": {
+    "spicytrack": "src/cli.js"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./vite": "./src/vite.js",
+    "./rollup": "./src/rollup.js",
+    "./esbuild": "./src/esbuild.js",
+    "./webpack": "./src/webpack.js",
+    "./next": "./src/next.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node --check src/cli.js",
+    "lint": "oxlint src test",
+    "format": "oxfmt src test",
+    "format:check": "oxfmt --check src test",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.62.0",
+    "oxlint": "^1.77.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

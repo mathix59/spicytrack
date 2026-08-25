@@ -293,7 +293,7 @@ export class IntegrationsService {
       throw new BadRequestException("A new token is required when changing a VCS endpoint URL");
     }
 
-    if (provider === "github" && !input.token && input.organizationId) {
+    if (provider === "github" && !input.token && !connectionInput.token && input.organizationId) {
       const githubBacked = await this.getGithubAppBackedConnection(
         input.organizationId,
         connectionInput,
