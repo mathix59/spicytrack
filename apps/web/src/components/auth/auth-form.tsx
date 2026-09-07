@@ -11,8 +11,14 @@ type AuthenticationOptions = {
   sso: { providerId: string; providerName: string } | null;
 };
 
-function AuthForm({ onAuthenticated }: { onAuthenticated: () => void }) {
-  const state = useAuthForm({ onAuthenticated });
+function AuthForm({
+  onAuthenticated,
+  invitationToken,
+}: {
+  onAuthenticated: () => void;
+  invitationToken?: string;
+}) {
+  const state = useAuthForm({ onAuthenticated, invitationToken });
   const [options, setOptions] = useState<AuthenticationOptions>({
     registrationsEnabled: false,
     passwordEnabled: true,
@@ -35,7 +41,7 @@ function AuthForm({ onAuthenticated }: { onAuthenticated: () => void }) {
           isPending={state.isPending}
           mode={state.mode}
           passwordEnabled={options.passwordEnabled}
-          registrationsEnabled={options.registrationsEnabled}
+          registrationsEnabled={Boolean(invitationToken) || options.registrationsEnabled}
           sso={options.sso}
           onSsoSignIn={(providerId) => void state.signInWithSso(providerId)}
           onSubmit={(event) => void state.submit(event)}

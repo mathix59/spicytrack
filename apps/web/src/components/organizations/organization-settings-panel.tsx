@@ -1,3 +1,4 @@
+import { DeleteOrganizationCard } from "./delete-organization-card";
 import { OrgAiSettingsCard } from "@/components/organizations/org-ai-settings-card";
 import { OrganizationJobQueueCard } from "@/components/organizations/organization-job-queue-card";
 import { McpSettingsCard } from "@/components/organizations/mcp-settings-card";
@@ -7,11 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 function OrganizationSettingsPanel({
   orgSlug,
   canManage,
+  canDelete,
   canManageMcp,
   projects,
 }: {
   orgSlug: string;
   canManage: boolean;
+  canDelete: boolean;
   canManageMcp: boolean;
   projects: ProjectDto[];
 }) {
@@ -21,6 +24,7 @@ function OrganizationSettingsPanel({
         <TabsTrigger value="ai">AI</TabsTrigger>
         <TabsTrigger value="jobs">Job queue</TabsTrigger>
         <TabsTrigger value="mcp">MCP</TabsTrigger>
+        {canDelete && <TabsTrigger value="danger">Delete organization</TabsTrigger>}
       </TabsList>
 
       <TabsContent className="mt-0" value="ai">
@@ -34,6 +38,11 @@ function OrganizationSettingsPanel({
       <TabsContent className="mt-0" value="mcp">
         <McpSettingsCard canManage={canManageMcp} orgSlug={orgSlug} projects={projects} />
       </TabsContent>
+      {canDelete && (
+        <TabsContent value="danger">
+          <DeleteOrganizationCard orgSlug={orgSlug} />
+        </TabsContent>
+      )}
     </Tabs>
   );
 }

@@ -12,6 +12,7 @@ export type InstanceSettings = {
   registrationsEnabled: boolean;
   smtpHost: string | null;
   smtpPort: number | null;
+  smtpSecure: boolean | null;
   smtpUser: string | null;
   smtpFrom: string | null;
   smtpPasswordConfigured: boolean;
@@ -64,8 +65,10 @@ export function InstanceAdminPage() {
     return <div className="text-sm text-muted-foreground">{message || "No instance data."}</div>;
   }
   const save = async (next: Partial<InstanceSettings> & { smtpPass?: string }) => {
+    setMessage("");
     const r = await orvalFetch<{ data: InstanceSettings }>("/instance-admin/settings", {
       method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next),
     });
     setSettings(r.data);
@@ -74,6 +77,7 @@ export function InstanceAdminPage() {
   const setRole = async (userId: string, isSuperAdmin: boolean) => {
     await orvalFetch(`/instance-admin/users/${userId}`, {
       method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isSuperAdmin }),
     });
     await loadUsers("", usersMeta.page);

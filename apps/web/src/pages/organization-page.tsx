@@ -44,6 +44,7 @@ function OrganizationPage() {
       {page.activeTab === "settings" ? (
         <OrganizationSettingsPanel
           canManage={page.canManageSettings}
+          canDelete={page.canDelete}
           canManageMcp={page.canManageMcp}
           orgSlug={page.orgSlug}
           projects={page.projects.projects}

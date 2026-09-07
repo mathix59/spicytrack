@@ -6,8 +6,14 @@ import { getErrorMessage } from "@/lib/utils";
 
 type AuthMode = "login" | "register" | "forgot";
 
-function useAuthForm({ onAuthenticated }: { onAuthenticated: () => void }) {
-  const [mode, setMode] = useState<AuthMode>("login");
+function useAuthForm({
+  onAuthenticated,
+  invitationToken,
+}: {
+  onAuthenticated: () => void;
+  invitationToken?: string;
+}) {
+  const [mode, setMode] = useState<AuthMode>(invitationToken ? "register" : "login");
   const [error, setError] = useState<string | null>(null);
   const [forgotSent, setForgotSent] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -64,11 +70,14 @@ function useAuthForm({ onAuthenticated }: { onAuthenticated: () => void }) {
             email: payload.email,
             password: payload.password,
           })
-        : authClient.signUp.email({
-            email: payload.email,
-            password: payload.password,
-            name: payload.name,
-          }));
+        : authClient.signUp.email(
+            {
+              email: payload.email,
+              password: payload.password,
+              name: payload.name,
+            },
+            invitationToken ? { headers: { "x-invitation-token": invitationToken } } : undefined,
+          ));
 
       if (result.error) {
         throw new Error(result.error.message ?? "Authentication failed");
@@ -88,7 +97,7 @@ function useAuthForm({ onAuthenticated }: { onAuthenticated: () => void }) {
       setIsPending(true);
       const result = await authClient.signIn.oauth2({
         providerId,
-        callbackURL: window.location.origin,
+        callbackURL: window.location.href,
         errorCallbackURL: window.location.origin,
       });
       if (result.error) {

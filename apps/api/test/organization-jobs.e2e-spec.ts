@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Test, TestingModule } from "@nestjs/testing";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
+import { inArray } from "drizzle-orm";
 import { AppModule } from "../src/app.module";
 import { AuthGuard } from "../src/auth/auth.guard";
 import { type AuthenticatedRequest } from "../src/common/authenticated-request";
@@ -151,8 +152,11 @@ describe("Organization jobs (e2e)", () => {
 
   afterAll(async () => {
     if (db) {
-      await db.delete(jobs);
-      await db.delete(organizations);
+      const ids = [organizationId, otherOrganizationId].filter(Boolean);
+      if (ids.length > 0) {
+        await db.delete(jobs).where(inArray(jobs.organizationId, ids));
+        await db.delete(organizations).where(inArray(organizations.id, ids));
+      }
     }
 
     if (app) {

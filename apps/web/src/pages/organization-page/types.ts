@@ -52,6 +52,7 @@ type OrganizationPageData = {
   organizationName: string;
   activeTab: OrganizationTab;
   canManageSettings: boolean;
+  canDelete: boolean;
   canManageMcp: boolean;
   projects: OrganizationProjectsState;
   members: OrganizationMembersState;

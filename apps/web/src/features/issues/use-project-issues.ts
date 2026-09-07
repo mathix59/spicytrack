@@ -29,7 +29,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
   const [savedSearchName, setSavedSearchName] = useState("");
   const [issueSearch, setIssueSearch] = useState(() => searchParams.get("q") ?? "");
-  const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") ?? "all");
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") ?? "open");
   const [levelFilter, setLevelFilter] = useState(() => searchParams.get("level") ?? "all");
   const [assignedUserFilter, setAssignedUserFilter] = useState(
     () => searchParams.get("assignedUserId") ?? "all",
@@ -192,7 +192,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
       nextParams.delete("q");
     }
 
-    if (statusFilter !== "all") {
+    if (statusFilter !== "open") {
       nextParams.set("status", statusFilter);
     } else {
       nextParams.delete("status");
@@ -453,7 +453,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
 
   const clearIssueFilters = () => {
     setIssueSearch("");
-    setStatusFilter("all");
+    setStatusFilter("open");
     setLevelFilter("all");
     setAssignedUserFilter("all");
     setEnvironmentFilter("all");

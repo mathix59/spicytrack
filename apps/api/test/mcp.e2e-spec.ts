@@ -194,7 +194,14 @@ describe("MCP server (e2e)", () => {
         );
       }
       await db.delete(auditLogs).where(eq(auditLogs.organizationId, organizationId));
-      await db.delete(mcpCredentialProjects);
+      if (credentialIds.length > 0) {
+        await db.delete(mcpCredentialProjects).where(
+          inArray(
+            mcpCredentialProjects.credentialId,
+            credentialIds.map(({ id }) => id),
+          ),
+        );
+      }
       await db.delete(mcpCredentials).where(eq(mcpCredentials.organizationId, organizationId));
       await db
         .delete(organizationMcpSettings)

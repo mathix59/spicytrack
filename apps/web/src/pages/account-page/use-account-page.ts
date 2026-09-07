@@ -48,7 +48,8 @@ function useAccountPage(): AccountPageData {
   const createToken = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCreatedSecret(null);
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const name = String(formData.get("name") ?? "").trim();
     const expiresInDaysRaw = String(formData.get("expiresInDays") ?? "");
 
@@ -67,7 +68,7 @@ function useAccountPage(): AccountPageData {
         }),
       onSuccess: async (response) => {
         setCreatedSecret(response.data.secret);
-        event.currentTarget.reset();
+        form.reset();
       },
     });
   };
@@ -77,7 +78,8 @@ function useAccountPage(): AccountPageData {
     setPasswordError(null);
     setPasswordSaved(false);
 
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const currentPassword = String(formData.get("currentPassword") ?? "");
     const newPassword = String(formData.get("newPassword") ?? "");
     const confirmPassword = String(formData.get("confirmPassword") ?? "");
@@ -111,7 +113,7 @@ function useAccountPage(): AccountPageData {
         },
         onSuccess: async () => {
           setPasswordSaved(true);
-          event.currentTarget.reset();
+          form.reset();
         },
       });
     } finally {

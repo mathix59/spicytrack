@@ -161,6 +161,15 @@ Use `pnpm docker:dev` to start the development stack and `pnpm docker:dev:down` 
 
 A production-oriented compose stack is available in [docker-compose.release.yml](docker-compose.release.yml).
 It does not bundle Mailpit; configure the SMTP provider after sign-in from **Instance administration**.
+Choose **Implicit TLS** for providers using port 465, or **STARTTLS when available** for port 587.
+Automatic mode selects implicit TLS on port 465. The saved password is never returned to the browser;
+leave its field blank to keep it. Apply database migrations before starting an updated API.
+
+Invitation links allow recipients to create an account with their invited email address even when
+public registration is closed. Existing accounts should use **Sign in** on the invitation page.
+Organization owners can delete an organization from **Settings → Delete organization**, after typing
+its slug to confirm. This removes its database records and access keys; externally stored artifact
+objects remain subject to the storage provider's retention policy.
 
 On a fresh installation, the first account created becomes the instance super-admin and public
 registration is then disabled automatically. Keep the instance access-restricted until this first

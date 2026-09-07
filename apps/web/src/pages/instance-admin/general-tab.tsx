@@ -30,7 +30,7 @@ export function GeneralTab({
             <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
               {open
                 ? "Visitors can create an account from the sign-in page."
-                : "Only existing users can sign in. You can reopen registration at any time."}
+                : "Existing users can sign in and invited users can create an account. You can reopen public registration at any time."}
             </p>
           </div>
           <Switch

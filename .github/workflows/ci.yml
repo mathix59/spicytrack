@@ -39,6 +39,12 @@ jobs:
       - name: Typecheck
         run: node scripts/run-checks.mjs typecheck
 
+      - name: API unit tests
+        run: node scripts/run-checks.mjs test:api
+
+      - name: Build package tests
+        run: node --test packages/build/test/*.test.js
+
       - name: Build
         run: node scripts/run-checks.mjs build
 

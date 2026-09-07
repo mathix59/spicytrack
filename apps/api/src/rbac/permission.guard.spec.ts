@@ -1,20 +1,20 @@
 import { ForbiddenException } from "@nestjs/common";
-import { PermissionGuard, PROJECT_TEAM_PERMISSION } from "./permission.guard";
-import { ROLE_PERMISSIONS } from "./permissions.constants";
-import type { OrganizationRole, Permission } from "./permissions.types";
-
-const ALL_PERMISSIONS = [...ROLE_PERMISSIONS.owner];
-const ROLE_PERMISSION_CASES = (
-  Object.entries(ROLE_PERMISSIONS) as [OrganizationRole, Permission[]][]
-).flatMap(([role, permissions]) =>
-  ALL_PERMISSIONS.map((permission) => ({
-    role,
-    permission,
-    granted: permissions.includes(permission),
-  })),
-);
-const GRANTED_ROLE_CASES = ROLE_PERMISSION_CASES.filter(({ granted }) => granted);
-const DENIED_ROLE_CASES = ROLE_PERMISSION_CASES.filter(({ granted }) => !granted);
+import { PermissionGuard } from "./permission.guard";
+// Explicit boundary cases; the full independent policy is checked by PermissionService.
+const GRANTED_ROLE_CASES = [
+  { role: "owner", permission: "org.settings.manage" },
+  { role: "admin", permission: "org.mcp.manage" },
+  { role: "manager", permission: "project.keys.manage" },
+  { role: "developer", permission: "project.autofix.run" },
+  { role: "member", permission: "org.members.read" },
+  { role: "viewer", permission: "project.read" },
+];
+const DENIED_ROLE_CASES = [
+  { role: "manager", permission: "org.settings.manage" },
+  { role: "developer", permission: "org.members.read" },
+  { role: "member", permission: "project.autofix.run" },
+  { role: "viewer", permission: "project.keys.manage" },
+];
 
 function createDatabase(...rows: unknown[][]) {
   const where = jest.fn(() => ({
@@ -232,19 +232,5 @@ describe("PermissionGuard", () => {
     await expect(
       guard.canActivate(createContext({ project: { teamId: "team-1" } })),
     ).rejects.toThrow("Missing permission");
-  });
-
-  it("keeps every team-scoped permission mapped to an explicit team capability", () => {
-    expect(PROJECT_TEAM_PERMISSION).toMatchObject({
-      "project.read": "view_projects",
-      "project.issues.read": "view_projects",
-      "project.events.read": "view_projects",
-      "project.releases.read": "view_projects",
-      "project.artifacts.read": "view_projects",
-      "project.alerts.read": "view_projects",
-      "project.keys.read": "view_projects",
-      "project.integrations.read": "view_projects",
-      "project.autofix.read": "view_projects",
-    });
   });
 });

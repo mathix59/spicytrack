@@ -414,7 +414,7 @@ test("keeps public authentication and recovery screens accessible and responsive
     {
       name: "invitation acceptance",
       url: "/invitations/accept",
-      heading: "Sentry-compatible. Source available. Multi-tenant.",
+      heading: "Organization invitation",
     },
     { name: "two-factor authentication", url: "/two-factor", heading: "Two-factor verification" },
   ];
@@ -577,6 +577,22 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
       return detail.issue.status;
     })
     .toBe("resolved");
+
+  const defaultIssuesResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname ===
+    `/api/organizations/${organization.slug}/projects/${projectSlug}/issues`,
+  );
+  await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}`);
+  const defaultIssues = await defaultIssuesResponse;
+  expect(defaultIssues.ok()).toBe(true);
+  expect(new URL(defaultIssues.url()).searchParams.get("status")).toBe("open");
+  expect((await defaultIssues.json()).items).toEqual([]);
+  await expect(page.getByRole("heading", { name: projectName, exact: true })).toBeVisible();
+  await expect(page.getByRole("table").getByText(issue!.title, { exact: true })).toHaveCount(0);
+  await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?status=resolved`);
+  await expect(page.getByRole("table").getByText(issue!.title, { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("table").getByText(issue!.title, { exact: true })).toBeVisible();
 
   await sendError(api, project!, keys[0], "22222222222222222222222222222222", "1.1.0");
   await expect

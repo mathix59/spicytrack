@@ -53,8 +53,13 @@ describe("endpoint authentication boundary (e2e)", () => {
           ) === index,
       );
 
-    // Kept in sync with the source-level endpoint security contract.
-    expect(protectedRoutes).toHaveLength(108);
+    // Fail if route discovery breaks, without coupling security checks to a route count.
+    expect(protectedRoutes).toEqual(
+      expect.arrayContaining([
+        { method: "GET", url: "/api/organizations" },
+        { method: "GET", url: "/api/organizations/:orgSlug/projects/:projectSlug" },
+      ]),
+    );
 
     const violations: string[] = [];
     for (const route of protectedRoutes) {

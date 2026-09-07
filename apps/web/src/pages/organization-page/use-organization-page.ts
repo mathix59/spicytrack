@@ -185,6 +185,7 @@ function useOrganizationPage(): OrganizationPageData | null {
     organizationName: organization.name,
     activeTab,
     canManageSettings,
+    canDelete: organizationMembership?.role === "owner",
     canManageMcp,
     projects: {
       projects,

@@ -1,6 +1,6 @@
 import { betterAuth as createBetterAuth } from "better-auth";
 import { genericOAuth, twoFactor } from "better-auth/plugins";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createDatabasePool } from "../database/database.provider";
 import { hashPassword, verifyPassword } from "./auth.utils";
 import { sendAuthEmail } from "./auth-email";
@@ -308,11 +308,35 @@ export const handleBetterAuthRequest = async (request: Request) => {
   if (origin && !trustedOrigins.includes(origin)) {
     return Response.json({ message: "Untrusted origin." }, { status: 403 });
   }
-  if (new URL(request.url).pathname.endsWith("/sign-up/email")) {
+  if (new URL(request.url).pathname.replace(/\/+$/, "").endsWith("/sign-up/email")) {
+    const invitationToken = request.headers.get("x-invitation-token");
+    let invited = false;
+    if (invitationToken) {
+      const body = (await request
+        .clone()
+        .json()
+        .catch(() => null)) as { email?: unknown } | null;
+      const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+      const invitation = await betterAuthPool.query(
+        `SELECT 1 FROM invitations i
+         JOIN organization_roles r ON r.organization_id = i.organization_id AND r.key = i.role
+         WHERE i.token_hash = $1 AND LOWER(i.email) = $2
+           AND i.accepted_at IS NULL AND i.revoked_at IS NULL AND i.expires_at > NOW() LIMIT 1`,
+        [createHash("sha256").update(invitationToken).digest("hex"), email],
+      );
+      if (!invitation.rowCount) {
+        return Response.json(
+          { message: "Invalid or expired invitation, or email does not match." },
+          { status: 403 },
+        );
+      }
+      invited = true;
+    }
+
     const result = await betterAuthPool.query(
       "SELECT registrations_enabled FROM instance_settings WHERE id = true",
     );
-    if (result.rows[0] && !result.rows[0].registrations_enabled) {
+    if (result.rows[0] && !result.rows[0].registrations_enabled && !invited) {
       const usersResult = await betterAuthPool.query("SELECT 1 FROM users LIMIT 1");
       if (usersResult.rowCount) {
         return Response.json({ message: "Registrations are disabled." }, { status: 403 });

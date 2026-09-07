@@ -35,6 +35,7 @@ import {
   parseUpdateMemberRoleBody,
   resolveOrganizationActorRole,
 } from "./organizations-controller.utils";
+import { OrganizationDeletionService } from "./organization-deletion.service";
 import { OrganizationsService } from "./organizations.service";
 import {
   AcceptInvitationBodyDto,
@@ -93,7 +94,10 @@ function parseOrganizationRoleBody(body: Record<string, unknown>, includeKey: bo
 @Controller("organizations")
 @UseGuards(AuthGuard)
 export class OrganizationsController {
-  constructor(private readonly organizationsService: OrganizationsService) {}
+  constructor(
+    private readonly organizationsService: OrganizationsService,
+    private readonly organizationDeletion: OrganizationDeletionService,
+  ) {}
 
   @Get()
   @ApiOperation({ operationId: "listOrganizations" })
@@ -123,6 +127,19 @@ export class OrganizationsController {
   @ApiOkResponse({ type: OrganizationDto })
   get(@CurrentOrganization() organization: OrganizationRecord) {
     return organization;
+  }
+
+  @Delete(":orgSlug")
+  @ApiOperation({ operationId: "deleteOrganization" })
+  @ApiParam({ name: "orgSlug", type: String })
+  @ApiOkResponse({ type: SuccessDto })
+  @UseGuards(OrganizationContextGuard, PermissionGuard)
+  @RequirePermissions("org.settings.manage")
+  async delete(
+    @CurrentOrganization() organization: OrganizationRecord,
+    @CurrentUser() user: UserRecord,
+  ) {
+    return this.organizationDeletion.delete(organization.id, user.id);
   }
 
   @Get(":orgSlug/members")

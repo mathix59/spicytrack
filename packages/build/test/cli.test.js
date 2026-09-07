@@ -33,13 +33,16 @@ test("init detects the framework and safely wraps an existing build", async () =
   const packageJson = JSON.parse(await readFile(path.join(cwd, "package.json"), "utf8"));
   const config = JSON.parse(await readFile(path.join(cwd, ".spicytrack.json"), "utf8"));
   assert.equal(packageJson.scripts.build, "spicytrack build -- next build");
-  assert.equal(packageJson.devDependencies["@spicytrack/build"], "^0.1.0");
+  const buildPackage = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  assert.equal(packageJson.devDependencies["@spicytrack/build"], `^${buildPackage.version}`);
   assert.deepEqual(config.roots, [".next"]);
   assert.equal("token" in config, false);
   assert.match(stdout, /Detected nextjs/);
 });
 
-test("a failed wrapped build never attempts an upload", async () => {
+test("propagates the failed wrapped build exit code", async () => {
   const cwd = await mkdtemp(path.join(tmpdir(), "spicytrack-build-"));
   await writeFile(
     path.join(cwd, ".spicytrack.json"),

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { hashOpaqueToken } from "../src/common/tokens";
 import { ValidationPipe } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
@@ -330,5 +332,124 @@ describe("Auth flow (e2e)", () => {
 
     const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
     await db.delete(personalAccessTokens).where(eq(personalAccessTokens.userId, user.id));
+  });
+
+  it("validates invitation state in PostgreSQL before allowing signup with closed registration", async () => {
+    const invitedEmail = `invited-${randomUUID()}@example.test`;
+    const invitationId = randomUUID();
+    const token = randomUUID();
+    const organizationId = randomUUID();
+    const [owner] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+    const [settings] = await db.select().from(instanceSettings);
+    const signup = (providedToken: string = token, providedEmail = invitedEmail) =>
+      app.inject({
+        method: "POST",
+        url: "/api/better-auth/sign-up/email",
+        headers: {
+          origin: ORIGIN,
+          "content-type": "application/json",
+          "x-invitation-token": providedToken,
+        },
+        payload: { email: providedEmail, password, name: "Invited user" },
+      });
+
+    try {
+      await betterAuthPool.query(
+        `INSERT INTO organizations (id, name, slug, owner_user_id) VALUES ($1, 'Invitation test', $3, $2)`,
+        [organizationId, owner.id, `invitation-${organizationId}`],
+      );
+      await betterAuthPool.query(
+        `INSERT INTO organization_roles (organization_id, key, name, permissions)
+         VALUES ($1, 'viewer', 'Viewer', '["org.read"]'::jsonb)`,
+        [organizationId],
+      );
+      await betterAuthPool.query(
+        `INSERT INTO invitations (id, organization_id, email, role, token_hash, invited_by_user_id, expires_at)
+         VALUES ($1, $2, $3, 'viewer', $4, $5, NOW() + INTERVAL '1 day')`,
+        [invitationId, organizationId, invitedEmail, hashOpaqueToken(token), owner.id],
+      );
+      await db
+        .update(instanceSettings)
+        .set({ registrationsEnabled: false })
+        .where(eq(instanceSettings.id, true));
+      expect((await signup("wrong-token")).statusCode).toBe(403);
+      expect((await signup(token, `wrong-${invitedEmail}`)).statusCode).toBe(403);
+      for (const state of ["expired", "accepted", "revoked", "missing-role"]) {
+        await betterAuthPool.query(
+          `UPDATE invitations SET
+             expires_at = CASE WHEN $2 = 'expired' THEN NOW() - INTERVAL '1 day' ELSE NOW() + INTERVAL '1 day' END,
+             accepted_at = CASE WHEN $2 = 'accepted' THEN NOW() ELSE NULL END,
+             revoked_at = CASE WHEN $2 = 'revoked' THEN NOW() ELSE NULL END,
+             role = CASE WHEN $2 = 'missing-role' THEN 'deleted-role' ELSE 'viewer' END
+           WHERE id = $1`,
+          [invitationId, state],
+        );
+        expect({ state, status: (await signup()).statusCode }).toEqual({ state, status: 403 });
+      }
+      const rejectedUsers = await betterAuthPool.query(`SELECT id FROM "user" WHERE email = $1`, [
+        invitedEmail,
+      ]);
+      expect(rejectedUsers.rows).toHaveLength(0);
+
+      await betterAuthPool.query(`UPDATE invitations SET role = 'viewer' WHERE id = $1`, [
+        invitationId,
+      ]);
+      const created = await signup(token, invitedEmail.toUpperCase());
+      expect(created.statusCode).toBe(200);
+      const verificationEmail = await findEmail(invitedEmail);
+      const verification = await app.inject({
+        method: "GET",
+        url: `/api/better-auth/verify-email?token=${encodeURIComponent(extractToken(verificationEmail.Text, "/verify-email"))}`,
+        headers: { origin: ORIGIN },
+      });
+      expect(verification.statusCode).toBe(200);
+      const signIn = await app.inject({
+        method: "POST",
+        url: "/api/better-auth/sign-in/email",
+        headers: { origin: ORIGIN, "content-type": "application/json" },
+        payload: { email: invitedEmail, password },
+      });
+      expect(signIn.statusCode).toBe(200);
+      const accepted = await app.inject({
+        method: "POST",
+        url: "/api/organizations/invitations/accept",
+        headers: { origin: ORIGIN, cookie: sessionCookie(signIn.headers["set-cookie"]) },
+        payload: { token },
+      });
+      expect(accepted.statusCode).toBe(201);
+      const membership = await betterAuthPool.query(
+        `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2`,
+        [organizationId, created.json().user.id],
+      );
+      expect(membership.rows).toEqual([{ role: "viewer" }]);
+    } finally {
+      await db
+        .update(instanceSettings)
+        .set({ registrationsEnabled: settings.registrationsEnabled })
+        .where(eq(instanceSettings.id, true));
+      await betterAuthPool.query(`DELETE FROM audit_logs WHERE organization_id = $1`, [
+        organizationId,
+      ]);
+      await betterAuthPool.query(`DELETE FROM organization_members WHERE organization_id = $1`, [
+        organizationId,
+      ]);
+      await betterAuthPool.query(`DELETE FROM invitations WHERE organization_id = $1`, [
+        organizationId,
+      ]);
+      await betterAuthPool.query(`DELETE FROM organization_roles WHERE organization_id = $1`, [
+        organizationId,
+      ]);
+      await betterAuthPool.query(`DELETE FROM organizations WHERE id = $1`, [organizationId]);
+      await betterAuthPool.query(
+        `DELETE FROM "session" WHERE user_id IN (SELECT id FROM "user" WHERE email = $1)`,
+        [invitedEmail],
+      );
+      await betterAuthPool.query(
+        `DELETE FROM "account" WHERE user_id IN (SELECT id FROM "user" WHERE email = $1)`,
+        [invitedEmail],
+      );
+      await betterAuthPool.query(`DELETE FROM "user" WHERE email = $1`, [invitedEmail]);
+      await betterAuthPool.query(`DELETE FROM users WHERE email = $1`, [invitedEmail]);
+    }
   });
 });

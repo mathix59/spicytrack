@@ -1,12 +1,22 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { asc, count, eq, ilike } from "drizzle-orm";
 import { decryptSecret, encryptSecret } from "../common/secrets";
-import { DATABASE, type DatabaseClient } from "../database/database.provider";
+import { DATABASE, primaryDatabase, type DatabaseClient } from "../database/database.provider";
 import { instanceSettings, users } from "../database/schema";
 
 @Injectable()
 export class InstanceAdminService {
-  constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}
+  private readonly db: DatabaseClient;
+
+  constructor(@Inject(DATABASE) database: DatabaseClient) {
+    this.db = primaryDatabase(database);
+  }
 
   async assertSuperAdmin(userId: string) {
     const [user] = await this.db
@@ -28,6 +38,7 @@ export class InstanceAdminService {
       registrationsEnabled: settings?.registrationsEnabled ?? true,
       smtpHost: settings?.smtpHost ?? null,
       smtpPort: settings?.smtpPort ?? null,
+      smtpSecure: settings?.smtpSecure ?? null,
       smtpUser: settings?.smtpUser ?? null,
       smtpFrom: settings?.smtpFrom ?? null,
       smtpPasswordConfigured: Boolean(settings?.smtpPassCiphertext),
@@ -93,24 +104,54 @@ export class InstanceAdminService {
       registrationsEnabled?: boolean;
       smtpHost?: string | null;
       smtpPort?: number | null;
+      smtpSecure?: boolean | null;
       smtpUser?: string | null;
       smtpPass?: string | null;
       smtpFrom?: string | null;
     },
   ) {
     await this.assertSuperAdmin(userId);
-    const values: Record<string, unknown> = { updatedByUserId: userId, updatedAt: new Date() };
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+      throw new BadRequestException("Settings must be a JSON object.");
+    }
+    if (
+      input.registrationsEnabled !== undefined &&
+      typeof input.registrationsEnabled !== "boolean"
+    ) {
+      throw new BadRequestException("Registrations enabled must be a boolean.");
+    }
+    for (const key of ["smtpHost", "smtpUser", "smtpPass", "smtpFrom"] as const) {
+      if (input[key] != null && typeof input[key] !== "string")
+        throw new BadRequestException(`${key} must be a string.`);
+    }
+    if (
+      input.smtpPort != null &&
+      (!Number.isInteger(input.smtpPort) || input.smtpPort < 1 || input.smtpPort > 65535)
+    ) {
+      throw new BadRequestException("SMTP port must be between 1 and 65535.");
+    }
+    if (input.smtpSecure != null && typeof input.smtpSecure !== "boolean") {
+      throw new BadRequestException("SMTP secure must be a boolean.");
+    }
+    const values: Partial<typeof instanceSettings.$inferInsert> = {
+      updatedByUserId: userId,
+      updatedAt: new Date(),
+    };
     for (const key of [
       "registrationsEnabled",
       "smtpHost",
       "smtpPort",
+      "smtpSecure",
       "smtpUser",
       "smtpFrom",
     ] as const)
-      if (input[key] !== undefined) values[key] = input[key];
+      if (input[key] !== undefined) Object.assign(values, { [key]: input[key] });
     if (input.smtpPass !== undefined)
       values.smtpPassCiphertext = input.smtpPass ? encryptSecret(input.smtpPass) : null;
-    await this.db.update(instanceSettings).set(values).where(eq(instanceSettings.id, true));
+    await this.db
+      .insert(instanceSettings)
+      .values({ id: true, ...values })
+      .onConflictDoUpdate({ target: instanceSettings.id, set: values });
     return this.get();
   }
 
@@ -124,6 +165,7 @@ export class InstanceAdminService {
       ? {
           host: settings.smtpHost,
           port: settings.smtpPort ?? 587,
+          secure: settings.smtpSecure ?? settings.smtpPort === 465,
           user: settings.smtpUser ?? undefined,
           pass: settings.smtpPassCiphertext
             ? decryptSecret(settings.smtpPassCiphertext)

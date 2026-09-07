@@ -39,6 +39,7 @@ export const instanceSettings = pgTable("instance_settings", {
   registrationsEnabled: boolean("registrations_enabled").notNull().default(true),
   smtpHost: text("smtp_host"),
   smtpPort: integer("smtp_port"),
+  smtpSecure: boolean("smtp_secure"),
   smtpUser: text("smtp_user"),
   smtpPassCiphertext: text("smtp_pass_ciphertext"),
   smtpFrom: text("smtp_from"),

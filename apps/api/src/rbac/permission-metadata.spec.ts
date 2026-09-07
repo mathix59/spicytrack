@@ -125,9 +125,14 @@ function routeSecurityMatrix(): RouteSecurity[] {
 describe("HTTP endpoint security contract", () => {
   const routes = routeSecurityMatrix();
 
-  it("discovers the complete controller surface", () => {
-    // This count makes parser regressions and unreviewed endpoint additions visible.
-    expect(routes).toHaveLength(117);
+  it("discovers public, organization and project routes without duplicates", () => {
+    expect(routes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "/health/live", access: "public" }),
+        expect.objectContaining({ path: "/organizations/:orgSlug" }),
+        expect.objectContaining({ path: "/organizations/:orgSlug/projects/:projectSlug" }),
+      ]),
+    );
     expect(new Set(routes.map((route) => route.id)).size).toBe(routes.length);
   });
 

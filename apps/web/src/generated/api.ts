@@ -9612,6 +9612,83 @@ export function useGetOrganization<TData = Awaited<ReturnType<typeof getOrganiza
 
 
 
+export type deleteOrganizationResponse200 = {
+  data: SuccessDto
+  status: 200
+}
+
+export type deleteOrganizationResponseSuccess = (deleteOrganizationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteOrganizationResponse = (deleteOrganizationResponseSuccess)
+
+export const getDeleteOrganizationUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}`
+}
+
+export const deleteOrganization = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteOrganizationResponse> => {
+
+  return orvalFetch<deleteOrganizationResponse>(getDeleteOrganizationUrl(orgSlug),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteOrganizationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganization>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteOrganization>>, TError,{orgSlug: string}, TContext> => {
+
+const mutationKey = ['deleteOrganization'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOrganization>>, {orgSlug: string}> = (props) => {
+          const {orgSlug} = props ?? {};
+
+          return  deleteOrganization(orgSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteOrganizationMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOrganization>>>
+
+    export type DeleteOrganizationMutationError = ErrorType<unknown>
+
+    export const useDeleteOrganization = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganization>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteOrganization>>,
+        TError,
+        {orgSlug: string},
+        TContext
+      > => {
+      return useMutation(getDeleteOrganizationMutationOptions(options), queryClient);
+    }
+
 export type listOrganizationMembersResponse200 = {
   data: OrganizationMemberDto[]
   status: 200
