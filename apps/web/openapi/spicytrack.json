@@ -1123,6 +1123,34 @@
         ]
       }
     },
+    "/instance-admin/smtp/test": {
+      "post": {
+        "operationId": "InstanceAdminController_testSmtp",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "InstanceAdmin"
+        ]
+      }
+    },
+    "/instance-admin/update": {
+      "get": {
+        "operationId": "InstanceAdminController_updateInformation",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "InstanceAdmin"
+        ]
+      }
+    },
     "/instance-admin/users": {
       "get": {
         "operationId": "InstanceAdminController_users",
@@ -1193,6 +1221,15 @@
             "name": "releaseVersion",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactName",
+            "required": false,
+            "in": "query",
+            "description": "Public build path to preserve when multipart strips directory names",
             "schema": {
               "type": "string"
             }

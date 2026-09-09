@@ -1,7 +1,6 @@
 import { Inject, Injectable, Optional } from "@nestjs/common";
 import type { Pool } from "pg";
 import { DATABASE_POOL, DATABASE_READ_REPLICA_POOL } from "./database/database.provider";
-import { EmailService } from "./email/email.service";
 import { JobsService } from "./jobs/jobs.service";
 import { ingestLimits } from "./ingest/ingest-limits";
 import { renderIngestMetrics } from "./ingest/ingest-metrics";
@@ -28,7 +27,6 @@ export class AppService {
   constructor(
     @Inject(DATABASE_POOL) private readonly pool: Pool,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
-    private readonly emailService: EmailService,
     @Optional() private readonly jobsService?: JobsService,
     @Optional()
     @Inject(DATABASE_READ_REPLICA_POOL)
@@ -66,7 +64,6 @@ export class AppService {
         await this.storage.checkHealth();
         return "ok";
       }),
-      this.checkDependency("smtp", () => this.emailService.checkHealth()),
       this.checkDependency("jobs", async () => {
         if (!this.jobsService) return "disabled";
         jobSummary = await this.jobsService.getQueueSummary();
@@ -75,10 +72,7 @@ export class AppService {
     ]);
     const dependencies = Object.fromEntries(checks.map((check) => [check.name, check.status]));
     return {
-      // SMTP delivery is asynchronous: its diagnostic must not take the API out of service.
-      status: checks.some((check) => check.name !== "smtp" && check.status === "error")
-        ? "error"
-        : "ok",
+      status: checks.some((check) => check.status === "error") ? "error" : "ok",
       service: "api",
       timestamp: new Date().toISOString(),
       dependencies,

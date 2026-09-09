@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { CurrentUser } from "../common/current-user.decorator";
 import { AuthGuard } from "../auth/auth.guard";
 import { EndpointAccess } from "../auth/endpoint-access.decorator";
@@ -22,6 +22,12 @@ export class InstanceAdminController {
     @Body() body: Record<string, unknown>,
   ) {
     return this.service.update(user.id, body as Parameters<InstanceAdminService["update"]>[1]);
+  }
+  @Post("smtp/test") async testSmtp(
+    @CurrentUser() user: { id: string },
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.service.testSmtp(user.id, body as Parameters<InstanceAdminService["testSmtp"]>[1]);
   }
   @Get("update") async updateInformation(@CurrentUser() user: { id: string }) {
     await this.service.assertSuperAdmin(user.id);

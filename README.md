@@ -178,11 +178,10 @@ account has been created.
 For a deployment on Coolify, Dokploy, or another Compose-capable open-source PaaS, use
 [docker-compose.paas.yml](docker-compose.paas.yml) with [.env.paas.example](.env.paas.example).
 
-SMTP readiness is diagnostic: `/api/health/ready` remains available when mail verification
-fails. `dependencies.smtp` reports `checking`, `ok`, `error`, or `disabled`. Probes run in the
-background with a 20-second deadline and a 60-second cache; successful mail delivery refreshes
-the result. Database, storage and queue failures still make the API unready. TLS certificate
-verification remains enabled.
+SMTP is not probed by health checks. Use **Test connection** in **Instance administration →
+Email delivery** to verify the current form values without saving them or sending an email.
+An empty password field reuses the saved password. The manual test has a 20-second deadline
+and keeps TLS certificate verification enabled.
 
 ## Kubernetes
 

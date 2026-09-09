@@ -1181,6 +1181,13 @@ page: string;
 pageSize: string;
 };
 
+export type UploadReleaseArtifactParams = {
+/**
+ * Public build path to preserve when multipart strips directory names
+ */
+artifactName?: string;
+};
+
 export type UploadReleaseArtifactBody = {
   file?: Blob;
 };
@@ -3532,6 +3539,190 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getInstanceAdminControllerUpdateMutationOptions(options), queryClient);
     }
 
+export type instanceAdminControllerTestSmtpResponse201 = {
+  data: void
+  status: 201
+}
+
+export type instanceAdminControllerTestSmtpResponseSuccess = (instanceAdminControllerTestSmtpResponse201) & {
+  headers: Headers;
+};
+;
+
+export type instanceAdminControllerTestSmtpResponse = (instanceAdminControllerTestSmtpResponseSuccess)
+
+export const getInstanceAdminControllerTestSmtpUrl = () => {
+
+
+
+
+  return `/instance-admin/smtp/test`
+}
+
+export const instanceAdminControllerTestSmtp = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerTestSmtpResponse> => {
+
+  return orvalFetch<instanceAdminControllerTestSmtpResponse>(getInstanceAdminControllerTestSmtpUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getInstanceAdminControllerTestSmtpMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>, TError,void, TContext> => {
+
+const mutationKey = ['instanceAdminControllerTestSmtp'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>, void> = () => {
+
+
+          return  instanceAdminControllerTestSmtp(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InstanceAdminControllerTestSmtpMutationResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>>
+
+    export type InstanceAdminControllerTestSmtpMutationError = ErrorType<unknown>
+
+    export const useInstanceAdminControllerTestSmtp = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getInstanceAdminControllerTestSmtpMutationOptions(options), queryClient);
+    }
+
+export type instanceAdminControllerUpdateInformationResponse200 = {
+  data: void
+  status: 200
+}
+
+export type instanceAdminControllerUpdateInformationResponseSuccess = (instanceAdminControllerUpdateInformationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type instanceAdminControllerUpdateInformationResponse = (instanceAdminControllerUpdateInformationResponseSuccess)
+
+export const getInstanceAdminControllerUpdateInformationUrl = () => {
+
+
+
+
+  return `/instance-admin/update`
+}
+
+export const instanceAdminControllerUpdateInformation = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerUpdateInformationResponse> => {
+
+  return orvalFetch<instanceAdminControllerUpdateInformationResponse>(getInstanceAdminControllerUpdateInformationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getInstanceAdminControllerUpdateInformationQueryKey = () => {
+    return [
+    `/instance-admin/update`
+    ] as const;
+    }
+
+
+export const getInstanceAdminControllerUpdateInformationQueryOptions = <TData = Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInstanceAdminControllerUpdateInformationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>> = ({ signal }) => instanceAdminControllerUpdateInformation({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InstanceAdminControllerUpdateInformationQueryResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>>
+export type InstanceAdminControllerUpdateInformationQueryError = ErrorType<unknown>
+
+
+export function useInstanceAdminControllerUpdateInformation<TData = Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>,
+          TError,
+          Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerUpdateInformation<TData = Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>,
+          TError,
+          Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerUpdateInformation<TData = Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useInstanceAdminControllerUpdateInformation<TData = Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateInformation>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getInstanceAdminControllerUpdateInformationQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export type instanceAdminControllerUsersResponse200 = {
   data: void
   status: 200
@@ -3737,24 +3928,33 @@ export type uploadReleaseArtifactResponse = (uploadReleaseArtifactResponseSucces
 
 export const getUploadReleaseArtifactUrl = (orgSlug: string,
     projectSlug: string,
-    releaseVersion: string,) => {
+    releaseVersion: string,
+    params?: UploadReleaseArtifactParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts`
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/artifacts`
 }
 
 export const uploadReleaseArtifact = async (orgSlug: string,
     projectSlug: string,
     releaseVersion: string,
-    uploadReleaseArtifactBody: UploadReleaseArtifactBody, options?: Parameters<typeof orvalFetch>[1]): Promise<uploadReleaseArtifactResponse> => {
+    uploadReleaseArtifactBody: UploadReleaseArtifactBody,
+    params?: UploadReleaseArtifactParams, options?: Parameters<typeof orvalFetch>[1]): Promise<uploadReleaseArtifactResponse> => {
     const formData = new FormData();
 if(uploadReleaseArtifactBody.file !== undefined) {
  formData.append(`file`, uploadReleaseArtifactBody.file);
  }
 
-  return orvalFetch<uploadReleaseArtifactResponse>(getUploadReleaseArtifactUrl(orgSlug,projectSlug,releaseVersion),
+  return orvalFetch<uploadReleaseArtifactResponse>(getUploadReleaseArtifactUrl(orgSlug,projectSlug,releaseVersion,params),
   {
     ...options,
     method: 'POST'
@@ -3768,8 +3968,8 @@ if(uploadReleaseArtifactBody.file !== undefined) {
 
 
 export const getUploadReleaseArtifactMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams}, TContext> => {
 
 const mutationKey = ['uploadReleaseArtifact'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -3781,10 +3981,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadReleaseArtifact>>, {orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>}> = (props) => {
-          const {orgSlug,projectSlug,releaseVersion,data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadReleaseArtifact>>, {orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams}> = (props) => {
+          const {orgSlug,projectSlug,releaseVersion,data,params} = props ?? {};
 
-          return  uploadReleaseArtifact(orgSlug,projectSlug,releaseVersion,data,requestOptions)
+          return  uploadReleaseArtifact(orgSlug,projectSlug,releaseVersion,data,params,requestOptions)
         }
 
 
@@ -3799,11 +3999,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UploadReleaseArtifactMutationError = ErrorType<unknown>
 
     export const useUploadReleaseArtifact = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams}, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof uploadReleaseArtifact>>,
         TError,
-        {orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>},
+        {orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams},
         TContext
       > => {
       return useMutation(getUploadReleaseArtifactMutationOptions(options), queryClient);

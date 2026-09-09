@@ -5,6 +5,8 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { createTransport } from "nodemailer";
+import { smtpTransportOptions } from "../email/smtp-options";
 import { asc, count, eq, ilike } from "drizzle-orm";
 import { decryptSecret, encryptSecret } from "../common/secrets";
 import { DATABASE, primaryDatabase, type DatabaseClient } from "../database/database.provider";
@@ -111,6 +113,30 @@ export class InstanceAdminService {
     },
   ) {
     await this.assertSuperAdmin(userId);
+    this.validateSettings(input);
+    const values: Partial<typeof instanceSettings.$inferInsert> = {
+      updatedByUserId: userId,
+      updatedAt: new Date(),
+    };
+    for (const key of [
+      "registrationsEnabled",
+      "smtpHost",
+      "smtpPort",
+      "smtpSecure",
+      "smtpUser",
+      "smtpFrom",
+    ] as const)
+      if (input[key] !== undefined) Object.assign(values, { [key]: input[key] });
+    if (input.smtpPass !== undefined)
+      values.smtpPassCiphertext = input.smtpPass ? encryptSecret(input.smtpPass) : null;
+    await this.db
+      .insert(instanceSettings)
+      .values({ id: true, ...values })
+      .onConflictDoUpdate({ target: instanceSettings.id, set: values });
+    return this.get();
+  }
+
+  private validateSettings(input: Parameters<InstanceAdminService["update"]>[1]) {
     if (!input || typeof input !== "object" || Array.isArray(input)) {
       throw new BadRequestException("Settings must be a JSON object.");
     }
@@ -133,26 +159,42 @@ export class InstanceAdminService {
     if (input.smtpSecure != null && typeof input.smtpSecure !== "boolean") {
       throw new BadRequestException("SMTP secure must be a boolean.");
     }
-    const values: Partial<typeof instanceSettings.$inferInsert> = {
-      updatedByUserId: userId,
-      updatedAt: new Date(),
-    };
-    for (const key of [
-      "registrationsEnabled",
-      "smtpHost",
-      "smtpPort",
-      "smtpSecure",
-      "smtpUser",
-      "smtpFrom",
-    ] as const)
-      if (input[key] !== undefined) Object.assign(values, { [key]: input[key] });
-    if (input.smtpPass !== undefined)
-      values.smtpPassCiphertext = input.smtpPass ? encryptSecret(input.smtpPass) : null;
-    await this.db
-      .insert(instanceSettings)
-      .values({ id: true, ...values })
-      .onConflictDoUpdate({ target: instanceSettings.id, set: values });
-    return this.get();
+  }
+
+  async testSmtp(userId: string, input: Parameters<InstanceAdminService["update"]>[1]) {
+    await this.assertSuperAdmin(userId);
+    this.validateSettings(input);
+    if (!input.smtpHost?.trim()) throw new BadRequestException("SMTP host is required.");
+    const stored = input.smtpPass == null ? await this.smtpConfig() : null;
+    const transporter = createTransport({
+      ...smtpTransportOptions({
+        host: input.smtpHost.trim(),
+        port: input.smtpPort ?? 587,
+        secure: input.smtpSecure,
+        user: input.smtpUser ?? undefined,
+        pass: input.smtpPass ?? stored?.pass,
+      }),
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 10_000,
+    });
+    let timeout: NodeJS.Timeout | undefined;
+    try {
+      await Promise.race([
+        transporter.verify(),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => reject(new Error("timeout")), 20_000);
+        }),
+      ]);
+      return { success: true };
+    } catch {
+      throw new BadRequestException(
+        "SMTP connection failed. Check the host, port, security mode and credentials.",
+      );
+    } finally {
+      if (timeout) clearTimeout(timeout);
+      transporter.close();
+    }
   }
 
   async smtpConfig() {

@@ -851,6 +851,40 @@ describe("RBAC authorization matrix (e2e)", () => {
     expect(adminResponse.statusCode).toBe(403);
   });
 
+  it("allows only instance admins to manually verify SMTP without saving settings", async () => {
+    const before = await app.inject({
+      method: "GET",
+      url: "/api/instance-admin/settings",
+      headers: authorization("owner"),
+    });
+    const payload = {
+      smtpHost: process.env.E2E_SMTP_HOST ?? "localhost",
+      smtpPort: Number(process.env.E2E_SMTP_PORT ?? 1025),
+      smtpSecure: false,
+    };
+    const denied = await app.inject({
+      method: "POST",
+      url: "/api/instance-admin/smtp/test",
+      headers: authorization("admin"),
+      payload,
+    });
+    expect(denied.statusCode).toBe(403);
+    const tested = await app.inject({
+      method: "POST",
+      url: "/api/instance-admin/smtp/test",
+      headers: authorization("owner"),
+      payload,
+    });
+    expect(tested.statusCode).toBe(201);
+    expect(tested.json()).toEqual({ success: true });
+    const after = await app.inject({
+      method: "GET",
+      url: "/api/instance-admin/settings",
+      headers: authorization("owner"),
+    });
+    expect(after.json()).toEqual(before.json());
+  });
+
   it("serializes concurrent super-admin demotions", async () => {
     const secondAdminId = userIdByLabel.get("owner-two")!;
     await pool.query(`UPDATE users SET is_super_admin = true WHERE id = $1`, [secondAdminId]);

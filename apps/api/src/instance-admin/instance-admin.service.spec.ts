@@ -1,3 +1,4 @@
+import { createTransport } from "nodemailer";
 import { BadRequestException, ForbiddenException } from "@nestjs/common";
 import { InstanceAdminService } from "./instance-admin.service";
 
@@ -67,4 +68,97 @@ describe("instance SMTP settings", () => {
       expect(upsert).not.toHaveBeenCalled();
     },
   );
+});
+
+jest.mock("nodemailer", () => ({ createTransport: jest.fn() }));
+
+describe("manual SMTP connection test", () => {
+  const verify = jest.fn();
+  const close = jest.fn();
+  beforeEach(() => {
+    jest.resetAllMocks();
+    jest.useFakeTimers();
+    (createTransport as jest.Mock).mockReturnValue({ verify, close });
+    verify.mockResolvedValue(true);
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it("tests unsaved values with the stored password without writing settings", async () => {
+    const { db, upsert } = database();
+    const service = new InstanceAdminService(db as never);
+    await service.update("admin", { smtpHost: "old.test", smtpPass: "secret" });
+    upsert.mockClear();
+    await expect(
+      service.testSmtp("admin", {
+        smtpHost: "new.test",
+        smtpPort: 465,
+        smtpSecure: true,
+        smtpUser: "sender",
+      }),
+    ).resolves.toEqual({ success: true });
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        host: "new.test",
+        port: 465,
+        secure: true,
+        auth: { user: "sender", pass: "secret" },
+      }),
+    );
+    expect(upsert).not.toHaveBeenCalled();
+    expect(await service.get()).toMatchObject({ smtpHost: "old.test" });
+    expect(verify).toHaveBeenCalledTimes(1);
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses newly entered credentials and sanitizes provider errors", async () => {
+    verify.mockRejectedValue(new Error("provider exposed secret"));
+    const { db } = database();
+    await expect(
+      new InstanceAdminService(db as never).testSmtp("admin", {
+        smtpHost: "smtp.test",
+        smtpPort: 587,
+        smtpSecure: false,
+        smtpUser: "sender",
+        smtpPass: "new-secret",
+      }),
+    ).rejects.toThrow("SMTP connection failed.");
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ secure: false, auth: { user: "sender", pass: "new-secret" } }),
+    );
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes a stalled verification after 20 seconds without retries", async () => {
+    verify.mockReturnValue(new Promise(() => {}));
+    const { db } = database();
+    const result = expect(
+      new InstanceAdminService(db as never).testSmtp("admin", { smtpHost: "smtp.test" }),
+    ).rejects.toThrow("SMTP connection failed.");
+    await jest.advanceTimersByTimeAsync(20_000);
+    await result;
+    await jest.advanceTimersByTimeAsync(60_000);
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(verify).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects non-admin tests before opening a connection", async () => {
+    const { db } = database(false);
+    await expect(
+      new InstanceAdminService(db as never).testSmtp("member", { smtpHost: "smtp.test" }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(createTransport).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {},
+    { smtpHost: " " },
+    { smtpHost: "smtp.test", smtpPort: -1 },
+    { smtpHost: "smtp.test", smtpSecure: "true" },
+  ])("rejects invalid test configuration: %p", async (input) => {
+    const { db } = database();
+    await expect(
+      new InstanceAdminService(db as never).testSmtp("admin", input as never),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(createTransport).not.toHaveBeenCalled();
+  });
 });

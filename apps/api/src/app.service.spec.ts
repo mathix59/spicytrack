@@ -6,28 +6,27 @@ describe("AppService health", () => {
   it("reports ready dependencies and the queue summary", async () => {
     const pool = { query: jest.fn().mockResolvedValue({ rows: [] }) };
     const storage = { checkHealth: jest.fn().mockResolvedValue(undefined) };
-    const email = { checkHealth: jest.fn().mockResolvedValue("disabled") };
     const jobs = { getQueueSummary: jest.fn().mockResolvedValue(summary) };
-    const service = new AppService(pool as never, storage as never, email as never, jobs as never);
+    const service = new AppService(pool as never, storage as never, jobs as never);
 
     await expect(service.getReadiness()).resolves.toMatchObject({
       status: "ok",
-      dependencies: { database: "ok", storage: "ok", smtp: "disabled", jobs: "ok" },
+      dependencies: { database: "ok", storage: "ok", jobs: "ok" },
       jobs: summary,
     });
-    expect(jobs.getQueueSummary).toHaveBeenCalledTimes(1);
+    expect((await service.getReadiness()).dependencies).not.toHaveProperty("smtp");
+    expect(jobs.getQueueSummary).toHaveBeenCalledTimes(2);
   });
 
   it("reports an error when a required dependency fails", async () => {
     const service = new AppService(
       { query: jest.fn().mockRejectedValue(new Error("database unavailable")) } as never,
       { checkHealth: jest.fn().mockResolvedValue(undefined) } as never,
-      { checkHealth: jest.fn().mockResolvedValue("ok") } as never,
     );
 
     await expect(service.getReadiness()).resolves.toMatchObject({
       status: "error",
-      dependencies: { database: "error", storage: "ok", smtp: "ok", jobs: "disabled" },
+      dependencies: { database: "error", storage: "ok", jobs: "disabled" },
     });
   });
 
@@ -36,26 +35,13 @@ describe("AppService health", () => {
     const service = new AppService(
       { query: jest.fn().mockResolvedValue({ rows: [] }) } as never,
       { checkHealth: jest.fn().mockResolvedValue(undefined) } as never,
-      { checkHealth: jest.fn().mockResolvedValue("ok") } as never,
       undefined,
       replica as never,
     );
 
     await expect(service.getReadiness()).resolves.toMatchObject({
       status: "error",
-      dependencies: { database: "ok", databaseReplica: "error", storage: "ok", smtp: "ok" },
-    });
-  });
-
-  it.each(["error", "checking"])("keeps the API ready while SMTP is %s", async (smtp) => {
-    const service = new AppService(
-      { query: jest.fn().mockResolvedValue({ rows: [] }) } as never,
-      { checkHealth: jest.fn().mockResolvedValue(undefined) } as never,
-      { checkHealth: jest.fn().mockResolvedValue(smtp) } as never,
-    );
-    await expect(service.getReadiness()).resolves.toMatchObject({
-      status: "ok",
-      dependencies: { smtp },
+      dependencies: { database: "ok", databaseReplica: "error", storage: "ok" },
     });
   });
 
@@ -63,7 +49,6 @@ describe("AppService health", () => {
     const jobs = { getQueueSummary: jest.fn().mockResolvedValue(summary) };
     const service = new AppService(
       { query: jest.fn() } as never,
-      { checkHealth: jest.fn() } as never,
       { checkHealth: jest.fn() } as never,
       jobs as never,
     );

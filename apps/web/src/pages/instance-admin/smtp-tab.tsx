@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { orvalFetch } from "@/lib/orval-fetch";
 import { getErrorMessage } from "@/lib/utils";
 import type { InstanceSettings } from "../instance-admin-page";
 export function SmtpTab({
@@ -19,22 +20,47 @@ export function SmtpTab({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => setValue(settings), [settings]);
-  const save = async () => {
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const save = async (testOnly = false) => {
     setPending(true);
     setError(null);
+    setTestResult(null);
     try {
       const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpFrom } = value;
-      await onSave({
+      const input = {
         smtpHost,
         smtpPort,
         smtpSecure,
         smtpUser,
         smtpFrom,
         smtpPass: pass || undefined,
-      });
-      setPass("");
+      };
+      if (testOnly) {
+        await orvalFetch("/instance-admin/smtp/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        setTestResult("SMTP connection successful.");
+      } else {
+        await onSave(input);
+        setPass("");
+      }
     } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
+      const message = getErrorMessage(caughtError);
+      try {
+        const payload: unknown = JSON.parse(message);
+        setError(
+          payload &&
+            typeof payload === "object" &&
+            "message" in payload &&
+            typeof payload.message === "string"
+            ? payload.message
+            : message,
+        );
+      } catch {
+        setError(message);
+      }
     } finally {
       setPending(false);
     }
@@ -96,6 +122,22 @@ export function SmtpTab({
             {error}
           </p>
         )}
+        <p className="text-sm text-muted-foreground">
+          Test the connection without saving settings or sending an email.
+        </p>
+        {testResult && (
+          <p role="status" className="text-sm">
+            {testResult}
+          </p>
+        )}
+        <Button
+          variant="outline"
+          className="w-fit"
+          disabled={pending}
+          onClick={() => void save(true)}
+        >
+          Test connection
+        </Button>
         <Button className="w-fit" disabled={pending} onClick={() => void save()}>
           <Save className="size-4" />
           Save SMTP settings

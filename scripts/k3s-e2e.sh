@@ -206,7 +206,6 @@ smoke_test() {
   grep -q '"database":"ok"' <<<"$ready" || fail "database readiness check did not pass"
   grep -q '"databaseReplica":"ok"' <<<"$ready" || fail "read-replica readiness check did not pass"
   grep -q '"storage":"ok"' <<<"$ready" || fail "storage readiness check did not pass"
-  grep -q '"smtp":"disabled"' <<<"$ready" || fail "SMTP should be disabled before instance configuration"
 
   status="$(curl -sS -o /tmp/spicytrack-k3s-ingest.json -w '%{http_code}' \
     -H "Host: ${INGRESS_HOST}" -H 'Content-Type: application/json' \

@@ -242,3 +242,40 @@ test("an existing invited account still requires its correct password", async ({
   expect(accepted).toBe(false);
   await expect(page).toHaveURL(/token=pending-token/);
 });
+
+test("SMTP connection is tested only on click using unsaved form values", async ({ page }) => {
+  await mockApi(page);
+  let writes = 0;
+  const calls: unknown[] = [];
+  await page.route("**/api/instance-admin/settings", async (route) => {
+    if (route.request().method() === "PATCH") writes++;
+    await route.fulfill({
+      json: { ...settings, smtpHost: "saved.test", smtpPasswordConfigured: true },
+    });
+  });
+  await page.route("**/api/instance-admin/smtp/test", async (route) => {
+    calls.push(route.request().postDataJSON());
+    await route.fulfill(
+      calls.length === 1
+        ? { json: { success: true } }
+        : { status: 400, json: { message: "SMTP connection failed." } },
+    );
+  });
+  await page.goto("/admin");
+  await page.getByRole("tab", { name: "Email delivery" }).click();
+  await page.reload();
+  await page.getByRole("tab", { name: "Email delivery" }).click();
+  await page.getByLabel("Host", { exact: true }).fill("unsaved.test");
+  await page.getByLabel("Port", { exact: true }).fill("465");
+  await page.getByLabel("Connection security").selectOption("true");
+  expect(calls).toHaveLength(0);
+  await page.getByRole("button", { name: "Test connection" }).click();
+  await expect(page.getByRole("status")).toHaveText("SMTP connection successful.");
+  expect(calls[0]).toMatchObject({ smtpHost: "unsaved.test", smtpPort: 465, smtpSecure: true });
+  expect(calls[0]).not.toHaveProperty("smtpPass");
+  await page.getByLabel("Password (leave blank to keep)").fill("new-secret");
+  await page.getByRole("button", { name: "Test connection" }).click();
+  await expect(page.getByRole("alert")).toHaveText("SMTP connection failed.");
+  expect(calls[1]).toMatchObject({ smtpPass: "new-secret" });
+  expect(writes).toBe(0);
+});
