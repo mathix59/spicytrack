@@ -1,3 +1,9 @@
+## 1.1.7
+
+### Patch Changes
+
+- e5dbb06: Remove automatic SMTP health probes and provide an administrator-only Test connection button that verifies unsaved SMTP settings without sending email.
+
 ## 1.1.6
 
 ### Patch Changes
