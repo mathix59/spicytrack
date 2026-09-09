@@ -1191,6 +1191,27 @@
       }
     },
     "/instance-admin/users/{userId}": {
+      "delete": {
+        "operationId": "InstanceAdminController_deleteUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "InstanceAdmin"
+        ]
+      },
       "patch": {
         "operationId": "InstanceAdminController_updateUser",
         "parameters": [
@@ -4512,6 +4533,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/InvitationResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/invitations/{invitationId}": {
+      "delete": {
+        "operationId": "revokeOrganizationInvitation",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
                 }
               }
             }

@@ -202,6 +202,8 @@ function useOrganizationPage(): OrganizationPageData | null {
       invitations,
       roles,
       canManageMembers,
+      canInviteMembers: permissions.has("org.members.invite"),
+      canRemoveMembers: permissions.has("org.members.remove"),
       canManageRoles: canManageSettings,
       inviteOpen,
       inviteError,

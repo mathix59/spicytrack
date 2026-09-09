@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { DeleteUserService } from "./delete-user.service";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import { CurrentUser } from "../common/current-user.decorator";
 import { AuthGuard } from "../auth/auth.guard";
 import { EndpointAccess } from "../auth/endpoint-access.decorator";
@@ -12,6 +23,7 @@ export class InstanceAdminController {
   constructor(
     private readonly service: InstanceAdminService,
     private readonly updateCheck: UpdateCheckService,
+    private readonly deleteUserService: DeleteUserService,
   ) {}
   @Get("settings") async get(@CurrentUser() user: { id: string }) {
     await this.service.assertSuperAdmin(user.id);
@@ -45,6 +57,13 @@ export class InstanceAdminController {
       Math.max(1, Number(page) || 1),
       Math.min(100, Math.max(1, Number(pageSize) || 20)),
     );
+  }
+  @Delete("users/:userId") async deleteUser(
+    @CurrentUser() user: { id: string },
+    @Param("userId") userId: string,
+    @Body() body: { confirmationEmail?: unknown },
+  ) {
+    return this.deleteUserService.delete(user.id, userId, body?.confirmationEmail);
   }
   @Patch("users/:userId") async updateUser(
     @CurrentUser() user: { id: string },

@@ -3837,6 +3837,83 @@ export function useInstanceAdminControllerUsers<TData = Awaited<ReturnType<typeo
 
 
 
+export type instanceAdminControllerDeleteUserResponse200 = {
+  data: void
+  status: 200
+}
+
+export type instanceAdminControllerDeleteUserResponseSuccess = (instanceAdminControllerDeleteUserResponse200) & {
+  headers: Headers;
+};
+;
+
+export type instanceAdminControllerDeleteUserResponse = (instanceAdminControllerDeleteUserResponseSuccess)
+
+export const getInstanceAdminControllerDeleteUserUrl = (userId: string,) => {
+
+
+
+
+  return `/instance-admin/users/${userId}`
+}
+
+export const instanceAdminControllerDeleteUser = async (userId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerDeleteUserResponse> => {
+
+  return orvalFetch<instanceAdminControllerDeleteUserResponse>(getInstanceAdminControllerDeleteUserUrl(userId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getInstanceAdminControllerDeleteUserMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['instanceAdminControllerDeleteUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  instanceAdminControllerDeleteUser(userId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InstanceAdminControllerDeleteUserMutationResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>>
+
+    export type InstanceAdminControllerDeleteUserMutationError = ErrorType<unknown>
+
+    export const useInstanceAdminControllerDeleteUser = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+      return useMutation(getInstanceAdminControllerDeleteUserMutationOptions(options), queryClient);
+    }
+
 export type instanceAdminControllerUpdateUserResponse200 = {
   data: void
   status: 200
@@ -10910,6 +10987,85 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getResendOrganizationInvitationMutationOptions(options), queryClient);
+    }
+
+export type revokeOrganizationInvitationResponse200 = {
+  data: SuccessDto
+  status: 200
+}
+
+export type revokeOrganizationInvitationResponseSuccess = (revokeOrganizationInvitationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type revokeOrganizationInvitationResponse = (revokeOrganizationInvitationResponseSuccess)
+
+export const getRevokeOrganizationInvitationUrl = (orgSlug: string,
+    invitationId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/invitations/${invitationId}`
+}
+
+export const revokeOrganizationInvitation = async (orgSlug: string,
+    invitationId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<revokeOrganizationInvitationResponse> => {
+
+  return orvalFetch<revokeOrganizationInvitationResponse>(getRevokeOrganizationInvitationUrl(orgSlug,invitationId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext> => {
+
+const mutationKey = ['revokeOrganizationInvitation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, {orgSlug: string;invitationId: string}> = (props) => {
+          const {orgSlug,invitationId} = props ?? {};
+
+          return  revokeOrganizationInvitation(orgSlug,invitationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof revokeOrganizationInvitation>>>
+
+    export type RevokeOrganizationInvitationMutationError = ErrorType<unknown>
+
+    export const useRevokeOrganizationInvitation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof revokeOrganizationInvitation>>,
+        TError,
+        {orgSlug: string;invitationId: string},
+        TContext
+      > => {
+      return useMutation(getRevokeOrganizationInvitationMutationOptions(options), queryClient);
     }
 
 export type acceptOrganizationInvitationResponse200 = {

@@ -1,3 +1,4 @@
+import { handleBetterAuthRequest, getBetterAuthSession } from "../src/auth/better-auth";
 import { randomUUID } from "node:crypto";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
 import { Test } from "@nestjs/testing";
@@ -295,6 +296,19 @@ describe("RBAC authorization matrix (e2e)", () => {
       await pool.query(`DELETE FROM personal_access_tokens WHERE user_id = ANY($1::uuid[])`, [
         userIds,
       ]);
+      for (const [table, column] of [
+        ["session", "user_id"],
+        ["account", "user_id"],
+        ["twoFactor", "userId"],
+        ["user", "id"],
+        ["issue_comments", "user_id"],
+      ]) {
+        await pool.query(`DELETE FROM "${table}" WHERE "${column}" = ANY($1::uuid[])`, [userIds]);
+      }
+      await pool.query(
+        "DELETE FROM verification WHERE value = ANY($1::text[]) OR identifier = ANY($2::text[])",
+        [userIds, userIds.map((id) => `2fa-attempts-2fa-${id}`)],
+      );
       await pool.query(`DELETE FROM users WHERE id = ANY($1::uuid[])`, [userIds]);
     }
     if (app) await app.close();
@@ -699,6 +713,135 @@ describe("RBAC authorization matrix (e2e)", () => {
     expect(deleteInvitedRole.statusCode).toBe(409);
   });
 
+  it("revokes pending invitations within the organization and invalidates their links", async () => {
+    await createUser("revoke-viewer", "viewer");
+    const invite = await app.inject({
+      method: "POST",
+      url: `/api/organizations/${organizationSlug}/invitations`,
+      headers: authorization("owner"),
+      payload: { email: `non-member-${suffix}@example.test`, role: "viewer" },
+    });
+    expect(invite.statusCode).toBe(201);
+    const { invitation, token } = invite.json();
+    const url = `/api/organizations/${organizationSlug}/invitations/${invitation.id}`;
+    expect(
+      (await app.inject({ method: "DELETE", url, headers: authorization("revoke-viewer") }))
+        .statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await app.inject({
+          method: "DELETE",
+          url: `/api/organizations/${otherOrganizationSlug}/invitations/${invitation.id}`,
+          headers: authorization("owner"),
+        })
+      ).statusCode,
+    ).toBe(404);
+    const revoke = await app.inject({ method: "DELETE", url, headers: authorization("owner") });
+    expect(revoke.statusCode).toBe(200);
+    expect(revoke.json()).toEqual({ success: true });
+    const pending = await app.inject({
+      method: "GET",
+      url: `/api/organizations/${organizationSlug}/invitations`,
+      headers: authorization("owner"),
+    });
+    expect(pending.json().map((item: { id: string }) => item.id)).not.toContain(invitation.id);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/organizations/invitations/accept",
+          headers: authorization("non-member"),
+          payload: { token },
+        })
+      ).statusCode,
+    ).toBe(404);
+    expect(
+      (await app.inject({ method: "POST", url: `${url}/resend`, headers: authorization("owner") }))
+        .statusCode,
+    ).toBe(404);
+    expect(
+      (await app.inject({ method: "DELETE", url, headers: authorization("owner") })).statusCode,
+    ).toBe(404);
+  });
+
+  it("prevents an admin from revoking an owner invitation", async () => {
+    const invite = await app.inject({
+      method: "POST",
+      url: `/api/organizations/${organizationSlug}/invitations`,
+      headers: authorization("owner"),
+      payload: { email: `owner-invite-${suffix}@example.test`, role: "owner" },
+    });
+    expect(invite.statusCode).toBe(201);
+    const url = `/api/organizations/${organizationSlug}/invitations/${invite.json().invitation.id}`;
+    expect(
+      (await app.inject({ method: "DELETE", url, headers: authorization("admin") })).statusCode,
+    ).toBe(403);
+    expect(
+      (await app.inject({ method: "DELETE", url, headers: authorization("owner") })).statusCode,
+    ).toBe(200);
+  });
+
+  it("removes an accepted invitee through membership removal while preserving their account", async () => {
+    await createUser("accepted-invitee");
+    const invite = await app.inject({
+      method: "POST",
+      url: `/api/organizations/${organizationSlug}/invitations`,
+      headers: authorization("owner"),
+      payload: { email: `accepted-invitee-${suffix}@example.test`, role: "viewer" },
+    });
+    expect(invite.statusCode).toBe(201);
+    const { invitation, token } = invite.json();
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/organizations/invitations/accept",
+          headers: authorization("accepted-invitee"),
+          payload: { token },
+        })
+      ).statusCode,
+    ).toBe(201);
+    expect(
+      (
+        await app.inject({
+          method: "DELETE",
+          url: `/api/organizations/${organizationSlug}/invitations/${invitation.id}`,
+          headers: authorization("owner"),
+        })
+      ).statusCode,
+    ).toBe(404);
+    const member = await pool.query(
+      "SELECT id FROM organization_members WHERE organization_id = $1 AND user_id = $2",
+      [organizationId, userIdByLabel.get("accepted-invitee")],
+    );
+    expect(
+      (
+        await app.inject({
+          method: "DELETE",
+          url: `/api/organizations/${organizationSlug}/members/${member.rows[0].id}`,
+          headers: authorization("owner"),
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: `/api/organizations/${organizationSlug}`,
+          headers: authorization("accepted-invitee"),
+        })
+      ).statusCode,
+    ).toBe(404);
+    expect(
+      (
+        await pool.query("SELECT id FROM users WHERE id = $1", [
+          userIdByLabel.get("accepted-invitee"),
+        ])
+      ).rowCount,
+    ).toBe(1);
+  });
+
   it("enforces the database role-key length before persistence", async () => {
     const response = await app.inject({
       method: "POST",
@@ -883,6 +1026,192 @@ describe("RBAC authorization matrix (e2e)", () => {
       headers: authorization("owner"),
     });
     expect(after.json()).toEqual(before.json());
+  });
+
+  it("deletes Better Auth and application user data, invalidates credentials, and frees the email", async () => {
+    const email = `delete-user-${suffix}@example.test`;
+    const invite = await app.inject({
+      method: "POST",
+      url: `/api/organizations/${organizationSlug}/invitations`,
+      headers: authorization("owner"),
+      payload: { email, role: "viewer" },
+    });
+    expect(invite.statusCode).toBe(201);
+    const signup = (token: string) =>
+      handleBetterAuthRequest(
+        new Request(
+          `${process.env.BETTER_AUTH_URL ?? "http://localhost:3002/api/better-auth"}/sign-up/email`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json", "x-invitation-token": token },
+            body: JSON.stringify({ email, password: "DeleteUserPassword42!", name: "Delete me" }),
+          },
+        ),
+      );
+    const registered = await signup(invite.json().token);
+    expect(registered.status).toBe(200);
+    const registeredBody = await registered.json();
+    const targetId = registeredBody.user.id as string;
+    userIds.push(targetId);
+    const cookie = registered.headers
+      .getSetCookie()
+      .map((entry) => entry.split(";")[0])
+      .join("; ");
+    expect(await getBetterAuthSession(new Headers({ cookie }))).not.toBeNull();
+    const pat = `pat_delete_${randomUUID()}`;
+    await pool.query(
+      "INSERT INTO personal_access_tokens (user_id, name, token_hash, token_preview) VALUES ($1, 'delete', $2, 'delete')",
+      [targetId, hashOpaqueToken(pat)],
+    );
+    await pool.query(
+      "INSERT INTO organization_members (organization_id, user_id, role) VALUES ($1, $2, 'viewer')",
+      [organizationId, targetId],
+    );
+    await pool.query(
+      "INSERT INTO team_members (organization_id, team_id, user_id, role) VALUES ($1, $2, $3, 'viewer')",
+      [organizationId, teamId, targetId],
+    );
+    await pool.query(
+      `INSERT INTO "twoFactor" (secret, "backupCodes", "userId") VALUES ('secret', 'backup', $1)`,
+      [targetId],
+    );
+    await pool.query(
+      "INSERT INTO verification (identifier, value, expires_at) VALUES ($1, $2, NOW() + INTERVAL '1 hour'), ($3, '0', NOW() + INTERVAL '1 hour')",
+      [`2fa-${targetId}`, targetId, `2fa-attempts-2fa-${targetId}`],
+    );
+    await pool.query(
+      "INSERT INTO project_saved_searches (organization_id, project_id, user_id, name) VALUES ($1, $2, $3, 'private')",
+      [organizationId, projectId, targetId],
+    );
+    await pool.query(
+      "INSERT INTO issue_comments (organization_id, project_id, issue_id, user_id, body) VALUES ($1, $2, $3, $4, 'private comment')",
+      [organizationId, projectId, issueId, targetId],
+    );
+    await pool.query("UPDATE issues SET assigned_user_id = $1 WHERE id = $2", [targetId, issueId]);
+    const url = `/api/instance-admin/users/${targetId}`;
+    const payload = { confirmationEmail: email };
+    expect(
+      (await app.inject({ method: "DELETE", url, headers: authorization("admin"), payload }))
+        .statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await app.inject({
+          method: "DELETE",
+          url,
+          headers: authorization("owner"),
+          payload: { confirmationEmail: "wrong" },
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (await app.inject({ method: "DELETE", url, headers: authorization("owner"), payload }))
+        .statusCode,
+    ).toBe(200);
+    for (const [table, column] of [
+      ["users", "id"],
+      ["user", "id"],
+      ["session", "user_id"],
+      ["account", "user_id"],
+      ["twoFactor", "userId"],
+      ["personal_access_tokens", "user_id"],
+      ["organization_members", "user_id"],
+      ["team_members", "user_id"],
+      ["project_saved_searches", "user_id"],
+      ["issue_comments", "user_id"],
+    ]) {
+      expect(
+        (await pool.query(`SELECT 1 FROM "${table}" WHERE "${column}" = $1`, [targetId])).rowCount,
+      ).toBe(0);
+    }
+    expect(
+      (
+        await pool.query("SELECT 1 FROM verification WHERE value = $1 OR identifier = $2", [
+          targetId,
+          `2fa-attempts-2fa-${targetId}`,
+        ])
+      ).rowCount,
+    ).toBe(0);
+    expect((await pool.query("SELECT 1 FROM invitations WHERE email = $1", [email])).rowCount).toBe(
+      0,
+    );
+    expect(
+      (await pool.query("SELECT assigned_user_id FROM issues WHERE id = $1", [issueId])).rows[0]
+        .assigned_user_id,
+    ).toBeNull();
+    expect(await getBetterAuthSession(new Headers({ cookie }))).toBeNull();
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: "/api/auth/me",
+          headers: { authorization: `Bearer ${pat}` },
+        })
+      ).statusCode,
+    ).toBe(401);
+    const reinvite = await app.inject({
+      method: "POST",
+      url: `/api/organizations/${organizationSlug}/invitations`,
+      headers: authorization("owner"),
+      payload: { email, role: "viewer" },
+    });
+    const recreated = await signup(reinvite.json().token);
+    expect(recreated.status).toBe(200);
+    const newId = (await recreated.json()).user.id;
+    userIds.push(newId);
+    expect(newId).not.toBe(targetId);
+    expect(
+      (
+        await app.inject({
+          method: "DELETE",
+          url: `/api/instance-admin/users/${newId}`,
+          headers: authorization("owner"),
+          payload,
+        })
+      ).statusCode,
+    ).toBe(200);
+  });
+
+  it("protects self-deletion and sole organization owners before deleting anything", async () => {
+    expect(
+      (
+        await app.inject({
+          method: "DELETE",
+          url: `/api/instance-admin/users/${userIdByLabel.get("owner")}`,
+          headers: authorization("owner"),
+          payload: { confirmationEmail: `owner-${suffix}@example.test` },
+        })
+      ).statusCode,
+    ).toBe(403);
+    await createUser("deletable-owner", "owner");
+    const targetId = userIdByLabel.get("deletable-owner")!;
+    await pool.query("UPDATE organizations SET owner_user_id = $1 WHERE id = $2", [
+      targetId,
+      otherOrganizationId,
+    ]);
+    const url = `/api/instance-admin/users/${targetId}`;
+    const payload = { confirmationEmail: `deletable-owner-${suffix}@example.test` };
+    expect(
+      (await app.inject({ method: "DELETE", url, headers: authorization("owner"), payload }))
+        .statusCode,
+    ).toBe(409);
+    expect((await pool.query("SELECT 1 FROM users WHERE id = $1", [targetId])).rowCount).toBe(1);
+    await pool.query("UPDATE organizations SET owner_user_id = $1 WHERE id = $2", [
+      userIdByLabel.get("owner"),
+      otherOrganizationId,
+    ]);
+    await pool.query("UPDATE organizations SET owner_user_id = $1 WHERE id = $2", [
+      targetId,
+      organizationId,
+    ]);
+    expect(
+      (await app.inject({ method: "DELETE", url, headers: authorization("owner"), payload }))
+        .statusCode,
+    ).toBe(200);
+    expect(
+      (await pool.query("SELECT owner_user_id FROM organizations WHERE id = $1", [organizationId]))
+        .rows[0].owner_user_id,
+    ).toBe(userIdByLabel.get("owner"));
   });
 
   it("serializes concurrent super-admin demotions", async () => {

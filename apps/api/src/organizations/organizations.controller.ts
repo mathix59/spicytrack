@@ -321,6 +321,25 @@ export class OrganizationsController {
     });
   }
 
+  @Delete(":orgSlug/invitations/:invitationId")
+  @ApiOperation({ operationId: "revokeOrganizationInvitation" })
+  @ApiParam({ name: "orgSlug", type: String })
+  @ApiParam({ name: "invitationId", type: String })
+  @UseGuards(OrganizationContextGuard, PermissionGuard)
+  @RequirePermissions("org.members.remove")
+  @ApiOkResponse({ type: SuccessDto })
+  async revokeInvitation(
+    @CurrentOrganization() organization: OrganizationRecord,
+    @CurrentUser() user: UserRecord,
+    @Param("invitationId") invitationId: string,
+  ) {
+    return this.organizationsService.revokeInvitation({
+      organizationId: organization.id,
+      actorUserId: user.id,
+      invitationId,
+    });
+  }
+
   @Post("invitations/accept")
   @ApiOperation({ operationId: "acceptOrganizationInvitation" })
   @ApiBody({ type: AcceptInvitationBodyDto })

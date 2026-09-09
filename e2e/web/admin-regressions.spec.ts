@@ -279,3 +279,104 @@ test("SMTP connection is tested only on click using unsaved form values", async 
   expect(calls[1]).toMatchObject({ smtpPass: "new-secret" });
   expect(writes).toBe(0);
 });
+
+test("pending invitation can be revoked after confirmation and stays removed after refresh", async ({
+  page,
+}) => {
+  await mockApi(page);
+  const organization = {
+    id: "org-id",
+    slug: "acme",
+    name: "Acme",
+    role: "owner",
+    permissions: ["org.members.read", "org.members.remove"],
+  };
+  await page.route("**/api/auth/me", (route) =>
+    route.fulfill({ json: { ...profile, memberships: [organization] } }),
+  );
+  await page.route("**/api/organizations/acme", (route) => route.fulfill({ json: organization }));
+  let pending = [
+    {
+      id: "invite-id",
+      email: "pending@example.test",
+      role: "viewer",
+      createdAt: "2026-09-09",
+      expiresAt: "2026-09-16",
+    },
+  ];
+  let attempts = 0;
+  await page.route("**/api/organizations/acme/invitations", (route) =>
+    route.fulfill({ json: pending }),
+  );
+  await page.route("**/api/organizations/acme/invitations/invite-id", async (route) => {
+    expect(route.request().method()).toBe("DELETE");
+    attempts++;
+    if (attempts === 1) return route.fulfill({ status: 403, json: { message: "Forbidden" } });
+    pending = [];
+    await route.fulfill({ json: { success: true } });
+  });
+  await page.goto("/orgs/acme?tab=members");
+  await expect(page.getByRole("button", { name: "Resend", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Revoke invitation", exact: true }).click();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  expect(attempts).toBe(0);
+  await page.getByRole("button", { name: "Revoke invitation", exact: true }).click();
+  await page.getByRole("button", { name: "Confirm revocation" }).click();
+  await expect(page.getByRole("alert")).toContainText("Could not revoke");
+  await page.getByRole("button", { name: "Confirm revocation" }).click();
+  await expect(page.getByText("pending@example.test", { exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText("Pending invitations", { exact: true })).toHaveCount(0);
+  expect(attempts).toBe(2);
+});
+
+test("instance admin permanently deletes a user only after typing their email", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.route("**/api/instance-admin/settings", (route) => route.fulfill({ json: settings }));
+  const user = {
+    id: "delete-user",
+    name: "Delete me",
+    email: "delete@example.test",
+    isSuperAdmin: false,
+    createdAt: "2026-09-09",
+  };
+  let deleted = false;
+  let attempts = 0;
+  await page.route("**/api/instance-admin/users?*", (route) =>
+    route.fulfill({
+      json: { items: deleted ? [] : [user], total: deleted ? 0 : 1, page: 1, pageSize: 20 },
+    }),
+  );
+  await page.route("**/api/instance-admin/users/delete-user", async (route) => {
+    expect(route.request().method()).toBe("DELETE");
+    expect(route.request().postDataJSON()).toEqual({ confirmationEmail: user.email });
+    attempts++;
+    if (attempts === 1)
+      return route.fulfill({
+        status: 409,
+        json: {
+          message: "Transfer organization ownership to another member before deleting this user.",
+        },
+      });
+    deleted = true;
+    await route.fulfill({ json: { success: true } });
+  });
+  await page.goto("/admin");
+  await page.getByRole("tab", { name: "Users", exact: true }).click();
+  await page.getByRole("button", { name: "Delete user", exact: true }).click();
+  const confirm = page.getByRole("button", { name: "Delete permanently", exact: true });
+  await expect(confirm).toBeDisabled();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  expect(attempts).toBe(0);
+  await page.getByRole("button", { name: "Delete user", exact: true }).click();
+  await page.getByLabel(`Type ${user.email} to confirm`).fill(user.email);
+  await confirm.click();
+  await expect(page.getByRole("alert")).toContainText("Transfer organization ownership");
+  await confirm.click();
+  await expect(page.getByText(user.email, { exact: true })).toHaveCount(0);
+  await page.reload();
+  await page.getByRole("tab", { name: "Users", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Delete user", exact: true })).toHaveCount(0);
+});

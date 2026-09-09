@@ -384,6 +384,46 @@ export class OrganizationsService {
     });
   }
 
+  async revokeInvitation(input: {
+    organizationId: string;
+    actorUserId: string;
+    invitationId: string;
+  }) {
+    await this.db.transaction(async (tx) => {
+      const [invitation] = await tx
+        .select()
+        .from(invitations)
+        .where(
+          and(
+            eq(invitations.id, input.invitationId),
+            eq(invitations.organizationId, input.organizationId),
+            sql`${invitations.acceptedAt} IS NULL`,
+            sql`${invitations.revokedAt} IS NULL`,
+          ),
+        )
+        .for("update")
+        .limit(1);
+      if (!invitation) throw new NotFoundException("Invitation not found");
+      const [actor, targetRole] = await Promise.all([
+        this.getActorRolePolicy(input.organizationId, input.actorUserId),
+        this.getRolePolicy(input.organizationId, invitation.role),
+      ]);
+      assertRoleManageable(actor, targetRole);
+      await tx
+        .update(invitations)
+        .set({ revokedAt: new Date() })
+        .where(eq(invitations.id, invitation.id));
+    });
+    await this.auditService.record({
+      organizationId: input.organizationId,
+      actorUserId: input.actorUserId,
+      action: "organization.invitation.revoked",
+      targetType: "invitation",
+      targetId: input.invitationId,
+    });
+    return { success: true };
+  }
+
   async acceptInvitation(input: { token: string; userId: string }) {
     const tokenHash = createHash("sha256").update(input.token).digest("hex");
     return this.db.transaction(async (tx) => {

@@ -25,6 +25,8 @@ type OrganizationMembersState = {
   invitations: OrganizationInvitationDto[];
   roles: OrganizationRoleDto[];
   canManageMembers: boolean;
+  canInviteMembers: boolean;
+  canRemoveMembers: boolean;
   canManageRoles: boolean;
   inviteOpen: boolean;
   inviteError: string | null;

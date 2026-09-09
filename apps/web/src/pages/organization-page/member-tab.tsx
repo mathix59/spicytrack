@@ -19,6 +19,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
+import { RevokeInvitationDialog } from "./revoke-invitation-dialog";
 import type { OrganizationMembersState } from "./types";
 
 function OrganizationMemberTab({
@@ -32,7 +33,7 @@ function OrganizationMemberTab({
     <Card>
       <OrganizationSectionHeader
         action={
-          state.canManageMembers ? (
+          state.canInviteMembers ? (
             <Dialog onOpenChange={state.setInviteOpen} open={state.inviteOpen}>
               <DialogTrigger asChild>
                 <Button size="sm">
@@ -96,15 +97,20 @@ function OrganizationMemberTab({
                     {state.roles.find((role) => role.key === invitation.role)?.name ??
                       invitation.role}
                   </Badge>
-                  <Button
-                    disabled={state.isResendingInvitation}
-                    onClick={() => state.resendInvitation(invitation.id)}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    Resend
-                  </Button>
+                  {state.canInviteMembers && (
+                    <Button
+                      disabled={state.isResendingInvitation}
+                      onClick={() => state.resendInvitation(invitation.id)}
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                    >
+                      Resend
+                    </Button>
+                  )}
+                  {state.canRemoveMembers && (
+                    <RevokeInvitationDialog orgSlug={orgSlug} invitation={invitation} />
+                  )}
                 </div>
               </div>
             ))}

@@ -1,3 +1,4 @@
+import { DeleteUserDialog } from "./delete-user-dialog";
 import { useState } from "react";
 import { Shield, UserRound } from "lucide-react";
 import { OrganizationSectionHeader } from "@/components/organizations/organization-section-header";
@@ -43,15 +44,23 @@ export function UsersTab({
                 <p className="text-sm text-muted-foreground">{user.email}</p>
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <Shield className="size-4 text-primary" />
-              Super-admin
-              <Switch
-                aria-label={`Super-admin access for ${user.email}`}
-                checked={user.isSuperAdmin}
-                onCheckedChange={(v) => void onChangeRole(user.id, v)}
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <Shield className="size-4 text-primary" />
+                Super-admin
+                <Switch
+                  aria-label={`Super-admin access for ${user.email}`}
+                  checked={user.isSuperAdmin}
+                  onCheckedChange={(v) => void onChangeRole(user.id, v)}
+                />
+              </label>
+              <DeleteUserDialog
+                user={user}
+                onDeleted={() =>
+                  onSearch(search, users.length === 1 ? Math.max(1, page - 1) : page)
+                }
               />
-            </label>
+            </div>
           </div>
         ))}
         <div className="flex items-center justify-between pt-4 text-sm text-muted-foreground">
