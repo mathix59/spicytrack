@@ -1,3 +1,11 @@
+## 1.1.8
+
+### Patch Changes
+
+- Fix issue pagination and prevent long issue titles from overflowing the page. Show original source context and columns from source maps, distinguish library frames, and surface failed outgoing requests with their URLs, status codes, repetition counts, and timing above the stack trace.
+
+  Refresh invitation, password reset, and email verification messages with English SpicyTrack templates, the brand icon, clear action buttons, and plain-text fallbacks. Apply the shared email layout to alert notifications.
+
 ## 1.1.7
 
 ### Patch Changes

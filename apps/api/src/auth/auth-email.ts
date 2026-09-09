@@ -7,9 +7,10 @@ type AuthEmail = {
   to: string;
   subject: string;
   text: string;
+  html: string;
 };
 
-export async function sendAuthEmail({ to, subject, text }: AuthEmail) {
+export async function sendAuthEmail({ to, subject, text, html }: AuthEmail) {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const result = await pool
     .query(
@@ -50,5 +51,6 @@ export async function sendAuthEmail({ to, subject, text }: AuthEmail) {
     to,
     subject,
     text,
+    html,
   });
 }

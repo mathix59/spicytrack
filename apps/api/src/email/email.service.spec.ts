@@ -25,7 +25,11 @@ describe("SMTP delivery", () => {
 
   it("sends mail without a separate verification connection", async () => {
     await service.send(message);
-    expect(sendMail).toHaveBeenCalledWith({ from: "noreply@spicytrack.local", ...message });
+    expect(sendMail).toHaveBeenCalledWith({
+      from: "noreply@spicytrack.local",
+      ...message,
+      html: expect.stringContaining("<!doctype html>"),
+    });
     expect(verify).not.toHaveBeenCalled();
     expect(close).toHaveBeenCalledTimes(1);
   });
@@ -34,6 +38,15 @@ describe("SMTP delivery", () => {
     sendMail.mockRejectedValue(new Error("delivery failed"));
     await expect(service.send(message)).rejects.toThrow("delivery failed");
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("delivers the dedicated HTML template alongside its plain-text fallback", async () => {
+    const invitation = {
+      ...message,
+      html: '<p><a href="https://example.test/invite?token=abc">Accept invitation</a></p>',
+    };
+    await service.send(invitation);
+    expect(sendMail).toHaveBeenCalledWith({ from: "noreply@spicytrack.local", ...invitation });
   });
 
   it("handles unconfigured SMTP without opening a connection", async () => {

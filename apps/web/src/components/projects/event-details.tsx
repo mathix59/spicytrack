@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import {
+  BreadcrumbsSection,
   ContextsSection,
   DetailsSection,
   HttpRequestSection,
@@ -9,10 +10,19 @@ import {
   TagsSection,
 } from "./event-details/sections";
 import type { PayloadRecord } from "./event-details/types";
-import { asRecord, omit, toContextEntries, toEntries, toPackages } from "./event-details/utils";
+import {
+  asRecord,
+  omit,
+  toBreadcrumbs,
+  toContextEntries,
+  toEntries,
+  toPackages,
+} from "./event-details/utils";
 
 function EventDetails({ rawPayload }: { rawPayload: PayloadRecord }) {
   const request = asRecord(rawPayload.request);
+  const breadcrumbs = toBreadcrumbs(rawPayload.breadcrumbs);
+  const extra = asRecord(rawPayload.extra);
   const tags = toEntries(rawPayload.tags);
   const contexts = asRecord(rawPayload.contexts);
   const user = asRecord(rawPayload.user);
@@ -22,13 +32,27 @@ function EventDetails({ rawPayload }: { rawPayload: PayloadRecord }) {
   const contextEntries = toContextEntries(contexts);
   const [showAllPackages, setShowAllPackages] = useState(false);
 
-  if (!request && tags.length === 0 && !contexts && !user && !sdk) {
+  if (
+    !request &&
+    breadcrumbs.length === 0 &&
+    !extra &&
+    tags.length === 0 &&
+    !contexts &&
+    !user &&
+    !sdk
+  ) {
     return null;
   }
 
   return (
     <div className="grid min-w-0 gap-3">
       {request ? <HttpRequestSection request={request} /> : null}
+      <BreadcrumbsSection breadcrumbs={breadcrumbs} />
+      {extra && Object.keys(extra).length > 0 ? (
+        <DetailsSection title="Additional data">
+          <KeyValueList value={extra} />
+        </DetailsSection>
+      ) : null}
 
       {sdkMetadata && Object.keys(sdkMetadata).length > 0 ? (
         <DetailsSection title="SDK">

@@ -23,7 +23,7 @@ function KeyValueList({ value }: { value: PayloadRecord }) {
       {Object.entries(value).map(([key, fieldValue]) => (
         <div className="contents" key={key}>
           <dt className="min-w-0 text-muted-foreground">{formatLabel(key)}</dt>
-          <dd className="min-w-0 break-words font-mono text-foreground">
+          <dd className="min-w-0 [overflow-wrap:anywhere] font-mono text-foreground">
             {displayValue(fieldValue)}
           </dd>
         </div>
@@ -42,6 +42,10 @@ function HttpRequestSection({ request }: { request: PayloadRecord }) {
 
   return (
     <DetailsSection title="HTTP Request">
+      <p className="mb-3 text-xs text-muted-foreground">
+        Request context captured by the SDK. In a browser this may be the current page; check HTTP
+        breadcrumbs below for outgoing requests.
+      </p>
       <KeyValueList value={mainFields} />
       {headers && Object.keys(headers).length > 0 ? (
         <details className="mt-3 min-w-0 rounded-md border border-border bg-muted/20 px-3 py-2">
@@ -53,6 +57,50 @@ function HttpRequestSection({ request }: { request: PayloadRecord }) {
           </div>
         </details>
       ) : null}
+    </DetailsSection>
+  );
+}
+
+function BreadcrumbsSection({ breadcrumbs }: { breadcrumbs: PayloadRecord[] }) {
+  if (breadcrumbs.length === 0) return null;
+
+  return (
+    <DetailsSection title="Breadcrumbs">
+      <p className="mb-3 text-xs text-muted-foreground">
+        Activity recorded before the error, in capture order. A failed request here is a diagnostic
+        clue, not necessarily the cause of this exception.
+      </p>
+      <ol className="grid min-w-0 gap-2">
+        {breadcrumbs.map((breadcrumb, index) => {
+          const data = asRecord(breadcrumb.data);
+          const status = Number(data?.status_code);
+          return (
+            <li className="min-w-0 rounded-md border border-border p-3" key={index}>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">{index + 1}</span>
+                <Badge
+                  variant="muted"
+                  className={status >= 400 ? "border-destructive text-destructive" : undefined}
+                >
+                  {displayValue(breadcrumb.category ?? breadcrumb.type ?? "event")}
+                </Badge>
+              </div>
+              <KeyValueList
+                value={Object.fromEntries(
+                  Object.entries(breadcrumb).filter(
+                    ([key]) => !["data", "category", "type"].includes(key),
+                  ),
+                )}
+              />
+              {data && Object.keys(data).length > 0 ? (
+                <div className="mt-2">
+                  <KeyValueList value={data} />
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
     </DetailsSection>
   );
 }
@@ -149,6 +197,7 @@ function ContextsSection({ contextEntries }: { contextEntries: [string, PayloadR
 }
 
 export {
+  BreadcrumbsSection,
   ContextsSection,
   DetailsSection,
   HttpRequestSection,

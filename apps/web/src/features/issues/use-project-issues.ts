@@ -1,6 +1,6 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 
 import {
   getListIssuesQueryKey,
@@ -59,19 +59,24 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     query: { enabled: true },
   });
   const deferredIssueSearch = useDeferredValue(issueSearch);
-  const issuesQuery = useListIssues(orgSlug, projectSlug, {
-    page,
-    pageSize,
-    q: deferredIssueSearch.trim().length > 0 ? deferredIssueSearch : undefined,
-    level: levelFilter !== "all" ? levelFilter : undefined,
-    status: statusFilter !== "all" ? statusFilter : undefined,
-    assignedUserId: assignedUserFilter !== "all" ? assignedUserFilter : undefined,
-    environment: environmentFilter !== "all" ? environmentFilter : undefined,
-    release: releaseFilter !== "all" ? releaseFilter : undefined,
-    isRegressed: regressedFilter === "all" ? undefined : regressedFilter === "true",
-    sortBy,
-    sortDir,
-  } as never);
+  const issuesQuery = useListIssues(
+    orgSlug,
+    projectSlug,
+    {
+      page,
+      pageSize,
+      q: deferredIssueSearch.trim().length > 0 ? deferredIssueSearch : undefined,
+      level: levelFilter !== "all" ? levelFilter : undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      assignedUserId: assignedUserFilter !== "all" ? assignedUserFilter : undefined,
+      environment: environmentFilter !== "all" ? environmentFilter : undefined,
+      release: releaseFilter !== "all" ? releaseFilter : undefined,
+      isRegressed: regressedFilter === "all" ? undefined : regressedFilter === "true",
+      sortBy,
+      sortDir,
+    } as never,
+    { query: { placeholderData: keepPreviousData } },
+  );
   const membersQuery = useListOrganizationMembers(orgSlug);
   const bulkUpdateIssueStatusMutation = useBulkUpdateIssueStatus({
     mutation: {
@@ -148,8 +153,10 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     sortDir !== "desc",
     pageSize !== 25,
   ].filter(Boolean).length;
-  const totalIssuePages = Math.max(1, Math.ceil(totalIssues / pageSize));
-  const safePage = Math.min(page, totalIssuePages);
+  const totalIssuePages = issuesPage ? Math.max(1, Math.ceil(totalIssues / pageSize)) : page;
+  // Missing or retained data is not a response for the requested page yet.
+  const safePage =
+    !issuesPage || issuesQuery.isPlaceholderData ? page : Math.min(page, totalIssuePages);
   const currentFilterSnapshot = useMemo<IssueFilterSnapshot>(
     () => ({
       q: issueSearch,

@@ -14,7 +14,7 @@ function IssueDetailPage() {
   }
 
   return (
-    <section className="grid gap-6">
+    <section className="grid min-w-0 grid-cols-1 gap-6">
       <IssueDetailHeader
         actions={page.actions}
         culprit={page.issue.culprit}
@@ -50,8 +50,8 @@ function IssueDetailPage() {
         </Alert>
       ) : null}
 
-      <div className="grid items-start gap-6 xl:grid-cols-[1fr_300px]">
-        <div className="grid gap-4">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid min-w-0 grid-cols-1 gap-4">
           <IssueEventsPanel events={page.events} />
           <IssueCommentsCard
             comments={page.comments}

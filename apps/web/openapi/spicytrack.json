@@ -6263,6 +6263,22 @@
             "type": "number",
             "nullable": true
           },
+          "preContext": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "contextLine": {
+            "type": "string",
+            "nullable": true
+          },
+          "postContext": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "resolved": {
             "type": "boolean"
           },

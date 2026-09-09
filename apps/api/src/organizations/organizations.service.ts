@@ -1,3 +1,4 @@
+import { invitationEmail } from "../email/email-template";
 import {
   ConflictException,
   ForbiddenException,
@@ -314,10 +315,10 @@ export class OrganizationsService {
       })
       .returning();
 
+    const organization = await this.getOrganization(input.organizationId);
     await this.emailService.send({
       to: invitation.email,
-      subject: "Invitation a rejoindre une organisation SpicyTrack",
-      text: `Tu as ete invite a rejoindre une organisation SpicyTrack avec le role ${invitation.role}. Accepte l'invitation (valable 7 jours) : ${this.buildInvitationLink(token)}`,
+      ...invitationEmail(this.buildInvitationLink(token), organization.name, invitation.role),
     });
 
     await this.auditService.record({

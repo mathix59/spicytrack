@@ -6,6 +6,16 @@ function asRecord(value: unknown): PayloadRecord | null {
     : null;
 }
 
+function toBreadcrumbs(value: unknown): PayloadRecord[] {
+  const values = Array.isArray(value) ? value : asRecord(value)?.values;
+  return Array.isArray(values)
+    ? values.flatMap((item) => {
+        const record = asRecord(item);
+        return record ? [record] : [];
+      })
+    : [];
+}
+
 function toEntries(value: unknown): [string, unknown][] {
   if (Array.isArray(value)) {
     return value.flatMap((entry) =>
@@ -69,4 +79,13 @@ function formatLabel(value: string) {
   return value.replaceAll("_", " ");
 }
 
-export { asRecord, displayValue, formatLabel, omit, toContextEntries, toEntries, toPackages };
+export {
+  asRecord,
+  displayValue,
+  formatLabel,
+  omit,
+  toBreadcrumbs,
+  toContextEntries,
+  toEntries,
+  toPackages,
+};

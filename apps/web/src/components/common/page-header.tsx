@@ -17,22 +17,27 @@ function PageHeader({
   icon?: LucideIcon;
 }) {
   return (
-    <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-      <div className="flex min-w-0 items-start gap-3">
+    <header className="flex min-w-0 flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
         {Icon ? (
           <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40 text-primary">
             <Icon className="size-5" />
           </div>
         ) : null}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {eyebrow ? (
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {eyebrow}
             </p>
           ) : null}
-          <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight">{title}</h1>
+          <h1
+            title={title}
+            className="mt-1 line-clamp-3 text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]"
+          >
+            {title}
+          </h1>
           {description ? (
-            <p className="mt-1.5 max-w-3xl text-sm leading-6 text-muted-foreground">
+            <p className="mt-1.5 max-w-3xl text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
               {description}
             </p>
           ) : null}

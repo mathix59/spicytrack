@@ -370,6 +370,10 @@ export interface ResolvedFrameDto {
   lineno: number;
   /** @nullable */
   colno?: number | null;
+  preContext?: string[];
+  /** @nullable */
+  contextLine?: string | null;
+  postContext?: string[];
   resolved: boolean;
   resolution: ResolvedFrameDtoResolution;
   diagnostic: string;

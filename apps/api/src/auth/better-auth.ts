@@ -1,3 +1,4 @@
+import { passwordResetEmail, verificationEmail } from "../email/email-template";
 import { betterAuth as createBetterAuth } from "better-auth";
 import { genericOAuth, twoFactor } from "better-auth/plugins";
 import { createHash, randomUUID } from "node:crypto";
@@ -146,8 +147,7 @@ const betterAuth = createBetterAuth({
       const url = appUrl("/verify-email", token);
       await sendAuthEmail({
         to: user.email,
-        subject: "Verify your SpicyTrack email address",
-        text: `Verify your email address by following this link: ${url}`,
+        ...verificationEmail(url),
       });
     },
   },
@@ -158,8 +158,7 @@ const betterAuth = createBetterAuth({
       const url = appUrl("/reset-password", token);
       await sendAuthEmail({
         to: user.email,
-        subject: "Reset your SpicyTrack password",
-        text: `Reset your password by following this link: ${url}`,
+        ...passwordResetEmail(url),
       });
     },
     password: {

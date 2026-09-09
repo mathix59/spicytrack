@@ -29,15 +29,19 @@ function extractFrames(
           ? resolvedFrames[index]
           : undefined;
 
-      return {
-        filename:
-          resolvedFrame?.resolved && resolvedFrame.filename
-            ? resolvedFrame.filename
-            : typeof frame.filename === "string"
-              ? frame.filename
+      const filename =
+        resolvedFrame?.resolved && resolvedFrame.filename
+          ? resolvedFrame.filename
+          : typeof frame.filename === "string"
+            ? frame.filename
+            : typeof frame.abs_path === "string"
+              ? frame.abs_path
               : typeof frame.module === "string"
                 ? frame.module
-                : "unknown",
+                : "unknown";
+      const mapped = resolvedFrame?.resolved && resolvedFrame.resolution === "sourcemap";
+      return {
+        filename,
         function:
           resolvedFrame?.resolved && resolvedFrame.function
             ? resolvedFrame.function
@@ -50,11 +54,19 @@ function extractFrames(
             : typeof frame.lineno === "number"
               ? frame.lineno
               : 0,
-        colno: typeof frame.colno === "number" ? frame.colno : null,
-        inApp: frame.in_app !== false,
-        preContext: asStringArray(frame.pre_context),
-        contextLine: typeof frame.context_line === "string" ? frame.context_line : null,
-        postContext: asStringArray(frame.post_context),
+        colno: resolvedFrame?.resolved
+          ? (resolvedFrame.colno ?? null)
+          : typeof frame.colno === "number"
+            ? frame.colno
+            : null,
+        inApp: frame.in_app !== false && !/(?:^|[\\/])node_modules[\\/]/.test(filename),
+        preContext: mapped ? (resolvedFrame.preContext ?? []) : asStringArray(frame.pre_context),
+        contextLine: mapped
+          ? (resolvedFrame.contextLine ?? null)
+          : typeof frame.context_line === "string"
+            ? frame.context_line
+            : null,
+        postContext: mapped ? (resolvedFrame.postContext ?? []) : asStringArray(frame.post_context),
         resolved: resolvedFrame ? resolvedFrame.resolved : null,
         resolution: resolvedFrame?.resolution ?? null,
         diagnostic: resolvedFrame?.diagnostic ?? null,

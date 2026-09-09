@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { desc, eq } from "drizzle-orm";
-import { originalPositionFor, TraceMap } from "@jridgewell/trace-mapping";
+import { originalPositionFor, sourceContentFor, TraceMap } from "@jridgewell/trace-mapping";
 import path from "node:path";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
@@ -22,6 +22,9 @@ export interface ResolvedFrame {
   function?: string | null;
   lineno: number;
   colno?: number | null;
+  preContext?: string[];
+  contextLine?: string | null;
+  postContext?: string[];
   resolved: boolean;
   resolution: FrameResolution;
   diagnostic:
@@ -156,7 +159,8 @@ function traceMapFromDataUrl(reference: string): TraceMap | null {
 
 function canonicalSourcePath(value: string): string {
   let source = value.replaceAll("\\", "/");
-  source = source.replace(/^(?:webpack|webpack-internal|vite|ng):\/+/i, "");
+  source = source.replace(/^(?:webpack|webpack-internal|turbopack|vite|ng):\/+/i, "");
+  source = source.replace(/^\[project\]\//, "");
   source = source.replace(/^\([^)]*\)\//, "");
   source = source.replace(/^(?:_N_E|webpack)\//, "");
   source = source.replace(/^[^/]+\/\.\//, "");
@@ -299,7 +303,14 @@ export class SourcemapResolverService {
 
       if (!original.source || original.line == null) return unresolved("position_not_found");
 
+      const source = sourceContentFor(traceMap, original.source);
+      const lines = source?.split(/\r?\n/);
+      const index = original.line - 1;
+      const hasContext = lines !== undefined && index >= 0 && index < lines.length;
       return {
+        preContext: hasContext ? lines.slice(Math.max(0, index - 3), index) : [],
+        contextLine: hasContext ? lines[index] : null,
+        postContext: hasContext ? lines.slice(index + 1, index + 4) : [],
         filename: canonicalSourcePath(original.source),
         function: original.name ?? frame.function,
         lineno: original.line,

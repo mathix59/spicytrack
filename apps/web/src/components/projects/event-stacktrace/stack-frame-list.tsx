@@ -28,6 +28,14 @@ function StackFrameList({
         Stack trace
         <span className="ml-2 normal-case tracking-normal">most recent call first</span>
       </div>
+      {!frames.some(
+        (frame) => frame.inApp && (frame.resolved !== false || frame.contextLine !== null),
+      ) && (
+        <p className="border-b border-border px-4 py-3 text-sm text-muted-foreground">
+          No application source could be resolved in this stack. Check the release artifacts and
+          captured frames; source maps cannot recover calls absent from the event.
+        </p>
+      )}
       {frames.map((frame, index) => {
         const hasContext = frame.contextLine !== null;
         const isExpanded = expanded.has(index);
@@ -41,10 +49,12 @@ function StackFrameList({
             <button
               className={cn(
                 "flex w-full items-center gap-2 px-4 py-2 text-left text-sm",
-                hasContext ? "transition-colors hover:bg-accent/50" : "cursor-default",
+                "transition-colors hover:bg-accent/50",
                 !frame.inApp && "opacity-60",
               )}
-              onClick={hasContext ? () => onToggle(index) : undefined}
+              onClick={() => onToggle(index)}
+              aria-expanded={isExpanded}
+              title={`${frame.filename}:${frame.lineno}:${frame.colno ?? 0}`}
               type="button"
             >
               {hasContext ? (
@@ -79,6 +89,28 @@ function StackFrameList({
               ) : null}
             </button>
 
+            {isExpanded && (
+              <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                <p className="font-mono">
+                  {frame.filename}
+                  {frame.function ? ` in ${frame.function}` : ""} at line {frame.lineno}
+                  {frame.colno != null ? `:${frame.colno}` : ""}
+                </p>
+                {!hasContext && (
+                  <p className="mt-2">
+                    {frame.resolution === "sourcemap" && frame.resolved
+                      ? "Location resolved, but this source map does not include the original source text."
+                      : frame.diagnostic === "artifact_not_found"
+                        ? "No uploaded artifact matches this script in the event's release. It may be an external or injected script."
+                        : frame.diagnostic === "no_release"
+                          ? "This event has no release. Associate it with the release containing its source maps."
+                          : frame.diagnostic === "no_artifacts"
+                            ? "No artifacts are uploaded for this event's release."
+                            : "Source code is unavailable for this frame."}
+                  </p>
+                )}
+              </div>
+            )}
             {hasContext && isExpanded ? (
               <div className="overflow-x-auto border-t border-border bg-muted/20 font-mono text-[13px] leading-6">
                 {frame.preContext.map((line, lineIndex) => (

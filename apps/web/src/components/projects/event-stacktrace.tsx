@@ -1,4 +1,5 @@
 import { EventDetails } from "@/components/projects/event-details";
+import { FailedRequests } from "./event-details/failed-requests";
 
 import { RawPayloadCard } from "./event-stacktrace/raw-payload-card";
 import { StackFrameList } from "./event-stacktrace/stack-frame-list";
@@ -11,6 +12,7 @@ function EventStacktrace(props: EventStacktraceProps) {
   if (state.displayFrames.length === 0) {
     return (
       <div className="grid min-w-0 gap-3">
+        <FailedRequests rawPayload={props.rawPayload} />
         <EventDetails rawPayload={props.rawPayload} />
         <RawPayloadCard rawPayload={props.rawPayload} summary="No stack trace, view raw payload" />
       </div>
@@ -19,6 +21,7 @@ function EventStacktrace(props: EventStacktraceProps) {
 
   return (
     <div className="grid min-w-0 gap-3">
+      <FailedRequests rawPayload={props.rawPayload} />
       <StackFrameList
         expanded={state.expanded}
         frames={state.displayFrames}

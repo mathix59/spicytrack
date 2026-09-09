@@ -72,6 +72,63 @@ describe("SourcemapResolverService", () => {
     ]);
   });
 
+  it("returns original Turbopack source context around the mapped line", async () => {
+    const lines = [
+      "export async function load() {",
+      "  const url = '/api/data';",
+      "  return fetch(url);",
+      "}",
+      "",
+      "export default load;",
+    ];
+    const map = Buffer.from(
+      JSON.stringify({
+        version: 3,
+        sources: ["turbopack:///[project]/src/load.ts"],
+        sourcesContent: [lines.join("\n")],
+        names: ["load"],
+        mappings: "AAEAA",
+      }),
+    );
+    const service = serviceWith([artifact(".next/static/chunks/app.js.map", "map")], { map });
+    const [frame] = await service.resolveFrames({
+      releaseId: "release-id",
+      sdkName: "sentry.javascript.nextjs",
+      frames: [{ filename: "https://app.test/_next/static/chunks/app.js", lineno: 1, colno: 500 }],
+    });
+    expect(frame).toMatchObject({
+      filename: "src/load.ts",
+      lineno: 3,
+      colno: 0,
+      contextLine: lines[2],
+      preContext: lines.slice(0, 2),
+      postContext: lines.slice(3, 6),
+      resolved: true,
+    });
+  });
+
+  it("keeps mapped positions when the source map omits source text", async () => {
+    const map = Buffer.from(
+      JSON.stringify({
+        version: 3,
+        sources: ["turbopack:///[project]/src/load.ts"],
+        names: [],
+        mappings: "AAAA",
+      }),
+    );
+    const service = serviceWith([artifact("app.js.map", "map")], { map });
+    const [frame] = await service.resolveFrames({
+      releaseId: "release-id",
+      frames: [{ filename: "app.js", lineno: 1, colno: 0 }],
+    });
+    expect(frame).toMatchObject({
+      resolved: true,
+      contextLine: null,
+      preContext: [],
+      postContext: [],
+    });
+  });
+
   it("uses abs_path and relative sourceMappingURL references without basename collisions", async () => {
     const service = serviceWith(
       [

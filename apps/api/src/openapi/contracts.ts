@@ -998,6 +998,15 @@ export class ResolvedFrameDto {
   @ApiPropertyOptional({ type: Number, nullable: true })
   colno?: number | null;
 
+  @ApiPropertyOptional({ type: [String] })
+  preContext?: string[];
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  contextLine?: string | null;
+
+  @ApiPropertyOptional({ type: [String] })
+  postContext?: string[];
+
   @ApiProperty()
   resolved!: boolean;
 
