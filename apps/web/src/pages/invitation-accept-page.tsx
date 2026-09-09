@@ -15,27 +15,29 @@ function InvitationAcceptPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const token = searchParams.get("token") ?? "";
-  const hasRun = useRef(false);
+  const attemptedToken = useRef<string | null>(null);
+  const [retry, setRetry] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const meQuery = useGetMe({ query: { retry: false } });
   const acceptInvitationMutation = useAcceptOrganizationInvitation();
   const errorStatus = (meQuery.error as { status?: number } | null)?.status;
 
   useEffect(() => {
-    if (hasRun.current || !token || !meQuery.data?.data) {
+    if (attemptedToken.current === token || !token || meQuery.isFetching || !meQuery.data?.data) {
       return;
     }
 
-    hasRun.current = true;
+    attemptedToken.current = token;
     acceptInvitationMutation
       .mutateAsync({ data: { token } })
       .then(async () => {
         await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        sessionStorage.removeItem("spicytrack.authReturnTo");
         navigate("/app", { replace: true });
       })
       .catch((caughtError: unknown) => setError(getErrorMessage(caughtError)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meQuery.data, navigate, token]);
+  }, [meQuery.data, meQuery.isFetching, navigate, token, retry]);
 
   if (meQuery.isLoading) {
     return <LoadingScreen label="Checking your session..." />;
@@ -51,8 +53,14 @@ function InvitationAcceptPage() {
           </p>
           <AuthForm
             invitationToken={token}
-            onAuthenticated={() => {
-              void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+            onAuthenticated={async () => {
+              attemptedToken.current = null;
+              setError(null);
+              const session = await meQuery.refetch();
+              if (!session.data?.data)
+                throw new Error(
+                  "Unable to confirm your session. Please sign in to finish accepting the invitation.",
+                );
             }}
           />
         </div>
@@ -82,11 +90,15 @@ function InvitationAcceptPage() {
           {error ? (
             <Button
               className="mt-4 w-full"
-              onClick={() => navigate("/app")}
+              onClick={() => {
+                attemptedToken.current = null;
+                setError(null);
+                setRetry((value) => value + 1);
+              }}
               type="button"
               variant="secondary"
             >
-              Back to the app
+              Retry invitation
             </Button>
           ) : null}
         </CardContent>

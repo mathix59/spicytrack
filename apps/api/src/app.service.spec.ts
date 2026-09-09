@@ -47,6 +47,18 @@ describe("AppService health", () => {
     });
   });
 
+  it.each(["error", "checking"])("keeps the API ready while SMTP is %s", async (smtp) => {
+    const service = new AppService(
+      { query: jest.fn().mockResolvedValue({ rows: [] }) } as never,
+      { checkHealth: jest.fn().mockResolvedValue(undefined) } as never,
+      { checkHealth: jest.fn().mockResolvedValue(smtp) } as never,
+    );
+    await expect(service.getReadiness()).resolves.toMatchObject({
+      status: "ok",
+      dependencies: { smtp },
+    });
+  });
+
   it("exports lightweight Prometheus process and job metrics", async () => {
     const jobs = { getQueueSummary: jest.fn().mockResolvedValue(summary) };
     const service = new AppService(

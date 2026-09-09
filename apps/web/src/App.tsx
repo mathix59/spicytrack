@@ -138,6 +138,12 @@ function AuthGate() {
     if (stateReturnTo) sessionStorage.setItem(AUTH_RETURN_TO_KEY, stateReturnTo);
   }, [stateReturnTo]);
 
+  // Older authentication redirects retain the invitation as a return destination.
+  // Open that public page directly so its registration form retains the token.
+  if (returnTo && new URL(returnTo, window.location.origin).pathname === "/invitations/accept") {
+    return <Navigate to={returnTo} replace />;
+  }
+
   if (meQuery.isLoading) {
     return <LoadingScreen label="Loading your session..." />;
   }

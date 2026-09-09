@@ -744,6 +744,53 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   }
 });
 
+test("emailed invitations complete registration and recover an already-created account", async ({ page, browser }) => {
+  await signIn(page);
+  await refreshOrganizationFromServer(page);
+  const ownerApi = page.context().request;
+  for (const existing of [false, true]) {
+    const invitedEmail = `invitation-${existing}-${Date.now()}@example.test`;
+    const created = await ownerApi.post(`/api/organizations/${organization.slug}/invitations`, {
+      data: { email: invitedEmail, role: "member" },
+    });
+    expect(created.ok(), await created.text()).toBe(true);
+    let invitationUrl = "";
+    await expect.poll(async () => {
+      const search = await fetch(`${mailpitUrl}/api/v1/search?query=${encodeURIComponent(`to:${invitedEmail}`)}`);
+      const messages = (await search.json()) as { messages?: MailpitMessage[] };
+      if (!messages.messages?.[0]) return false;
+      const detail = await fetch(`${mailpitUrl}/api/v1/message/${messages.messages[0].ID}`);
+      const text = ((await detail.json()) as { Text: string }).Text;
+      invitationUrl = text.match(/https?:\/\/[^\s]+\/invitations\/accept\?token=[^\s]+/)?.[0] ?? "";
+      return Boolean(invitationUrl);
+    }).toBe(true);
+    const context = await browser.newContext();
+    try {
+      if (existing) {
+        const signup = await context.request.post(new URL("/api/better-auth/sign-up/email", invitationUrl).toString(), {
+          headers: { "x-invitation-token": new URL(invitationUrl).searchParams.get("token")! },
+          data: { email: invitedEmail, password, name: "Interrupted invitee" },
+        });
+        expect(signup.ok(), await signup.text()).toBe(true);
+        await context.clearCookies();
+      }
+      const invitee = await context.newPage();
+      await invitee.goto(invitationUrl);
+      await expect(invitee.getByText("Create your account", { exact: true })).toBeVisible();
+      await invitee.getByLabel("Name", { exact: true }).fill("Invited user");
+      await invitee.getByLabel("Email", { exact: true }).fill(invitedEmail);
+      await invitee.getByLabel("Password", { exact: true }).fill(password);
+      await invitee.getByRole("button", { name: "Create account", exact: true }).click();
+      await expect(invitee).toHaveURL(/\/app$/);
+      await expect(invitee.getByRole("link", { name: organization.name })).toBeVisible();
+      const pending = await json<Array<{ email: string }>>(await ownerApi.get(`/api/organizations/${organization.slug}/invitations`));
+      expect(pending.map(({ email }) => email)).not.toContain(invitedEmail);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
 test("symbolicates real HTTP events for popular frontend build layouts", async ({ page }) => {
   await signIn(page);
   await refreshOrganizationFromServer(page);

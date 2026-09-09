@@ -167,3 +167,78 @@ test("owner can delete an organization only after confirming its slug", async ({
   await expect(page).toHaveURL(/\/app$/);
   expect(deleted).toBe(true);
 });
+
+test("an interrupted invited signup resumes through the existing account", async ({ page }) => {
+  await mockApi(page);
+  let authenticated = false;
+  let accepted = false;
+  await page.route("**/api/auth/me", (route) =>
+    route.fulfill({
+      status: authenticated ? 200 : 401,
+      json: authenticated ? profile : { message: "Missing credentials" },
+    }),
+  );
+  await page.route("**/api/better-auth/sign-up/email", (route) =>
+    route.fulfill({
+      status: 422,
+      json: { code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL", message: "User already exists" },
+    }),
+  );
+  await page.route("**/api/better-auth/sign-in/email", async (route) => {
+    expect(route.request().postDataJSON()).toMatchObject({
+      email: "invitee@example.test",
+      password: "ExistingPassword42!",
+    });
+    authenticated = true;
+    await route.fulfill({ json: { token: "session", user: profile.user } });
+  });
+  await page.route("**/api/organizations/invitations/accept", async (route) => {
+    expect(authenticated).toBe(true);
+    expect(route.request().postDataJSON()).toEqual({ token: "pending-token" });
+    accepted = true;
+    await route.fulfill({ json: { success: true } });
+  });
+  // Reproduce a link preserved by the previous login redirect, including after refresh.
+  await page.addInitScript(() =>
+    sessionStorage.setItem("spicytrack.authReturnTo", "/invitations/accept?token=pending-token"),
+  );
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/invitations\/accept\?token=pending-token/);
+  await expect(page.getByText("Create your account", { exact: true })).toBeVisible();
+  await page.getByLabel("Name", { exact: true }).fill("Invitee");
+  await page.getByLabel("Email", { exact: true }).fill("invitee@example.test");
+  await page.getByLabel("Password", { exact: true }).fill("ExistingPassword42!");
+  await page.getByRole("button", { name: "Create account", exact: true }).click();
+  await expect(page).toHaveURL(/\/app$/);
+  expect(accepted).toBe(true);
+});
+
+test("an existing invited account still requires its correct password", async ({ page }) => {
+  await mockApi(page);
+  await page.route("**/api/auth/me", (route) => route.fulfill({ status: 401, json: {} }));
+  await page.route("**/api/better-auth/sign-up/email", (route) =>
+    route.fulfill({
+      status: 422,
+      json: { code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL", message: "User already exists" },
+    }),
+  );
+  await page.route("**/api/better-auth/sign-in/email", (route) =>
+    route.fulfill({
+      status: 401,
+      json: { code: "INVALID_EMAIL_OR_PASSWORD", message: "Invalid email or password" },
+    }),
+  );
+  let accepted = false;
+  await page.route("**/api/organizations/invitations/accept", (route) => {
+    accepted = true;
+    return route.fulfill({ json: {} });
+  });
+  await page.goto("/invitations/accept?token=pending-token");
+  await page.getByLabel("Email", { exact: true }).fill("invitee@example.test");
+  await page.getByLabel("Password", { exact: true }).fill("WrongPassword42!");
+  await page.getByRole("button", { name: "Create account", exact: true }).click();
+  await expect(page.getByText(/An account already exists for this email/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Forgot password?" })).toBeVisible();
+  expect(accepted).toBe(false);
+  await expect(page).toHaveURL(/token=pending-token/);
+});

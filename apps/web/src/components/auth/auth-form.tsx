@@ -15,7 +15,7 @@ function AuthForm({
   onAuthenticated,
   invitationToken,
 }: {
-  onAuthenticated: () => void;
+  onAuthenticated: () => void | Promise<void>;
   invitationToken?: string;
 }) {
   const state = useAuthForm({ onAuthenticated, invitationToken });

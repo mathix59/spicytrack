@@ -75,7 +75,10 @@ export class AppService {
     ]);
     const dependencies = Object.fromEntries(checks.map((check) => [check.name, check.status]));
     return {
-      status: checks.some((check) => check.status === "error") ? "error" : "ok",
+      // SMTP delivery is asynchronous: its diagnostic must not take the API out of service.
+      status: checks.some((check) => check.name !== "smtp" && check.status === "error")
+        ? "error"
+        : "ok",
       service: "api",
       timestamp: new Date().toISOString(),
       dependencies,

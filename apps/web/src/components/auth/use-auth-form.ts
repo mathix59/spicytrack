@@ -10,7 +10,7 @@ function useAuthForm({
   onAuthenticated,
   invitationToken,
 }: {
-  onAuthenticated: () => void;
+  onAuthenticated: () => void | Promise<void>;
   invitationToken?: string;
 }) {
   const [mode, setMode] = useState<AuthMode>(invitationToken ? "register" : "login");
@@ -65,7 +65,7 @@ function useAuthForm({
 
     try {
       setIsPending(true);
-      const result = await (mode === "login"
+      let result = await (mode === "login"
         ? authClient.signIn.email({
             email: payload.email,
             password: payload.password,
@@ -79,11 +79,30 @@ function useAuthForm({
             invitationToken ? { headers: { "x-invitation-token": invitationToken } } : undefined,
           ));
 
+      if (
+        invitationToken &&
+        mode === "register" &&
+        (result.error?.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" ||
+          (!result.error && !result.data?.token))
+      ) {
+        // Recover a signup that created the account but did not finish accepting the invitation.
+        // An existing account is only used after its password has been authenticated.
+        result = await authClient.signIn.email({
+          email: payload.email,
+          password: payload.password,
+        });
+        if (result.error) {
+          setMode("login");
+          throw new Error(
+            "An account already exists for this email. Sign in with its password or use Forgot password to continue accepting your invitation.",
+          );
+        }
+      }
       if (result.error) {
         throw new Error(result.error.message ?? "Authentication failed");
       }
 
-      onAuthenticated();
+      await onAuthenticated();
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
     } finally {

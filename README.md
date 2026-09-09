@@ -178,6 +178,12 @@ account has been created.
 For a deployment on Coolify, Dokploy, or another Compose-capable open-source PaaS, use
 [docker-compose.paas.yml](docker-compose.paas.yml) with [.env.paas.example](.env.paas.example).
 
+SMTP readiness is diagnostic: `/api/health/ready` remains available when mail verification
+fails. `dependencies.smtp` reports `checking`, `ok`, `error`, or `disabled`. Probes run in the
+background with a 20-second deadline and a 60-second cache; successful mail delivery refreshes
+the result. Database, storage and queue failures still make the API unready. TLS certificate
+verification remains enabled.
+
 ## Kubernetes
 
 The Helm chart in [charts/spicytrack](charts/spicytrack) supports application-only, hybrid, and
