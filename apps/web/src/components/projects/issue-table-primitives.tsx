@@ -62,9 +62,9 @@ function LevelDot({ value, className }: { value: string; className?: string }) {
     value === "fatal" || value === "error"
       ? "bg-destructive"
       : value === "warning"
-        ? "bg-amber-500"
+        ? "bg-warning"
         : value === "info"
-          ? "bg-sky-500"
+          ? "bg-info"
           : "bg-muted-foreground";
   return (
     <span
@@ -98,7 +98,7 @@ function AssigneeAvatar({ name }: { name: string | null }) {
 function IssueStateBadge({ value }: { value: string }) {
   const className =
     value === "resolved"
-      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+      ? "border-success/30 bg-success/10 text-success"
       : value === "ignored"
         ? "border-border bg-muted/30 text-muted-foreground"
         : "border-primary/30 bg-primary/10 text-primary";

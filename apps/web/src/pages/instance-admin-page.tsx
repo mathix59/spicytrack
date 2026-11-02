@@ -90,7 +90,7 @@ export function InstanceAdminPage() {
         title="Instance administration"
         description="Control access, delivery, and instance operators."
       />
-      {message && <p className="text-sm text-emerald-600">{message}</p>}
+      {message && <p className="text-sm text-success">{message}</p>}
       <Tabs defaultValue="general" className="grid gap-4">
         <TabsList className="w-fit">
           <TabsTrigger value="general">General</TabsTrigger>

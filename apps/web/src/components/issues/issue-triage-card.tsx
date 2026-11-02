@@ -49,11 +49,11 @@ function IssueTriageCard({
   const displayedTriage = triage ?? historyQuery.data?.[0] ?? null;
 
   return (
-    <Card className="overflow-hidden border-violet-500/20">
-      <CardHeader className="bg-gradient-to-r from-violet-500/[0.07] to-indigo-500/[0.03]">
+    <Card className="overflow-hidden border-primary/25">
+      <CardHeader className="bg-primary/5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <BrainCircuit className="size-4 text-violet-400" />
+            <BrainCircuit className="size-4 text-primary-accent" />
             <CardTitle className="text-base">AI triage</CardTitle>
           </div>
           {displayedTriage ? (
@@ -98,7 +98,7 @@ function IssueTriageCard({
               Turn the latest issue signals into an evidence-based investigation plan.
             </p>
             <Button
-              className="w-fit bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500"
+              className="w-fit"
               disabled={triageMutation.isPending}
               onClick={() => triageMutation.mutate()}
               size="sm"

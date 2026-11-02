@@ -60,10 +60,10 @@ function AccountTokenCard({
         ) : null}
 
         {createdSecret ? (
-          <Alert className="border-emerald-500/30">
+          <Alert className="border-success/30">
             <AlertDescription>
               <p className="font-medium text-foreground">Token created</p>
-              <p className="mt-1 text-xs text-emerald-500">
+              <p className="mt-1 text-xs text-success">
                 Copy it now - it won&apos;t be shown again.
               </p>
               <pre className="mt-3 overflow-x-auto rounded-md bg-muted px-3 py-2 text-xs text-foreground">

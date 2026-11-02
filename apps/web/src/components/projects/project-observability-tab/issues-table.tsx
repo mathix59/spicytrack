@@ -70,7 +70,7 @@ function IssuesTable({
             <article
               className={cn(
                 "rounded-lg border border-border bg-card p-4",
-                issue.isRegressed && "border-l-2 border-l-amber-400/60",
+                issue.isRegressed && "border-l-2 border-l-warning/60",
               )}
               key={issue.id}
             >
@@ -97,7 +97,7 @@ function IssuesTable({
               <div className="mt-3 flex flex-wrap items-center gap-2 pl-7">
                 {issue.status !== "open" ? <IssueStateBadge value={issue.status} /> : null}
                 {issue.isRegressed ? (
-                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+                  <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">
                     regression
                   </span>
                 ) : null}
@@ -171,7 +171,7 @@ function IssuesTable({
               <TableRow
                 className={cn(
                   "cursor-pointer",
-                  issue.isRegressed && "border-l-2 border-l-amber-400/60",
+                  issue.isRegressed && "border-l-2 border-l-warning/60",
                 )}
                 key={issue.id}
                 onClick={() => navigateToIssue(issue.id)}
@@ -192,7 +192,7 @@ function IssuesTable({
                         <span className="truncate text-sm font-medium">{issue.title}</span>
                         {issue.status !== "open" ? <IssueStateBadge value={issue.status} /> : null}
                         {issue.isRegressed ? (
-                          <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+                          <span className="shrink-0 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">
                             regression
                           </span>
                         ) : null}

@@ -443,7 +443,7 @@ function McpSettingsCard({
                     Enable MCP
                   </Button>
                 ) : (
-                  <span className="flex items-center gap-1 text-xs text-emerald-600">
+                  <span className="flex items-center gap-1 text-xs text-success">
                     <CheckCircle2 className="size-3.5" /> Enabled
                   </span>
                 )}
@@ -476,7 +476,7 @@ function McpSettingsCard({
                     <KeyRound className="size-3.5" /> Create a key
                   </Button>
                 ) : (
-                  <span className="flex items-center gap-1 text-xs text-emerald-600">
+                  <span className="flex items-center gap-1 text-xs text-success">
                     <CheckCircle2 className="size-3.5" /> Key copied into this setup
                   </span>
                 )}

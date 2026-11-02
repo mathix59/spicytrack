@@ -90,7 +90,7 @@ function IssueDetailHeader({
         <div className="h-6 w-px bg-border" />
         <div className="flex items-center rounded-lg border border-border bg-background p-1 shadow-sm">
           <Button
-            className="bg-emerald-700 text-white shadow-none hover:bg-emerald-600"
+            className="bg-success text-white shadow-none hover:bg-success"
             disabled={actions.isUpdatingStatus || status === "resolved"}
             onClick={() => void actions.updateStatus("resolved")}
             size="sm"

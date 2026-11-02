@@ -20,10 +20,10 @@ function AccountVerificationCard({
   }
 
   return (
-    <Card className="border-amber-500/30 bg-amber-500/5">
+    <Card className="border-warning/30 bg-warning/5">
       <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
         <div className="flex items-center gap-3">
-          <MailWarning className="size-5 text-amber-500" />
+          <MailWarning className="size-5 text-warning" />
           <div>
             <p className="text-sm font-medium">Email not verified</p>
             <p className="text-xs text-muted-foreground">

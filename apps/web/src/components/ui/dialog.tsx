@@ -31,7 +31,7 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-[min(96vw,34rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg",
+          "fixed top-1/2 left-1/2 z-50 grid max-h-[90vh] w-[min(96vw,34rem)] -translate-x-1/2 overflow-y-auto -translate-y-1/2 gap-4 rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg",
           className,
         )}
         {...props}

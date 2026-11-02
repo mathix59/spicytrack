@@ -14,9 +14,9 @@ const PRIORITIES = ["low", "medium", "high", "critical"] as const;
 function IssueToneBadge({ value }: { value: string }) {
   const className =
     value === "fatal" || value === "error"
-      ? "border-destructive/30 bg-destructive/10 text-red-300"
+      ? "border-destructive/30 bg-destructive/10 text-destructive"
       : value === "warning"
-        ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+        ? "border-warning/30 bg-warning/10 text-warning"
         : "border-border bg-muted/30 text-muted-foreground";
 
   return <IssueBadge className={className} value={value} />;
@@ -25,7 +25,7 @@ function IssueToneBadge({ value }: { value: string }) {
 function IssueStateBadge({ value }: { value: string }) {
   const className =
     value === "resolved"
-      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+      ? "border-success/30 bg-success/10 text-success"
       : value === "ignored"
         ? "border-border bg-muted/30 text-muted-foreground"
         : "border-primary/30 bg-primary/10 text-primary-accent";
@@ -90,22 +90,22 @@ function priorityLabel(value: string) {
 
 function priorityClass(value: string) {
   return value === "critical"
-    ? "border-rose-500/35 bg-rose-500/10 text-rose-300 hover:bg-rose-500/15"
+    ? "border-destructive/35 bg-destructive/10 text-destructive hover:bg-destructive/15"
     : value === "high"
-      ? "border-orange-500/35 bg-orange-500/10 text-orange-300 hover:bg-orange-500/15"
+      ? "border-warning/35 bg-warning/10 text-warning hover:bg-warning/15"
       : value === "low"
-        ? "border-slate-400/35 bg-slate-400/10 text-slate-300 hover:bg-slate-400/15"
-        : "border-blue-500/35 bg-blue-500/10 text-blue-300 hover:bg-blue-500/15";
+        ? "border-muted-foreground/35 bg-muted-foreground/10 text-muted-foreground hover:bg-muted-foreground/15"
+        : "border-info/35 bg-info/10 text-info hover:bg-info/15";
 }
 
 function priorityDotClass(value: string) {
   return value === "critical"
-    ? "bg-rose-500"
+    ? "bg-destructive"
     : value === "high"
-      ? "bg-orange-500"
+      ? "bg-warning"
       : value === "low"
-        ? "bg-slate-400"
-        : "bg-blue-500";
+        ? "bg-muted-foreground"
+        : "bg-info";
 }
 
 export { IssueStateBadge, IssueToneBadge, PriorityControl };

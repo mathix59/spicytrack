@@ -48,12 +48,12 @@ export function AppUpdateNotice({ enabled }: { enabled: boolean }) {
       <Dialog>
         <DialogTrigger asChild>
           <button
-            className="flex w-full items-center gap-2 rounded-md border border-emerald-500/35 bg-emerald-500/8 px-3 py-2.5 text-left text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-500/15 dark:text-emerald-400"
+            className="flex w-full items-center gap-2 rounded-md border border-success/35 bg-success/10 px-3 py-2.5 text-left text-sm font-medium text-success transition-colors hover:bg-success/15"
             type="button"
           >
             <Download className="size-4" />
             <span className="flex-1">Update available</span>
-            <span className="size-2 rounded-full bg-emerald-500" />
+            <span className="size-2 rounded-full bg-success" />
           </button>
         </DialogTrigger>
         <DialogContent>
@@ -72,13 +72,13 @@ export function AppUpdateNotice({ enabled }: { enabled: boolean }) {
             </div>
             <div>
               <p className="text-muted-foreground">Latest</p>
-              <p className="mt-1 font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+              <p className="mt-1 font-mono font-semibold text-success">
                 v{information.latestVersion}
               </p>
             </div>
           </div>
 
-          <div className="flex gap-3 rounded-md border border-blue-500/25 bg-blue-500/10 p-4 text-sm text-blue-700 dark:text-blue-300">
+          <div className="flex gap-3 rounded-md border border-info/25 bg-info/10 p-4 text-sm text-info">
             <Info className="mt-0.5 size-4 shrink-0" />
             <p>
               Back up PostgreSQL and object storage, then follow the instructions for your

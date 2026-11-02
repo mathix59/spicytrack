@@ -37,7 +37,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
 }
 
 function TableCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("px-4 py-4 align-middle", className)} {...props} />;
+  return <td className={cn("px-4 py-3 align-middle", className)} {...props} />;
 }
 
 export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow };

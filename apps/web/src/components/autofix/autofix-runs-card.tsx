@@ -19,11 +19,11 @@ function asOptionalNumber(value: unknown) {
 
 function statusVariant(status: string) {
   if (status === "failed") {
-    return "border-destructive/40 bg-destructive/10 text-red-300";
+    return "border-destructive/40 bg-destructive/10 text-destructive";
   }
 
   if (status === "succeeded") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
+    return "border-success/30 bg-success/10 text-success";
   }
 
   return "border-primary/30 bg-primary/10 text-primary-accent";

@@ -16,8 +16,14 @@ function Field({
   const generatedId = useId();
   const labelId = `${generatedId}-label`;
   const hintId = `${generatedId}-hint`;
+  const childProps = isValidElement(children)
+    ? (children.props as Record<string, unknown>)
+    : undefined;
+  // A real <label htmlFor> lets clicks on the label focus the control.
+  const controlId = (childProps?.id as string | undefined) ?? `${generatedId}-control`;
   const control = isValidElement(children)
     ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+        id: controlId,
         "aria-labelledby":
           (children.props as Record<string, unknown>)["aria-labelledby"] ?? labelId,
         ...(hint
@@ -36,9 +42,9 @@ function Field({
   return (
     <div className={cn("grid gap-1.5", className)}>
       <div className="grid gap-1">
-        <span className="text-sm font-medium text-foreground" id={labelId}>
+        <label className="text-sm font-medium text-foreground" htmlFor={controlId} id={labelId}>
           {label}
-        </span>
+        </label>
         {hint ? (
           <p className="text-xs text-muted-foreground" id={hintId}>
             {hint}

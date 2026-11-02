@@ -17,7 +17,7 @@ export function GeneralTab({
         title="Registration access"
         action={
           <span
-            className={`rounded-full px-2.5 py-1 text-xs font-medium ${open ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground"}`}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${open ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}
           >
             {open ? "Open" : "Closed"}
           </span>

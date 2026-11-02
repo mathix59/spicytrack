@@ -31,8 +31,8 @@ function ProjectAlertDeliveriesCard({ deliveries }: { deliveries: AlertDeliveryD
                     <Dot
                       className={
                         delivery.status === "success"
-                          ? "size-5 text-emerald-400"
-                          : "size-5 text-amber-400"
+                          ? "size-5 text-success"
+                          : "size-5 text-warning"
                       }
                     />
                     <p className="truncate font-medium">{deliveryTitle(delivery.payload)}</p>

@@ -125,8 +125,8 @@ function AuthModePanel({
 
         {mode === "forgot" && forgotSent ? (
           <div className="grid gap-4">
-            <Alert className="border-emerald-500/30 text-emerald-500">
-              <AlertDescription className="text-emerald-500">
+            <Alert className="border-success/30 text-success">
+              <AlertDescription className="text-success">
                 If an account exists for that email, a reset link is on its way.
               </AlertDescription>
             </Alert>
