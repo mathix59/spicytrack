@@ -1,5 +1,7 @@
 const BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3002";
 const API = `${BASE_URL}/api`;
+// Ingest runs as its own process (main-ingest) in split deployments.
+const INGEST_BASE_URL = process.env.INGEST_BASE_URL ?? BASE_URL;
 
 const PRIMARY_USER = {
   name: "Demo Owner",
@@ -75,7 +77,7 @@ const PROJECTS = [
         triggerTypes: ["event_threshold"],
         threshold: 10,
         destinationType: "webhook",
-        destinationTarget: `${BASE_URL}/api/health`,
+        destinationTarget: "https://hooks.example.com/spicytrack",
         cooldownMinutes: 10,
       },
     ],
@@ -310,37 +312,41 @@ async function api(method, path, body, token, init = {}) {
   return response.json();
 }
 
-async function authenticateUser(user) {
-  const registerResponse = await fetch(`${API}/auth/register`, {
+const WEB_ORIGIN = (process.env.WEB_ORIGIN ?? "http://localhost:5174").split(",")[0];
+
+async function betterAuthSession(path, body) {
+  const response = await fetch(`${API}/better-auth${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+    headers: { "Content-Type": "application/json", Origin: WEB_ORIGIN },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) return null;
+  const cookie = response.headers
+    .getSetCookie()
+    .map((header) => header.split(";")[0])
+    .join("; ");
+  return cookie || null;
+}
+
+// Signs the user up (or in) through Better Auth, then exchanges the session for a personal
+// access token so the rest of the seed can authenticate with a Bearer header.
+async function authenticateUser(user) {
+  const cookie =
+    (await betterAuthSession("/sign-up/email", {
       name: user.name,
       email: user.email,
       password: user.password,
-    }),
-  });
+    })) ??
+    (await betterAuthSession("/sign-in/email", { email: user.email, password: user.password }));
 
-  if (registerResponse.ok) {
-    const { session } = await registerResponse.json();
-    return session.token;
+  if (!cookie) {
+    throw new Error(`Could not register or sign in ${user.email}`);
   }
 
-  const loginResponse = await fetch(`${API}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: user.email,
-      password: user.password,
-    }),
+  const { secret } = await api("POST", "/auth/tokens", { name: "seed", expiresInDays: 1 }, null, {
+    headers: { Cookie: cookie, Origin: WEB_ORIGIN },
   });
-
-  if (!loginResponse.ok) {
-    throw new Error(`Could not register or log in ${user.email}: ${await loginResponse.text()}`);
-  }
-
-  const { session } = await loginResponse.json();
-  return session.token;
+  return secret;
 }
 
 async function ensureOrganization(ownerToken) {
@@ -539,7 +545,7 @@ function cryptoRandomId() {
 async function ingestTemplateEvents(project, template) {
   for (let index = 0; index < template.events; index += 1) {
     const response = await fetch(
-      `${BASE_URL}/api/${project.id}/store?sentry_key=${project.publicKey}`,
+      `${INGEST_BASE_URL}/api/${project.publicId}/store?sentry_key=${project.publicKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -716,6 +722,9 @@ async function main() {
 
   const orgSlug = await ensureOrganization(ownerToken);
   console.log(`Organization ready: ${orgSlug}`);
+
+  // Demo members sign up directly, which requires open registrations on the instance.
+  await api("PATCH", "/instance-admin/settings", { registrationsEnabled: true }, ownerToken);
 
   const members = await ensureMembers(ownerToken, orgSlug);
   console.log(`Members ready: ${members.length + 1}`);
