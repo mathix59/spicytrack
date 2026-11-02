@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
+import { QueryError } from "@/components/common/query-error";
 import { MemberAdminTable } from "@/components/organizations/member-admin-table";
 import { OrganizationSectionHeader } from "@/components/organizations/organization-section-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,6 +19,7 @@ import {
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SkeletonRows } from "@/components/ui/skeleton";
 
 import { RevokeInvitationDialog } from "./revoke-invitation-dialog";
 import type { OrganizationMembersState } from "./types";
@@ -72,27 +74,44 @@ function OrganizationMemberTab({
             </Dialog>
           ) : null
         }
-        count={state.members.length}
+        count={state.membersStatus.isLoading ? undefined : state.members.length}
         description="Organization roles control who can manage this organization. Team roles control project access."
         title="Members"
       />
       <CardContent className="grid gap-6">
-        <MemberAdminTable
-          canManage={state.canManageMembers}
-          members={state.members}
-          orgSlug={orgSlug}
-          roles={state.roles}
-        />
+        {state.membersStatus.isLoading ? (
+          <SkeletonRows rows={4} />
+        ) : state.membersStatus.error ? (
+          <QueryError
+            error={state.membersStatus.error}
+            onRetry={state.membersStatus.refetch}
+            title="Could not load members"
+          />
+        ) : (
+          <MemberAdminTable
+            canManage={state.canManageMembers}
+            members={state.members}
+            orgSlug={orgSlug}
+            roles={state.roles}
+          />
+        )}
+        {state.invitationsStatus.error ? (
+          <QueryError
+            error={state.invitationsStatus.error}
+            onRetry={state.invitationsStatus.refetch}
+            title="Could not load pending invitations"
+          />
+        ) : null}
         {state.invitations.length > 0 ? (
           <div className="grid gap-2">
             <p className="text-sm font-medium">Pending invitations</p>
             {state.invitations.map((invitation) => (
               <div
-                className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"
+                className="flex flex-col gap-2 rounded-lg border border-border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                 key={invitation.id}
               >
-                <span>{invitation.email}</span>
-                <div className="flex items-center gap-2">
+                <span className="min-w-0 truncate">{invitation.email}</span>
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="muted">
                     {state.roles.find((role) => role.key === invitation.role)?.name ??
                       invitation.role}

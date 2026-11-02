@@ -18,8 +18,8 @@ function OrganizationSectionHeader({
 }) {
   return (
     <CardHeader className={children ? "gap-4" : undefined}>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <CardTitle>{title}</CardTitle>
           {count !== undefined ? <Badge variant="muted">{count}</Badge> : null}
         </div>

@@ -92,7 +92,10 @@ function TeamCardHeader({
                 <Pencil className="size-4" />
                 Edit team
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onOpenDelete}>
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={onOpenDelete}
+              >
                 <Trash2 className="size-4" />
                 Delete team
               </DropdownMenuItem>

@@ -1,19 +1,10 @@
 import { X } from "lucide-react";
 
 import type { ProjectDto, TeamDto, TeamMemberDto, TeamRoleDto } from "@/generated/api";
-import { FormDialogActions } from "@/components/common/form-dialog-actions";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { cn, renderNullableText } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 function TeamCardExpanded({
   team,
@@ -21,7 +12,6 @@ function TeamCardExpanded({
   teamRoles,
   teamProjects,
   canManage,
-  error,
   isRemovingMember,
   onRemoveMember,
 }: {
@@ -30,7 +20,6 @@ function TeamCardExpanded({
   teamRoles: TeamRoleDto[];
   teamProjects: ProjectDto[];
   canManage: boolean;
-  error: string | null;
   isRemovingMember: boolean;
   onRemoveMember: (userId: string) => Promise<void>;
 }) {
@@ -66,28 +55,24 @@ function TeamCardExpanded({
                       renderNullableText(member.role, "member")}
                   </Badge>
                   {canManage ? (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button size="sm" type="button" variant="ghost">
+                    <ConfirmDialog
+                      confirmLabel="Remove from team"
+                      description={`${member.email} will be removed from ${team.name}.`}
+                      onConfirm={() => onRemoveMember(member.userId)}
+                      successMessage="Member removed from team"
+                      title="Remove from team"
+                      trigger={
+                        <Button
+                          aria-label={`Remove ${member.email} from ${team.name}`}
+                          disabled={isRemovingMember}
+                          size="icon-sm"
+                          type="button"
+                          variant="ghost"
+                        >
                           <X className="size-3.5" />
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Remove from team</DialogTitle>
-                          <DialogDescription>
-                            {member.email} will be removed from {team.name}.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <FormDialogActions
-                          buttonType="button"
-                          isPending={isRemovingMember}
-                          onSubmitClick={() => void onRemoveMember(member.userId)}
-                          submitLabel="Confirm"
-                          submitVariant="secondary"
-                        />
-                      </DialogContent>
-                    </Dialog>
+                      }
+                    />
                   ) : null}
                 </span>
               </div>
@@ -121,12 +106,6 @@ function TeamCardExpanded({
           </div>
         )}
       </section>
-
-      {error ? (
-        <Alert className="md:col-span-2" variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
     </div>
   );
 }

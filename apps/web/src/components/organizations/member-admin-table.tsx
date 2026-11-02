@@ -29,16 +29,17 @@ function MemberAdminTable({
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead>Member</TableHead>
-            <TableHead>Organization role</TableHead>
-            <TableHead>Access</TableHead>
-            <TableHead>Joined</TableHead>
-            <TableHead className="w-[160px] text-right">Actions</TableHead>
+            <TableHead className="hidden sm:table-cell">Organization role</TableHead>
+            <TableHead className="hidden lg:table-cell">Access</TableHead>
+            <TableHead className="hidden md:table-cell">Joined</TableHead>
+            <TableHead className="text-right">
+              <span className="sr-only sm:not-sr-only">Actions</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {visibleMembers.map((member) => (
             <MemberAdminRow
-              actionError={state.actionError}
               canManage={canManage}
               isRemovingMember={state.isRemovingMember}
               isUpdatingRole={state.isUpdatingRole}

@@ -18,7 +18,9 @@ function TeamCard(props: TeamCardProps) {
         onOpenAdd={() => state.setAddOpen(true)}
         onOpenDelete={() => state.setDeleteOpen(true)}
         onOpenEdit={() => state.setEditOpen(true)}
-        onOpenRoles={() => navigate(`/orgs/${props.orgSlug}?tab=roles&team=${props.team.slug}`)}
+        onOpenRoles={() =>
+          navigate(`/orgs/${props.orgSlug}?tab=roles&section=team&team=${props.team.slug}`)
+        }
         onToggleExpanded={state.toggleExpanded}
         team={props.team}
         teamMembersCount={state.teamMembers.length}
@@ -32,12 +34,11 @@ function TeamCard(props: TeamCardProps) {
         editOpen={state.editOpen}
         error={state.error}
         isAddingMember={state.isAddingMember}
-        isDeletingTeam={state.isDeletingTeam}
         isUpdatingTeam={state.isUpdatingTeam}
         onAddOpenChange={state.setAddOpen}
         onDeleteOpenChange={state.setDeleteOpen}
         onEditOpenChange={state.setEditOpen}
-        onDeleteTeam={() => void state.deleteTeam()}
+        onDeleteTeam={state.deleteTeam}
         onSubmitEdit={(event) => void state.submitEdit(event)}
         onSubmitMember={(event) => void state.submitMember(event)}
         team={props.team}
@@ -47,7 +48,6 @@ function TeamCard(props: TeamCardProps) {
       {state.expanded ? (
         <TeamCardExpanded
           canManage={state.canManage}
-          error={state.error}
           isRemovingMember={state.isRemovingMember}
           onRemoveMember={state.removeMember}
           team={props.team}

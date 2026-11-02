@@ -1,4 +1,5 @@
 import type { OrganizationMemberDto, TeamDto, TeamRoleDto } from "@/generated/api";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
 import { renderNullableText } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -23,7 +24,6 @@ function TeamCardDialogs({
   teamRoles,
   isAddingMember,
   isUpdatingTeam,
-  isDeletingTeam,
   onAddOpenChange,
   onEditOpenChange,
   onDeleteOpenChange,
@@ -40,13 +40,12 @@ function TeamCardDialogs({
   teamRoles: TeamRoleDto[];
   isAddingMember: boolean;
   isUpdatingTeam: boolean;
-  isDeletingTeam: boolean;
   onAddOpenChange: (open: boolean) => void;
   onEditOpenChange: (open: boolean) => void;
   onDeleteOpenChange: (open: boolean) => void;
   onSubmitMember: React.FormEventHandler<HTMLFormElement>;
   onSubmitEdit: React.FormEventHandler<HTMLFormElement>;
-  onDeleteTeam: () => void;
+  onDeleteTeam: () => Promise<void>;
 }) {
   return (
     <>
@@ -111,28 +110,15 @@ function TeamCardDialogs({
         </DialogContent>
       </Dialog>
 
-      <Dialog onOpenChange={onDeleteOpenChange} open={deleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete {team.name}?</DialogTitle>
-            <DialogDescription>
-              Members and roles will be removed. Projects will remain but become unassigned.
-            </DialogDescription>
-          </DialogHeader>
-          {error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-          <FormDialogActions
-            buttonType="button"
-            isPending={isDeletingTeam}
-            onSubmitClick={onDeleteTeam}
-            submitLabel="Delete team"
-            submitVariant="secondary"
-          />
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        confirmLabel="Delete team"
+        description="Members and roles will be removed. Projects will remain but become unassigned."
+        onConfirm={onDeleteTeam}
+        onOpenChange={onDeleteOpenChange}
+        open={deleteOpen}
+        successMessage="Team deleted"
+        title={`Delete ${team.name}?`}
+      />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
+import { QueryError } from "@/components/common/query-error";
 import { TeamCard } from "@/components/organizations/team-card";
 import { OrganizationSectionHeader } from "@/components/organizations/organization-section-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,6 +18,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { SkeletonRows } from "@/components/ui/skeleton";
 
 import type { OrganizationTeamsState } from "./types";
 
@@ -64,11 +66,19 @@ function OrganizationTeamTab({
             </Dialog>
           ) : null
         }
-        count={state.teams.length}
+        count={state.teamsStatus.isLoading ? undefined : state.teams.length}
         title="Teams"
       />
       <CardContent>
-        {state.teams.length === 0 ? (
+        {state.teamsStatus.isLoading ? (
+          <SkeletonRows rows={3} />
+        ) : state.teamsStatus.error ? (
+          <QueryError
+            error={state.teamsStatus.error}
+            onRetry={state.teamsStatus.refetch}
+            title="Could not load teams"
+          />
+        ) : state.teams.length === 0 ? (
           <EmptyState
             title="No teams yet"
             description="Create a team to group members and simplify project permissions."

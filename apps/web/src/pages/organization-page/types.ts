@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import type {
+  OrganizationDto,
   OrganizationInvitationDto,
   OrganizationMemberDto,
   OrganizationRoleDto,
@@ -9,8 +10,16 @@ import type {
 
 type OrganizationTab = "projects" | "members" | "teams" | "roles" | "settings";
 
+/** Loading/error status of a list query, so tabs can tell "loading" apart from "empty". */
+type QueryStatus = {
+  isLoading: boolean;
+  error: unknown;
+  refetch: () => void;
+};
+
 type OrganizationProjectsState = {
   projects: ProjectDto[];
+  projectsStatus: QueryStatus;
   teams: TeamDto[];
   canManageProjects: boolean;
   projectOpen: boolean;
@@ -24,6 +33,9 @@ type OrganizationMembersState = {
   members: OrganizationMemberDto[];
   invitations: OrganizationInvitationDto[];
   roles: OrganizationRoleDto[];
+  membersStatus: QueryStatus;
+  invitationsStatus: QueryStatus;
+  rolesStatus: QueryStatus;
   canManageMembers: boolean;
   canInviteMembers: boolean;
   canRemoveMembers: boolean;
@@ -39,6 +51,7 @@ type OrganizationMembersState = {
 
 type OrganizationTeamsState = {
   teams: TeamDto[];
+  teamsStatus: QueryStatus;
   members: OrganizationMemberDto[];
   projects: ProjectDto[];
   canManageTeams: boolean;
@@ -51,6 +64,7 @@ type OrganizationTeamsState = {
 
 type OrganizationPageData = {
   orgSlug: string;
+  organization: OrganizationDto;
   organizationName: string;
   activeTab: OrganizationTab;
   canManageSettings: boolean;
@@ -67,4 +81,5 @@ export type {
   OrganizationProjectsState,
   OrganizationTab,
   OrganizationTeamsState,
+  QueryStatus,
 };

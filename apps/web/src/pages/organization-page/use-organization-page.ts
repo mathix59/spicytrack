@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useSearchParams, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   getListOrganizationInvitationsQueryKey,
@@ -29,8 +30,9 @@ import { runAsyncFormAction } from "@/lib/form-submission";
 import { PLATFORM_OPTIONS } from "@/lib/platforms";
 import { invalidateQueryKeys } from "@/lib/query-utils";
 import { slugify } from "@/lib/slug";
+import { getErrorMessage } from "@/lib/utils";
 
-import type { OrganizationPageData, OrganizationTab } from "./types";
+import type { OrganizationPageData, OrganizationTab, QueryStatus } from "./types";
 
 const EMPTY_MEMBERS: OrganizationMemberDto[] = [];
 const EMPTY_INVITATIONS: OrganizationInvitationDto[] = [];
@@ -39,7 +41,25 @@ const EMPTY_TEAMS: TeamDto[] = [];
 const EMPTY_PROJECTS: ProjectDto[] = [];
 const VALID_TABS: OrganizationTab[] = ["projects", "members", "teams", "roles", "settings"];
 
-function useOrganizationPage(): OrganizationPageData | null {
+type OrganizationPageResult =
+  | { state: "loading" }
+  | { state: "error"; error: unknown; retry: () => void }
+  | { state: "ready"; page: OrganizationPageData };
+
+function toQueryStatus(query: {
+  isPending: boolean;
+  isError: boolean;
+  error: unknown;
+  refetch: () => unknown;
+}): QueryStatus {
+  return {
+    isLoading: query.isPending && !query.isError,
+    error: query.isError ? query.error : null,
+    refetch: () => void query.refetch(),
+  };
+}
+
+function useOrganizationPage(): OrganizationPageResult {
   const { orgSlug = "" } = useParams();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -76,6 +96,10 @@ function useOrganizationPage(): OrganizationPageData | null {
     mutation: {
       onSuccess: async () => {
         await invalidateQueryKeys(queryClient, [getListOrganizationInvitationsQueryKey(orgSlug)]);
+        toast.success("Invitation resent");
+      },
+      onError: (error) => {
+        toast.error(`Could not resend the invitation: ${getErrorMessage(error)}`);
       },
     },
   });
@@ -111,7 +135,13 @@ function useOrganizationPage(): OrganizationPageData | null {
   const canManageMcp = permissions.has("org.mcp.manage");
 
   if (!organization) {
-    return null;
+    return organizationQuery.isError
+      ? {
+          state: "error",
+          error: organizationQuery.error,
+          retry: () => void organizationQuery.refetch(),
+        }
+      : { state: "loading" };
   }
 
   const inviteMember = async (event: FormEvent<HTMLFormElement>) => {
@@ -130,6 +160,7 @@ function useOrganizationPage(): OrganizationPageData | null {
         }),
       onSuccess: async () => {
         setInviteOpen(false);
+        toast.success("Invitation sent");
       },
     });
   };
@@ -152,6 +183,7 @@ function useOrganizationPage(): OrganizationPageData | null {
         }),
       onSuccess: async () => {
         setTeamOpen(false);
+        toast.success("Team created");
       },
     });
   };
@@ -176,12 +208,14 @@ function useOrganizationPage(): OrganizationPageData | null {
         }),
       onSuccess: async () => {
         setProjectOpen(false);
+        toast.success("Project created");
       },
     });
   };
 
-  return {
+  const page: OrganizationPageData = {
     orgSlug,
+    organization,
     organizationName: organization.name,
     activeTab,
     canManageSettings,
@@ -189,6 +223,7 @@ function useOrganizationPage(): OrganizationPageData | null {
     canManageMcp,
     projects: {
       projects,
+      projectsStatus: toQueryStatus(projectsQuery),
       teams,
       canManageProjects,
       projectOpen,
@@ -201,6 +236,9 @@ function useOrganizationPage(): OrganizationPageData | null {
       members,
       invitations,
       roles,
+      membersStatus: toQueryStatus(membersQuery),
+      invitationsStatus: toQueryStatus(invitationsQuery),
+      rolesStatus: toQueryStatus(rolesQuery),
       canManageMembers,
       canInviteMembers: permissions.has("org.members.invite"),
       canRemoveMembers: permissions.has("org.members.remove"),
@@ -216,6 +254,7 @@ function useOrganizationPage(): OrganizationPageData | null {
     },
     teams: {
       teams,
+      teamsStatus: toQueryStatus(teamsQuery),
       members,
       projects,
       canManageTeams,
@@ -226,6 +265,9 @@ function useOrganizationPage(): OrganizationPageData | null {
       isCreatingTeam: createTeamMutation.isPending,
     },
   };
+
+  return { state: "ready", page };
 }
 
 export { useOrganizationPage };
+export type { OrganizationPageResult };

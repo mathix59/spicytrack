@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -8,7 +8,6 @@ import {
   useUpdateOrganizationMemberRole,
 } from "@/generated/api";
 import { invalidateQueryKeys } from "@/lib/query-utils";
-import { getErrorMessage } from "@/lib/utils";
 
 function useMemberAdminTable({
   orgSlug,
@@ -18,7 +17,6 @@ function useMemberAdminTable({
   members: OrganizationMemberDto[];
 }) {
   const queryClient = useQueryClient();
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const refreshMembers = async () => {
     await invalidateQueryKeys(queryClient, [getListOrganizationMembersQueryKey(orgSlug)]);
@@ -43,37 +41,16 @@ function useMemberAdminTable({
     [members],
   );
 
+  // Both actions rethrow so the calling dialog can show the error inline.
   const updateRole = async (memberId: string, role: string) => {
-    setActionError(null);
-
-    try {
-      await updateRoleMutation.mutateAsync({
-        orgSlug,
-        memberId,
-        data: { role },
-      });
-    } catch (caughtError) {
-      setActionError(getErrorMessage(caughtError));
-      throw caughtError;
-    }
+    await updateRoleMutation.mutateAsync({ orgSlug, memberId, data: { role } });
   };
 
   const removeMember = async (memberId: string) => {
-    setActionError(null);
-
-    try {
-      await removeMemberMutation.mutateAsync({
-        orgSlug,
-        memberId,
-      });
-    } catch (caughtError) {
-      setActionError(getErrorMessage(caughtError));
-      throw caughtError;
-    }
+    await removeMemberMutation.mutateAsync({ orgSlug, memberId });
   };
 
   return {
-    actionError,
     sortedMembers,
     isUpdatingRole: updateRoleMutation.isPending,
     isRemovingMember: removeMemberMutation.isPending,

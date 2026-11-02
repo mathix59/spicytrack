@@ -2,6 +2,7 @@ import { ArrowRight, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
+import { QueryError } from "@/components/common/query-error";
 import { PLATFORM_OPTIONS } from "@/lib/platforms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SkeletonRows } from "@/components/ui/skeleton";
 
 import type { OrganizationProjectsState } from "./types";
 
@@ -35,7 +37,9 @@ function OrganizationProjectTab({
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <CardTitle>Projects</CardTitle>
-            <Badge variant="muted">{state.projects.length}</Badge>
+            {state.projectsStatus.isLoading ? null : (
+              <Badge variant="muted">{state.projects.length}</Badge>
+            )}
           </div>
           {state.canManageProjects ? (
             <Dialog onOpenChange={state.setProjectOpen} open={state.projectOpen}>
@@ -97,7 +101,15 @@ function OrganizationProjectTab({
         </div>
       </CardHeader>
       <CardContent>
-        {state.projects.length === 0 ? (
+        {state.projectsStatus.isLoading ? (
+          <SkeletonRows rows={3} />
+        ) : state.projectsStatus.error ? (
+          <QueryError
+            error={state.projectsStatus.error}
+            onRetry={state.projectsStatus.refetch}
+            title="Could not load projects"
+          />
+        ) : state.projects.length === 0 ? (
           <EmptyState
             title="No projects yet"
             description="Create a project to get a DSN and start receiving events."

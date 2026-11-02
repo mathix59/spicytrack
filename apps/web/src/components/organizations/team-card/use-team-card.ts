@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   getListTeamMembersQueryKey,
@@ -72,6 +73,7 @@ function useTeamCard({ orgSlug, team, members, projects, canManage }: TeamCardPr
         },
       });
       setAddOpen(false);
+      toast.success("Member added to team");
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
     }
@@ -92,34 +94,24 @@ function useTeamCard({ orgSlug, team, members, projects, canManage }: TeamCardPr
         },
       });
       setEditOpen(false);
+      toast.success("Team updated");
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
     }
   };
 
+  // Destructive actions rethrow so their confirmation dialog can show the failure inline.
   const removeMember = async (userId: string) => {
-    setError(null);
-
-    try {
-      await removeTeamMemberMutation.mutateAsync({
-        orgSlug,
-        teamSlug: team.slug,
-        userId,
-      });
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+    await removeTeamMemberMutation.mutateAsync({ orgSlug, teamSlug: team.slug, userId });
   };
 
   const handleDeleteTeam = async () => {
-    setError(null);
+    await deleteTeamMutation.mutateAsync({ orgSlug, teamSlug: team.slug });
+  };
 
-    try {
-      await deleteTeamMutation.mutateAsync({ orgSlug, teamSlug: team.slug });
-      setDeleteOpen(false);
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+  const openDialog = (setOpen: (open: boolean) => void) => (open: boolean) => {
+    if (open) setError(null);
+    setOpen(open);
   };
 
   return {
@@ -138,8 +130,8 @@ function useTeamCard({ orgSlug, team, members, projects, canManage }: TeamCardPr
     isUpdatingTeam: updateTeamMutation.isPending,
     isDeletingTeam: deleteTeamMutation.isPending,
     toggleExpanded: () => setExpanded((current) => !current),
-    setAddOpen,
-    setEditOpen,
+    setAddOpen: openDialog(setAddOpen),
+    setEditOpen: openDialog(setEditOpen),
     setDeleteOpen,
     submitMember,
     submitEdit,

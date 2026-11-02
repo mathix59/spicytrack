@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   getListOrganizationRolesQueryKey,
@@ -10,10 +11,10 @@ import {
   useDeleteOrganizationRole,
   useUpdateOrganizationRole,
 } from "@/generated/api";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { QueryError } from "@/components/common/query-error";
 import { invalidateQueryKeys } from "@/lib/query-utils";
 import { getErrorMessage } from "@/lib/utils";
-import { OrganizationSectionHeader } from "./organization-section-header";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,58 +25,37 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { SkeletonRows } from "@/components/ui/skeleton";
 
-const ORGANIZATION_PERMISSIONS = [
-  "org.read",
-  "org.members.read",
-  "org.members.invite",
-  "org.members.update_role",
-  "org.members.remove",
-  "org.teams.read",
-  "org.teams.create",
-  "org.teams.update",
-  "org.teams.delete",
-  "org.projects.read",
-  "org.projects.create",
-  "org.projects.update",
-  "org.settings.manage",
-  "org.mcp.manage",
-  "audit.read",
-  "project.read",
-  "project.issues.read",
-  "project.issues.manage",
-  "project.events.read",
-  "project.releases.read",
-  "project.releases.manage",
-  "project.artifacts.read",
-  "project.artifacts.manage",
-  "project.alerts.read",
-  "project.alerts.manage",
-  "project.keys.read",
-  "project.keys.manage",
-  "project.integrations.read",
-  "project.integrations.manage",
-  "project.autofix.read",
-  "project.autofix.run",
-  "project.autofix.manage",
-] as const;
+import { OrganizationSectionHeader } from "./organization-section-header";
+import { ORGANIZATION_PERMISSION_GROUPS } from "./roles/permission-groups";
+import { RoleForm } from "./roles/role-form";
+import { RolePermissionsDialog } from "./roles/role-permissions-dialog";
+
+type QueryStatus = { isLoading: boolean; error: unknown; refetch: () => void };
+
+function roleKeyFromName(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 function OrganizationRoleManagement({
   orgSlug,
   roles,
+  status,
   canManage,
 }: {
   orgSlug: string;
   roles: OrganizationRoleDto[];
+  status?: QueryStatus;
   canManage: boolean;
 }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<OrganizationRoleDto | null>(null);
   const [detailsRole, setDetailsRole] = useState<OrganizationRoleDto | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [deleting, setDeleting] = useState<OrganizationRoleDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const createMutation = useCreateOrganizationRole();
   const updateMutation = useUpdateOrganizationRole();
@@ -86,6 +66,7 @@ function OrganizationRoleManagement({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    const name = String(data.get("name") ?? "").trim();
     const permissions = data.getAll("permissions").map(String);
     setError(null);
     try {
@@ -93,23 +74,17 @@ function OrganizationRoleManagement({
         await updateMutation.mutateAsync({
           orgSlug,
           roleKey: editing.key,
-          data: { name: String(data.get("name") ?? ""), permissions },
+          data: { name, permissions },
         });
         setEditing(null);
+        toast.success("Organization role updated");
       } else {
-        const name = String(data.get("name") ?? "").trim();
         await createMutation.mutateAsync({
           orgSlug,
-          data: {
-            key: name
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/^-+|-+$/g, ""),
-            name,
-            permissions,
-          },
+          data: { key: roleKeyFromName(name), name, permissions },
         });
         setCreateOpen(false);
+        toast.success("Organization role created");
       }
       await refresh();
     } catch (caughtError) {
@@ -117,16 +92,9 @@ function OrganizationRoleManagement({
     }
   };
 
-  const remove = async () => {
-    if (!deleting) return;
-    setError(null);
-    try {
-      await deleteMutation.mutateAsync({ orgSlug, roleKey: deleting.key });
-      await refresh();
-      setDeleting(null);
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+  const remove = async (role: OrganizationRoleDto) => {
+    await deleteMutation.mutateAsync({ orgSlug, roleKey: role.key });
+    await refresh();
   };
 
   return (
@@ -146,161 +114,118 @@ function OrganizationRoleManagement({
             </Button>
           ) : null
         }
-        count={roles.length}
+        count={status?.isLoading ? undefined : roles.length}
         description="Organization roles can grant access across the whole organization. Team roles scope project access to one team."
         title="Organization roles"
       />
       <CardContent>
-        <div className="grid gap-3">
-          {roles.map((role) => (
-            <div className="rounded-lg border border-border p-4" key={role.id}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex w-full items-start justify-between gap-3">
+        {status?.isLoading ? (
+          <SkeletonRows rows={3} />
+        ) : status?.error ? (
+          <QueryError
+            error={status.error}
+            onRetry={status.refetch}
+            title="Could not load organization roles"
+          />
+        ) : (
+          <div className="grid gap-3">
+            {roles.map((role) => (
+              <div
+                className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-start sm:justify-between"
+                key={role.id}
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{role.name}</p>
-                    <div className="flex items-start gap-2">
-                      <Button onClick={() => setDetailsRole(role)} size="sm" variant="outline">
-                        View permissions
+                    {role.isSystem ? <Badge variant="muted">Built-in</Badge> : null}
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {role.permissions.length} permission{role.permissions.length === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Button onClick={() => setDetailsRole(role)} size="sm" variant="outline">
+                    View permissions
+                  </Button>
+                  {canManage && !role.isSystem ? (
+                    <>
+                      <Button
+                        aria-label={`Edit ${role.name}`}
+                        onClick={() => {
+                          setError(null);
+                          setEditing(role);
+                        }}
+                        size="icon-sm"
+                        variant="ghost"
+                      >
+                        <Pencil className="size-4" />
                       </Button>
-                      {canManage && !role.isSystem ? (
-                        <div className="flex gap-1">
-                          <Button
-                            aria-label={`Edit ${role.name}`}
-                            onClick={() => setEditing(role)}
-                            size="sm"
-                            variant="ghost"
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            aria-label={`Delete ${role.name}`}
-                            onClick={() => setDeleting(role)}
-                            size="sm"
-                            variant="ghost"
-                          >
+                      <ConfirmDialog
+                        confirmLabel="Delete role"
+                        description="Members using this role must be reassigned first."
+                        onConfirm={() => remove(role)}
+                        successMessage="Organization role deleted"
+                        title={`Delete ${role.name}?`}
+                        trigger={
+                          <Button aria-label={`Delete ${role.name}`} size="icon-sm" variant="ghost">
                             <Trash2 className="size-4 text-destructive" />
                           </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                  <Badge className="mt-2" variant="muted">
-                    {role.permissions.length} permission{role.permissions.length === 1 ? "" : "s"}
-                  </Badge>
+                        }
+                      />
+                    </>
+                  ) : null}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-      <Dialog onOpenChange={(open) => !open && setDetailsRole(null)} open={Boolean(detailsRole)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{detailsRole?.name} permissions</DialogTitle>
-            <DialogDescription>Permissions granted by this organization role.</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-wrap gap-1.5">
-            {detailsRole?.permissions.map((permission) => (
-              <Badge key={permission} variant="accent">
-                {permission.replaceAll(".", " ")}
-              </Badge>
             ))}
           </div>
-        </DialogContent>
-      </Dialog>
-      <Dialog onOpenChange={(open) => !open && setCreateOpen(false)} open={createOpen}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto">
+        )}
+      </CardContent>
+      <RolePermissionsDialog
+        groups={ORGANIZATION_PERMISSION_GROUPS}
+        onClose={() => setDetailsRole(null)}
+        role={detailsRole}
+      />
+      <Dialog onOpenChange={setCreateOpen} open={createOpen}>
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>New organization role</DialogTitle>
             <DialogDescription>
               Grant permissions across the whole organization and all of its projects.
             </DialogDescription>
           </DialogHeader>
-          <RoleForm error={error} onSubmit={submit} pending={createMutation.isPending} />
+          <RoleForm
+            error={error}
+            groups={ORGANIZATION_PERMISSION_GROUPS}
+            isPending={createMutation.isPending}
+            nameLabel="Organization role name"
+            onSubmit={submit}
+            permissionsLegend="Organization and project permissions"
+            showKeys
+            submitLabel="Create role"
+          />
         </DialogContent>
       </Dialog>
       <Dialog onOpenChange={(open) => !open && setEditing(null)} open={Boolean(editing)}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto">
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit {editing?.name}</DialogTitle>
             <DialogDescription>Update this custom organization role.</DialogDescription>
           </DialogHeader>
           <RoleForm
             error={error}
+            groups={ORGANIZATION_PERMISSION_GROUPS}
+            isPending={updateMutation.isPending}
+            key={editing?.id}
+            nameLabel="Organization role name"
             onSubmit={submit}
-            pending={updateMutation.isPending}
+            permissionsLegend="Organization and project permissions"
             role={editing}
+            showKeys
+            submitLabel="Save changes"
           />
         </DialogContent>
       </Dialog>
-      <Dialog onOpenChange={(open) => !open && setDeleting(null)} open={Boolean(deleting)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete {deleting?.name}?</DialogTitle>
-            <DialogDescription>Members using this role must be reassigned first.</DialogDescription>
-          </DialogHeader>
-          {error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setDeleting(null)} variant="outline">
-              Cancel
-            </Button>
-            <Button disabled={deleteMutation.isPending} onClick={() => void remove()}>
-              Delete role
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Card>
-  );
-}
-
-function RoleForm({
-  role,
-  error,
-  pending,
-  onSubmit,
-}: {
-  role?: OrganizationRoleDto | null;
-  error: string | null;
-  pending: boolean;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-}) {
-  return (
-    <form className="grid gap-4" onSubmit={onSubmit}>
-      <Field label="Organization role name">
-        <Input defaultValue={role?.name} name="name" required />
-      </Field>
-      <Field label="Organization and project permissions">
-        <div className="grid gap-2 sm:grid-cols-2">
-          {ORGANIZATION_PERMISSIONS.map((permission) => (
-            <label
-              className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
-              key={permission}
-            >
-              <input
-                defaultChecked={role?.permissions.includes(permission)}
-                name="permissions"
-                type="checkbox"
-                value={permission}
-              />
-              <span>{permission}</span>
-            </label>
-          ))}
-        </div>
-      </Field>
-      {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-      <Button disabled={pending} type="submit">
-        {role ? "Save changes" : "Create role"}
-      </Button>
-    </form>
   );
 }
 
