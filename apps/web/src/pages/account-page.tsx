@@ -1,26 +1,19 @@
-import { useEffect, useState } from "react";
 import { UserCog } from "lucide-react";
 
+import { useAuthenticationOptions } from "@/components/auth/use-authentication-options";
 import { PageHeader } from "@/components/common/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { orvalFetch } from "@/lib/orval-fetch";
+import { useGetMe } from "@/generated/api";
 
 import { AccountPasswordCard } from "./account-page/account-password-card";
+import { AccountProfileCard } from "./account-page/account-profile-card";
 import { AccountSessionsCard } from "./account-page/account-sessions-card";
 import { AccountTokenCard } from "./account-page/account-token-card";
 import { AccountTwoFactorCard } from "./account-page/account-two-factor-card";
-import { AccountVerificationCard } from "./account-page/account-verification-card";
-import { useAccountPage } from "./account-page/use-account-page";
 
 function AccountPage() {
-  const page = useAccountPage();
-  const [passwordEnabled, setPasswordEnabled] = useState(true);
-
-  useEffect(() => {
-    void orvalFetch<{ data: { passwordEnabled: boolean } }>("/auth/registration-status", {
-      method: "GET",
-    }).then((result) => setPasswordEnabled(result.data.passwordEnabled));
-  }, []);
+  const user = useGetMe().data?.data.user;
+  const { options } = useAuthenticationOptions();
 
   return (
     <div className="grid gap-6">
@@ -28,49 +21,37 @@ function AccountPage() {
         eyebrow="Account"
         icon={UserCog}
         title="Account settings"
-        description="Email verification and personal access tokens for the API."
+        description="Manage your profile, how you sign in, and tokens for the API."
       />
 
-      <Tabs className="grid gap-4" defaultValue="security">
-        <TabsList className="w-fit">
+      <Tabs className="grid gap-4" defaultValue="profile">
+        <TabsList className="w-fit max-w-full overflow-x-auto">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="api">API</TabsTrigger>
         </TabsList>
 
+        <TabsContent className="mt-0 grid gap-6" value="profile">
+          <AccountProfileCard user={user} />
+        </TabsContent>
+
         <TabsContent className="mt-0 grid gap-6" value="security">
-          <AccountVerificationCard
-            isSendingVerification={page.isSendingVerification}
-            requestVerification={page.requestVerification}
-            user={page.user}
-            verificationSent={page.verificationSent}
-          />
-
-          {passwordEnabled ? (
-            <AccountPasswordCard
-              changePassword={page.changePassword}
-              isChangingPassword={page.isChangingPassword}
-              passwordError={page.passwordError}
-              passwordSaved={page.passwordSaved}
-              revokeOtherSessions={page.revokeOtherSessions}
-              setRevokeOtherSessions={page.setRevokeOtherSessions}
-            />
-          ) : null}
-
-          {passwordEnabled ? <AccountTwoFactorCard user={page.user} /> : null}
-
+          {options.passwordEnabled ? (
+            <>
+              <AccountPasswordCard />
+              <AccountTwoFactorCard user={user} />
+            </>
+          ) : (
+            <p className="rounded-lg border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+              You sign in through single sign-on. Your password and two-factor settings are managed
+              by your identity provider.
+            </p>
+          )}
           <AccountSessionsCard />
         </TabsContent>
 
-        <TabsContent className="mt-0" value="api">
-          <AccountTokenCard
-            createToken={page.createToken}
-            createdSecret={page.createdSecret}
-            isCreatingToken={page.isCreatingToken}
-            isRevokingToken={page.isRevokingToken}
-            revokeToken={page.revokeToken}
-            tokenError={page.tokenError}
-            tokens={page.tokens}
-          />
+        <TabsContent className="mt-0 grid gap-6" value="api">
+          <AccountTokenCard />
         </TabsContent>
       </Tabs>
     </div>

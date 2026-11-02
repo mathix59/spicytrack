@@ -1,31 +1,44 @@
+import { toast } from "sonner";
+
 import { OrganizationSectionHeader } from "@/components/organizations/organization-section-header";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import type { InstanceSettings } from "../instance-admin-page";
+import { getErrorMessage } from "@/lib/utils";
+
+import type { InstanceSettings, InstanceSettingsUpdate } from "./types";
 
 export function GeneralTab({
   settings,
+  isSaving,
   onSave,
 }: {
   settings: InstanceSettings;
-  onSave: (v: Partial<InstanceSettings>) => Promise<void>;
+  isSaving: boolean;
+  onSave: (next: InstanceSettingsUpdate) => Promise<unknown>;
 }) {
   const open = settings.registrationsEnabled;
+
+  const toggle = async (registrationsEnabled: boolean) => {
+    try {
+      await onSave({ registrationsEnabled });
+    } catch (error) {
+      toast.error("Could not update registration access", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
   return (
     <Card className="overflow-hidden">
       <OrganizationSectionHeader
+        action={<Badge variant={open ? "success" : "muted"}>{open ? "Open" : "Closed"}</Badge>}
+        description="Decide whether anyone can create an account on this instance."
         title="Registration access"
-        action={
-          <span
-            className={`rounded-full px-2.5 py-1 text-xs font-medium ${open ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}
-          >
-            {open ? "Open" : "Closed"}
-          </span>
-        }
       />
       <CardContent>
-        <div className="flex items-center justify-between gap-6">
-          <div>
+        <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-muted/20 p-4 sm:items-center">
+          <div className="min-w-0">
             <p className="font-medium">Public registration</p>
             <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
               {open
@@ -36,7 +49,8 @@ export function GeneralTab({
           <Switch
             aria-label="Allow new registrations"
             checked={open}
-            onCheckedChange={(registrationsEnabled) => void onSave({ registrationsEnabled })}
+            disabled={isSaving}
+            onCheckedChange={(registrationsEnabled) => void toggle(registrationsEnabled)}
           />
         </div>
       </CardContent>

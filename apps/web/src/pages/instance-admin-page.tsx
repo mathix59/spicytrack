@@ -1,119 +1,71 @@
-import { useCallback, useEffect, useState } from "react";
 import { Settings2 } from "lucide-react";
-import { LoadingScreen } from "@/components/common/loading-screen";
+
 import { PageHeader } from "@/components/common/page-header";
+import { QueryError } from "@/components/common/query-error";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton, SkeletonRows } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { orvalFetch } from "@/lib/orval-fetch";
+
 import { GeneralTab } from "./instance-admin/general-tab";
 import { SmtpTab } from "./instance-admin/smtp-tab";
+import { useInstanceSettings } from "./instance-admin/use-instance-settings";
 import { UsersTab } from "./instance-admin/users-tab";
 
-export type InstanceSettings = {
-  registrationsEnabled: boolean;
-  smtpHost: string | null;
-  smtpPort: number | null;
-  smtpSecure: boolean | null;
-  smtpUser: string | null;
-  smtpFrom: string | null;
-  smtpPasswordConfigured: boolean;
-};
-export type InstanceUser = {
-  id: string;
-  email: string;
-  name: string | null;
-  createdAt: string;
-  isSuperAdmin: boolean;
-};
-type UsersResponse = { items: InstanceUser[]; total: number; page: number; pageSize: number };
-
 export function InstanceAdminPage() {
-  const [settings, setSettings] = useState<InstanceSettings | null>(null);
-  const [users, setUsers] = useState<InstanceUser[]>([]);
-  const [usersMeta, setUsersMeta] = useState({ total: 0, page: 1, pageSize: 20 });
-  const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const loadUsers = useCallback(async (search = "", page = 1) => {
-    const r = await orvalFetch<{ data: UsersResponse }>("/instance-admin/users", {
-      method: "GET",
-      params: { search, page },
-    });
-    setUsers(r.data.items);
-    setUsersMeta(r.data);
-  }, []);
-  useEffect(() => {
-    void (async () => {
-      setIsLoading(true);
-      setMessage("");
-      try {
-        const [s] = await Promise.all([
-          orvalFetch<{ data: InstanceSettings }>("/instance-admin/settings", { method: "GET" }),
-          loadUsers(),
-        ]);
-        setSettings(s.data);
-      } catch (error) {
-        console.error(error);
-        setMessage("Instance administrator access is required.");
-      } finally {
-        setIsLoading(false);
+  const { settingsQuery, isForbidden, isSaving, save } = useInstanceSettings();
+  const settings = settingsQuery.data;
+
+  const settingsFallback = settingsQuery.isError ? (
+    <QueryError
+      error={isForbidden ? undefined : settingsQuery.error}
+      onRetry={isForbidden ? undefined : () => void settingsQuery.refetch()}
+      title={
+        isForbidden
+          ? "Instance administrator access is required."
+          : "Could not load instance settings"
       }
-    })();
-  }, [loadUsers]);
-  if (isLoading) {
-    return <LoadingScreen compact label="Loading instance administration..." />;
-  }
-  if (!settings) {
-    return <div className="text-sm text-muted-foreground">{message || "No instance data."}</div>;
-  }
-  const save = async (next: Partial<InstanceSettings> & { smtpPass?: string }) => {
-    setMessage("");
-    const r = await orvalFetch<{ data: InstanceSettings }>("/instance-admin/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next),
-    });
-    setSettings(r.data);
-    setMessage("Settings saved.");
-  };
-  const setRole = async (userId: string, isSuperAdmin: boolean) => {
-    await orvalFetch(`/instance-admin/users/${userId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isSuperAdmin }),
-    });
-    await loadUsers("", usersMeta.page);
-  };
+    />
+  ) : (
+    <Card>
+      <CardContent className="grid gap-4 pt-6">
+        <Skeleton className="h-6 w-48" />
+        <SkeletonRows rows={3} />
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="grid w-full gap-6">
       <PageHeader
         eyebrow="System"
         icon={Settings2}
         title="Instance administration"
-        description="Control access, delivery, and instance operators."
+        description="Control who can sign up, how email is delivered, and who operates this instance."
       />
-      {message && <p className="text-sm text-success">{message}</p>}
-      <Tabs defaultValue="general" className="grid gap-4">
-        <TabsList className="w-fit">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="email">Email delivery</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-        </TabsList>
-        <TabsContent value="general">
-          <GeneralTab settings={settings} onSave={save} />
-        </TabsContent>
-        <TabsContent value="email">
-          <SmtpTab settings={settings} onSave={save} />
-        </TabsContent>
-        <TabsContent value="users">
-          <UsersTab
-            users={users}
-            total={usersMeta.total}
-            page={usersMeta.page}
-            pageSize={usersMeta.pageSize}
-            onSearch={loadUsers}
-            onChangeRole={setRole}
-          />
-        </TabsContent>
-      </Tabs>
+      {isForbidden ? (
+        settingsFallback
+      ) : (
+        <Tabs defaultValue="general" className="grid gap-4">
+          <TabsList className="w-fit max-w-full overflow-x-auto">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="email">Email delivery</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+          </TabsList>
+          <TabsContent className="mt-0" value="general">
+            {settings ? (
+              <GeneralTab isSaving={isSaving} onSave={save} settings={settings} />
+            ) : (
+              settingsFallback
+            )}
+          </TabsContent>
+          <TabsContent className="mt-0" value="email">
+            {settings ? <SmtpTab onSave={save} settings={settings} /> : settingsFallback}
+          </TabsContent>
+          <TabsContent className="mt-0" value="users">
+            <UsersTab />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }

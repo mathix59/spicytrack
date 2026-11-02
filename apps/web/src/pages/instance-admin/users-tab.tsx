@@ -1,89 +1,97 @@
-import { DeleteUserDialog } from "./delete-user-dialog";
-import { useState } from "react";
-import { Shield, UserRound } from "lucide-react";
+import { Search, Users } from "lucide-react";
+
+import { QueryError } from "@/components/common/query-error";
 import { OrganizationSectionHeader } from "@/components/organizations/organization-section-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import type { InstanceUser } from "../instance-admin-page";
-export function UsersTab({
-  users,
-  total,
-  page,
-  pageSize,
-  onSearch,
-  onChangeRole,
-}: {
-  users: InstanceUser[];
-  total: number;
-  page: number;
-  pageSize: number;
-  onSearch: (s: string, p?: number) => Promise<void>;
-  onChangeRole: (id: string, v: boolean) => Promise<void>;
-}) {
-  const [search, setSearch] = useState("");
+import { SkeletonRows } from "@/components/ui/skeleton";
+
+import { InstanceUserRow } from "./instance-user-row";
+import { useInstanceUsers } from "./use-instance-users";
+
+export function UsersTab() {
+  const state = useInstanceUsers();
+  const { usersQuery, users, total, page, pageSize, search } = state;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
   return (
     <Card className="overflow-hidden">
-      <OrganizationSectionHeader count={total} title="Users" />
-      <CardContent className="grid gap-2">
-        <Input
-          placeholder="Search by email…"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            void onSearch(e.target.value, 1);
-          }}
-        />
-        {users.map((user) => (
-          <div className="flex items-center justify-between rounded-lg border p-3" key={user.id}>
-            <div className="flex items-center gap-3">
-              <UserRound className="size-4 text-muted-foreground" />
-              <div>
-                <p className="font-medium">{user.name || user.email}</p>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 text-sm">
-                <Shield className="size-4 text-primary" />
-                Super-admin
-                <Switch
-                  aria-label={`Super-admin access for ${user.email}`}
-                  checked={user.isSuperAdmin}
-                  onCheckedChange={(v) => void onChangeRole(user.id, v)}
-                />
-              </label>
-              <DeleteUserDialog
-                user={user}
-                onDeleted={() =>
-                  onSearch(search, users.length === 1 ? Math.max(1, page - 1) : page)
-                }
-              />
-            </div>
-          </div>
-        ))}
-        <div className="flex items-center justify-between pt-4 text-sm text-muted-foreground">
-          <span>{total} users</span>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page === 1}
-              onClick={() => void onSearch(search, page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page * pageSize >= total}
-              onClick={() => void onSearch(search, page + 1)}
-            >
-              Next
-            </Button>
-          </div>
+      <OrganizationSectionHeader
+        count={usersQuery.data ? total : undefined}
+        description="Everyone with an account on this instance."
+        title="Users"
+      />
+      <CardContent className="grid gap-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            aria-label="Search users"
+            className="pl-9"
+            onChange={(e) => state.setSearch(e.target.value)}
+            placeholder="Search by email…"
+            type="search"
+            value={search}
+          />
         </div>
+
+        {usersQuery.isPending ? (
+          <SkeletonRows rows={4} />
+        ) : usersQuery.isError && !usersQuery.data ? (
+          <QueryError
+            error={usersQuery.error}
+            onRetry={() => void usersQuery.refetch()}
+            title="Could not load users"
+          />
+        ) : users.length === 0 ? (
+          <EmptyState
+            description={
+              search.trim()
+                ? "No account matches this search. Try another email address."
+                : "Nobody has created an account yet."
+            }
+            icon={Users}
+            title="No users found"
+          />
+        ) : (
+          <ul aria-busy={usersQuery.isFetching} className="grid gap-2">
+            {users.map((user) => (
+              <InstanceUserRow
+                key={user.id}
+                onChangeRole={state.changeRole}
+                onDelete={state.deleteUser}
+                user={user}
+              />
+            ))}
+          </ul>
+        )}
+
+        {total > pageSize ? (
+          <div className="flex items-center justify-between gap-3 pt-2 text-sm text-muted-foreground">
+            <span>
+              Page {page} of {pageCount} · {total} users
+            </span>
+            <div className="flex gap-2">
+              <Button
+                disabled={page === 1}
+                onClick={() => state.setPage(page - 1)}
+                size="sm"
+                variant="outline"
+              >
+                Previous
+              </Button>
+              <Button
+                disabled={page >= pageCount}
+                onClick={() => state.setPage(page + 1)}
+                size="sm"
+                variant="outline"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -140,3 +140,4 @@ function useAuthForm({
 }
 
 export { useAuthForm };
+export type { AuthMode };

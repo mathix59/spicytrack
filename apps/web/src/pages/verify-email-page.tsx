@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import { getErrorMessage } from "@/lib/utils";
@@ -9,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 
 function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const token = searchParams.get("token") ?? "";
   const [status, setStatus] = useState<"pending" | "success" | "error">("pending");
   const [error, setError] = useState<string | null>(null);
@@ -36,11 +38,14 @@ function VerifyEmailPage() {
   }, [token]);
 
   return (
-    <main className="grid min-h-screen place-items-center bg-background px-6 py-10 text-foreground">
-      <Card className="w-full max-w-md p-8">
+    <main className="grid min-h-screen place-items-center bg-background px-4 py-10 text-foreground sm:px-6">
+      <Card className="w-full max-w-md p-6 sm:p-8">
         <CardHeader className="p-0">
           <h1 className="text-2xl font-semibold tracking-tight">Email verification</h1>
-          <CardDescription>
+          <CardDescription aria-live="polite" className="flex items-center gap-2">
+            {status === "pending" && token ? (
+              <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            ) : null}
             {status === "pending"
               ? "Verifying your email..."
               : status === "success"
@@ -60,11 +65,14 @@ function VerifyEmailPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
-          <Link className="mt-4 block" to="/">
-            <Button className="w-full" type="button" variant="secondary">
-              Back to the app
-            </Button>
-          </Link>
+          <Button
+            className="mt-4 w-full"
+            onClick={() => navigate("/")}
+            type="button"
+            variant={status === "success" ? "default" : "secondary"}
+          >
+            Back to the app
+          </Button>
         </CardContent>
       </Card>
     </main>

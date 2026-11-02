@@ -45,12 +45,15 @@ function InvitationAcceptPage() {
 
   if (token && errorStatus === 401) {
     return (
-      <main className="grid min-h-screen place-items-center bg-background px-6 py-10 text-foreground">
-        <div className="grid gap-4">
-          <h1 className="text-2xl font-semibold">Join your organization</h1>
-          <p>
-            Create an account using the invited email address, or sign in to your existing account.
-          </p>
+      <main className="grid min-h-screen place-items-center bg-background px-4 py-10 text-foreground sm:px-6">
+        <div className="grid w-full max-w-4xl gap-6">
+          <div className="grid gap-1.5">
+            <h1 className="text-2xl font-semibold tracking-tight">Join your organization</h1>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Create an account using the invited email address, or sign in to your existing
+              account.
+            </p>
+          </div>
           <AuthForm
             invitationToken={token}
             onAuthenticated={async () => {
@@ -69,8 +72,8 @@ function InvitationAcceptPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-background px-6 py-10 text-foreground">
-      <Card className="w-full max-w-md p-8">
+    <main className="grid min-h-screen place-items-center bg-background px-4 py-10 text-foreground sm:px-6">
+      <Card className="w-full max-w-md p-6 sm:p-8">
         <CardHeader className="p-0">
           <h1 className="text-2xl font-semibold tracking-tight">Organization invitation</h1>
           <CardDescription>

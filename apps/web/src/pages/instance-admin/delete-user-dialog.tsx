@@ -1,60 +1,51 @@
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { orvalFetch } from "@/lib/orval-fetch";
 import { getErrorMessage } from "@/lib/utils";
-import type { InstanceUser } from "../instance-admin-page";
 
+import type { InstanceUser } from "./types";
+
+/** Typed-confirmation dialog: the user's email must be entered before deletion is allowed. */
 export function DeleteUserDialog({
   user,
-  onDeleted,
+  onDelete,
 }: {
   user: InstanceUser;
-  onDeleted: () => Promise<void>;
+  onDelete: (userId: string, confirmationEmail: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const remove = async () => {
     setPending(true);
     setError(null);
     try {
-      await orvalFetch(`/instance-admin/users/${user.id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmationEmail: email }),
-      });
+      await onDelete(user.id, email);
       setOpen(false);
-      await onDeleted();
+      toast.success("User deleted");
     } catch (caught) {
-      const message = getErrorMessage(caught);
-      try {
-        const payload: unknown = JSON.parse(message);
-        setError(
-          payload &&
-            typeof payload === "object" &&
-            "message" in payload &&
-            typeof payload.message === "string"
-            ? payload.message
-            : message,
-        );
-      } catch {
-        setError(message);
-      }
+      setError(getErrorMessage(caught));
     } finally {
       setPending(false);
     }
   };
+
   return (
     <Dialog
       open={open}
@@ -67,7 +58,8 @@ export function DeleteUserDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button className="text-destructive hover:text-destructive" size="sm" variant="ghost">
+          <Trash2 />
           Delete user
         </Button>
       </DialogTrigger>
@@ -75,36 +67,37 @@ export function DeleteUserDialog({
         <DialogHeader>
           <DialogTitle>Delete user permanently</DialogTitle>
           <DialogDescription>
-            This removes {user.email}, their Better Auth account, sessions, two-factor
-            authentication, personal tokens, invitations and organization access. This cannot be
-            undone. Transfer sole organization ownership first.
+            This removes {user.email} together with their sessions, two-factor authentication,
+            personal access tokens, invitations and organization access. This cannot be undone. If
+            they are the only owner of an organization, transfer ownership first.
           </DialogDescription>
         </DialogHeader>
         <Field label={`Type ${user.email} to confirm`}>
           <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={pending}
             autoComplete="off"
+            disabled={pending}
+            onChange={(e) => setEmail(e.target.value)}
+            value={email}
           />
         </Field>
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" disabled={pending} onClick={() => setOpen(false)}>
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+        <DialogFooter>
+          <Button disabled={pending} onClick={() => setOpen(false)} type="button" variant="ghost">
             Cancel
           </Button>
           <Button
-            variant="secondary"
             disabled={pending || email !== user.email}
             onClick={() => void remove()}
+            type="button"
+            variant="destructive"
           >
-            Delete permanently
+            {pending ? "Deleting…" : "Delete permanently"}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
