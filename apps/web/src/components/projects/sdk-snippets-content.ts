@@ -32,7 +32,9 @@ Sentry.init({
   }
 
   if (platform === "python") {
-    return `import sentry_sdk
+    return `import os
+
+import sentry_sdk
 
 sentry_sdk.init(
     dsn="${dsn}",
@@ -42,7 +44,13 @@ sentry_sdk.init(
   }
 
   if (platform === "go") {
-    return `import "github.com/getsentry/sentry-go"
+    return `import (
+  "log"
+  "os"
+  "time"
+
+  "github.com/getsentry/sentry-go"
+)
 
 err := sentry.Init(sentry.ClientOptions{
   Dsn: "${dsn}",
@@ -51,7 +59,9 @@ err := sentry.Init(sentry.ClientOptions{
 })
 if err != nil {
   log.Fatalf("sentry init: %v", err)
-}`;
+}
+// Flush buffered events before the program exits.
+defer sentry.Flush(2 * time.Second)`;
   }
 
   if (platform === "java") {
@@ -95,11 +105,9 @@ end`;
   }
 
   if (platform === "rust") {
-    return `use sentry::{ClientOptions, IntoString};
-
-let _guard = sentry::init(("${dsn}", ClientOptions {
-    release: Some("APP_VERSION".into()),
-    environment: Some("ENVIRONMENT".into()),
+    return `let _guard = sentry::init(("${dsn}", sentry::ClientOptions {
+    release: sentry::release_name!(),
+    environment: std::env::var("ENVIRONMENT").ok().map(Into::into),
     ..Default::default()
 }));`;
   }
@@ -143,7 +151,7 @@ function getSdkInstallSnippet(platform: string) {
   }
 
   if (platform === "java") {
-    return "implementation 'io.sentry:sentry-spring-boot-starter:7.+'";
+    return "implementation 'io.sentry:sentry:7.+'";
   }
 
   if (platform === "dotnet") {
@@ -163,7 +171,7 @@ function getSdkInstallSnippet(platform: string) {
   }
 
   if (platform === "dart") {
-    return "dart pub add sentry_flutter";
+    return "flutter pub add sentry_flutter";
   }
 
   return "pnpm add @sentry/browser";
@@ -219,7 +227,7 @@ end`;
   }
 
   if (platform === "dart") {
-    return `Sentry.captureMessage("SpicyTrack setup check");`;
+    return `await Sentry.captureMessage("SpicyTrack setup check");`;
   }
 
   return 'Sentry.captureException(new Error("SpicyTrack setup check"));';

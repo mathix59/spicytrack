@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   getListProjectReleasesQueryKey,
@@ -29,7 +30,7 @@ function useProjectReleasePanel({
   "orgSlug" | "projectSlug" | "selectedReleaseVersion" | "onSelectRelease"
 >): ProjectReleasePanelData {
   const queryClient = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpenState] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -66,6 +67,11 @@ function useProjectReleasePanel({
     mutation: { onSuccess: invalidateArtifacts },
   });
 
+  const setCreateOpen = (open: boolean) => {
+    setCreateError(null);
+    setCreateOpenState(open);
+  };
+
   const releaseDetail = releaseDetailQuery.data?.data;
   const artifacts = artifactsQuery.data?.data ?? EMPTY_ARTIFACTS;
 
@@ -89,13 +95,15 @@ function useProjectReleasePanel({
       onSuccess: async () => {
         onSelectRelease(version);
         setCreateOpen(false);
+        toast.success(`Release ${version} created`);
       },
     });
   };
 
   const uploadArtifact = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const file = formData.get("file");
 
     if (!(file instanceof File) || file.size === 0) {
@@ -113,22 +121,19 @@ function useProjectReleasePanel({
           data: { file },
         }),
       onSuccess: async () => {
-        event.currentTarget.reset();
+        form.reset();
+        toast.success(`${file.name} uploaded`);
       },
     });
   };
 
   const deleteArtifact = async (artifactId: string) => {
-    try {
-      await deleteArtifactMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        releaseVersion: selectedReleaseVersion,
-        artifactId,
-      });
-    } catch {
-      // deletion failures surface via mutation state
-    }
+    await deleteArtifactMutation.mutateAsync({
+      orgSlug,
+      projectSlug,
+      releaseVersion: selectedReleaseVersion,
+      artifactId,
+    });
   };
 
   return {
@@ -136,10 +141,15 @@ function useProjectReleasePanel({
     createError,
     uploadError,
     releaseDetail,
+    releaseDetailLoading: releaseDetailQuery.isLoading,
+    releaseDetailError: releaseDetailQuery.error,
+    retryReleaseDetail: () => void releaseDetailQuery.refetch(),
     artifacts,
+    artifactsLoading: artifactsQuery.isLoading,
+    artifactsError: artifactsQuery.error,
+    retryArtifacts: () => void artifactsQuery.refetch(),
     isCreatingRelease: upsertReleaseMutation.isPending,
     isUploadingArtifact: uploadArtifactMutation.isPending,
-    isDeletingArtifact: deleteArtifactMutation.isPending,
     setCreateOpen,
     createRelease,
     uploadArtifact,

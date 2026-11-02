@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { Copy } from "lucide-react";
 import { Highlight, themes } from "prism-react-renderer";
 
-import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 
+const PRE_CLASS_NAME =
+  "overflow-x-auto rounded-lg border border-border bg-muted/30 px-3 py-2 font-mono text-[11px] leading-5";
+
+/** Labelled code block with a copy action; highlights the code when a language is given. */
 function CopyableCode({
   label,
   value,
@@ -13,31 +15,16 @@ function CopyableCode({
   value: string;
   language?: string;
 }) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1200);
-  };
-
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-1.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        <Button onClick={() => void copy()} size="sm" type="button" variant="ghost">
-          <Copy className="size-4" />
-          {copied ? "Copied" : "Copy"}
-        </Button>
+        <CopyButton label={`Copy ${label}`} successMessage={`${label} copied`} value={value} />
       </div>
       {language ? (
         <Highlight code={value} language={language} theme={themes.oneDark}>
           {({ tokens, getLineProps, getTokenProps }) => (
-            <pre
-              aria-label={`${label} code`}
-              className="overflow-x-auto rounded-lg bg-muted/30 px-3 py-2 text-[11px]"
-              tabIndex={0}
-            >
+            <pre aria-label={`${label} code`} className={PRE_CLASS_NAME} tabIndex={0}>
               <code>
                 {tokens.map((line, lineIndex) => (
                   <div key={lineIndex} {...getLineProps({ line })}>
@@ -53,7 +40,7 @@ function CopyableCode({
       ) : (
         <pre
           aria-label={`${label} code`}
-          className="overflow-x-auto rounded-lg bg-muted/30 px-3 py-2 text-[11px] text-foreground"
+          className={`${PRE_CLASS_NAME} text-foreground`}
           tabIndex={0}
         >
           <code>{value}</code>

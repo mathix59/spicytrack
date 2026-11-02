@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   getListProjectAuditQueryKey,
@@ -11,13 +12,18 @@ import {
   useUpdateProjectKey,
   type ProjectKeyDto,
 } from "@/generated/api";
+import { runAsyncFormAction } from "@/lib/form-submission";
 import { invalidateQueryKeys } from "@/lib/query-utils";
-import { getErrorMessage } from "@/lib/utils";
 
 import type { ProjectKeysTabData, ProjectKeysTabProps } from "./types";
+import { useFirstEventStatus } from "./use-first-event-status";
 import { SETUP_PLATFORMS } from "./utils";
 
 const EMPTY_KEYS: ProjectKeyDto[] = [];
+
+function readRateLimit(data: FormData) {
+  return Number(data.get("rateLimitPerMinute") ?? 0) || null;
+}
 
 function useProjectKeysTab({
   orgSlug,
@@ -25,12 +31,14 @@ function useProjectKeysTab({
   projectPlatform,
 }: ProjectKeysTabProps): ProjectKeysTabData {
   const queryClient = useQueryClient();
-  const [error, setError] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [managedKey, setManagedKey] = useState<ProjectKeyDto | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [manageError, setManageError] = useState<string | null>(null);
+  const [createOpen, setCreateOpenState] = useState(false);
+  const [managedKey, setManagedKeyState] = useState<ProjectKeyDto | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
 
   const keysQuery = useListProjectKeys(orgSlug, projectSlug);
+  const firstEvent = useFirstEventStatus(orgSlug, projectSlug);
   const keys = keysQuery.data?.data ?? EMPTY_KEYS;
   const primaryKey = keys.find((key) => key.isActive) ?? keys[0] ?? null;
   const effectivePlatform =
@@ -48,24 +56,36 @@ function useProjectKeysTab({
   const updateMutation = useUpdateProjectKey({ mutation: { onSuccess: invalidate } });
   const rotateMutation = useRotateProjectKey({ mutation: { onSuccess: invalidate } });
 
+  const setCreateOpen = (open: boolean) => {
+    setCreateError(null);
+    setCreateOpenState(open);
+  };
+
+  const setManagedKey = (key: ProjectKeyDto | null) => {
+    setManageError(null);
+    setManagedKeyState(key);
+  };
+
   const createKey = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null);
     const data = new FormData(event.currentTarget);
 
-    try {
-      await createMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        data: {
-          name: String(data.get("name") ?? ""),
-          rateLimitPerMinute: Number(data.get("rateLimitPerMinute") ?? 0) || undefined,
-        },
-      });
-      setCreateOpen(false);
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+    await runAsyncFormAction({
+      setError: setCreateError,
+      action: () =>
+        createMutation.mutateAsync({
+          orgSlug,
+          projectSlug,
+          data: {
+            name: String(data.get("name") ?? "").trim(),
+            rateLimitPerMinute: readRateLimit(data) ?? undefined,
+          },
+        }),
+      onSuccess: () => {
+        setCreateOpenState(false);
+        toast.success("Key created");
+      },
+    });
   };
 
   const saveKey = async (event: FormEvent<HTMLFormElement>) => {
@@ -74,73 +94,68 @@ function useProjectKeysTab({
       return;
     }
 
-    setError(null);
     const data = new FormData(event.currentTarget);
 
-    try {
-      await updateMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        keyId: managedKey.id,
-        data: {
-          name: String(data.get("name") ?? "").trim(),
-          isActive: data.get("isActive") === "on",
-          rateLimitPerMinute: Number(data.get("rateLimitPerMinute") ?? 0) || null,
-        },
-      });
-      setManagedKey(null);
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+    await runAsyncFormAction({
+      setError: setManageError,
+      action: () =>
+        updateMutation.mutateAsync({
+          orgSlug,
+          projectSlug,
+          keyId: managedKey.id,
+          data: {
+            name: String(data.get("name") ?? "").trim(),
+            isActive: data.get("isActive") === "on",
+            rateLimitPerMinute: readRateLimit(data),
+          },
+        }),
+      onSuccess: () => {
+        setManagedKeyState(null);
+        toast.success("Key updated");
+      },
+    });
   };
 
-  const updateKey = async (key: ProjectKeyDto, isActive: boolean) => {
-    setError(null);
-
-    try {
-      await updateMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        keyId: key.id,
-        data: {
-          isActive,
-          name: key.name,
-          rateLimitPerMinute: key.rateLimitPerMinute ?? null,
-        },
-      });
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+  /** Throws on failure so confirmation dialogs can surface the error. */
+  const setKeyActive = async (key: ProjectKeyDto, isActive: boolean) => {
+    await updateMutation.mutateAsync({
+      orgSlug,
+      projectSlug,
+      keyId: key.id,
+      data: {
+        isActive,
+        name: key.name,
+        rateLimitPerMinute: key.rateLimitPerMinute ?? null,
+      },
+    });
   };
 
+  /** Throws on failure so confirmation dialogs can surface the error. */
   const rotateKey = async (keyId: string) => {
-    setError(null);
-
-    try {
-      await rotateMutation.mutateAsync({ orgSlug, projectSlug, keyId });
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+    await rotateMutation.mutateAsync({ orgSlug, projectSlug, keyId });
   };
 
   return {
-    error,
-    createOpen,
-    managedKey,
     keys,
     primaryKey,
+    isLoading: keysQuery.isLoading,
+    loadError: keysQuery.error,
+    retry: () => void keysQuery.refetch(),
+    firstEvent,
+    createError,
+    manageError,
+    createOpen,
+    managedKey,
     effectivePlatform,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
-    isRotating: rotateMutation.isPending,
     setCreateOpen,
     setManagedKey,
     setSelectedPlatform,
     createKey,
     saveKey,
-    updateKey,
+    setKeyActive,
     rotateKey,
-    resetError: () => setError(null),
   };
 }
 

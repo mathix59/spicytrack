@@ -1,64 +1,97 @@
-import { Dot } from "lucide-react";
+import { Send } from "lucide-react";
 
 import type { AlertDeliveryDto } from "@/generated/api";
+import { QueryError } from "@/components/common/query-error";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonRows } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
+import type { ProjectAlertsPanelData } from "./types";
 import { compactDate, deliveryTitle } from "./utils";
 
-function ProjectAlertDeliveriesCard({ deliveries }: { deliveries: AlertDeliveryDto[] }) {
+const PRE_CLASS_NAME =
+  "mt-2 max-h-64 overflow-auto rounded-md bg-muted/30 px-3 py-2 font-mono text-[11px] text-foreground";
+
+function DeliveryItem({ delivery }: { delivery: AlertDeliveryDto }) {
+  const succeeded = delivery.status === "success";
+
   return (
-    <Card className="overflow-hidden">
+    <li className="min-w-0 rounded-lg border border-border bg-muted/20 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "mt-1.5 size-2 shrink-0 rounded-full",
+              succeeded ? "bg-success" : "bg-warning",
+            )}
+          />
+          <div className="min-w-0">
+            <p className="truncate font-medium">{deliveryTitle(delivery.payload)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{compactDate(delivery.createdAt)}</p>
+          </div>
+        </div>
+        <Badge className="shrink-0" variant={succeeded ? "success" : "warning"}>
+          {delivery.status} · {delivery.responseStatus ?? "n/a"}
+        </Badge>
+      </div>
+      <details className="mt-3 text-xs">
+        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+          Payload
+        </summary>
+        <pre className={PRE_CLASS_NAME}>{JSON.stringify(delivery.payload, null, 2)}</pre>
+      </details>
+      {delivery.responseBody ? (
+        <details className="mt-2 text-xs">
+          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+            Response
+          </summary>
+          <pre className={PRE_CLASS_NAME}>{delivery.responseBody}</pre>
+        </details>
+      ) : null}
+    </li>
+  );
+}
+
+function ProjectAlertDeliveriesCard({ state }: { state: ProjectAlertsPanelData }) {
+  const { deliveries, deliveriesQuery } = state;
+
+  return (
+    <Card className="min-w-0 overflow-hidden">
       <CardHeader className="border-b border-border">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle>Deliveries</CardTitle>
-          <Badge variant="muted">{deliveries.length}</Badge>
+        <div className="flex items-start justify-between gap-3">
+          <div className="grid gap-1">
+            <CardTitle>Deliveries</CardTitle>
+            <CardDescription>
+              Latest notifications sent by this project&apos;s rules.
+            </CardDescription>
+          </div>
+          {deliveriesQuery.isLoading ? null : <Badge variant="muted">{deliveries.length}</Badge>}
         </div>
       </CardHeader>
-      <CardContent className="grid gap-4 p-4">
-        {deliveries.length === 0 ? (
+      <CardContent className="grid gap-4 p-3 sm:p-4">
+        {deliveriesQuery.isLoading ? (
+          <SkeletonRows rows={3} />
+        ) : deliveriesQuery.error ? (
+          <QueryError
+            error={deliveriesQuery.error}
+            onRetry={deliveriesQuery.retry}
+            title="Could not load alert deliveries"
+          />
+        ) : deliveries.length === 0 ? (
           <EmptyState
+            description="Use Test on a rule to send a sample notification; every delivery shows up here with its status."
+            icon={Send}
             title="No deliveries yet"
-            description="Webhooks sent from this project will appear here with their delivery status."
           />
         ) : (
-          deliveries.map((delivery) => (
-            <div className="rounded-lg border border-border bg-muted/20 p-4" key={delivery.id}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Dot
-                      className={
-                        delivery.status === "success"
-                          ? "size-5 text-success"
-                          : "size-5 text-warning"
-                      }
-                    />
-                    <p className="truncate font-medium">{deliveryTitle(delivery.payload)}</p>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {compactDate(delivery.createdAt)}
-                  </p>
-                </div>
-                <Badge variant={delivery.status === "success" ? "accent" : "muted"}>
-                  {delivery.status} · {delivery.responseStatus ?? "n/a"}
-                </Badge>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Badge variant="muted">payload</Badge>
-                {delivery.responseBody ? <Badge variant="muted">response</Badge> : null}
-              </div>
-              <pre className="mt-3 overflow-x-auto rounded-md bg-muted/30 px-3 py-2 text-[11px] text-foreground">
-                {JSON.stringify(delivery.payload, null, 2)}
-              </pre>
-              {delivery.responseBody ? (
-                <pre className="mt-3 overflow-x-auto rounded-md bg-muted/30 px-3 py-2 text-[11px] text-foreground">
-                  {delivery.responseBody}
-                </pre>
-              ) : null}
-            </div>
-          ))
+          <ul className="grid gap-3">
+            {deliveries.map((delivery) => (
+              <DeliveryItem delivery={delivery} key={delivery.id} />
+            ))}
+          </ul>
         )}
       </CardContent>
     </Card>

@@ -11,22 +11,30 @@ function ProjectReleasePanel(props: ProjectReleasePanelProps) {
       <ReleaseListCard
         createError={state.createError}
         createOpen={state.createOpen}
+        error={props.releasesError}
         isCreatingRelease={state.isCreatingRelease}
+        isLoading={props.releasesLoading}
         onCreateOpenChange={state.setCreateOpen}
         onCreateRelease={(event) => void state.createRelease(event)}
+        onRetry={props.retryReleases}
         onSelectRelease={props.onSelectRelease}
         releases={props.releases}
         selectedReleaseVersion={props.selectedReleaseVersion}
       />
       <ReleaseDetailCard
         artifacts={state.artifacts}
-        isDeletingArtifact={state.isDeletingArtifact}
+        artifactsError={state.artifactsError}
+        artifactsLoading={state.artifactsLoading}
+        error={state.releaseDetailError}
+        hasReleases={props.releases.length > 0}
+        isLoading={props.releasesLoading || state.releaseDetailLoading}
         isUploadingArtifact={state.isUploadingArtifact}
-        onDeleteArtifact={(artifactId) => void state.deleteArtifact(artifactId)}
+        onDeleteArtifact={state.deleteArtifact}
         onOpenIssue={props.onOpenIssue}
+        onRetry={state.retryReleaseDetail}
+        onRetryArtifacts={state.retryArtifacts}
         onUploadArtifact={(event) => void state.uploadArtifact(event)}
         releaseDetail={state.releaseDetail}
-        releases={props.releases}
         selectedReleaseVersion={props.selectedReleaseVersion}
         uploadError={state.uploadError}
       />

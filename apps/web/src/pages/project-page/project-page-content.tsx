@@ -25,12 +25,10 @@ function ProjectPageContent({ page }: { page: ProjectPageData }) {
   if (page.activeTab === "inventory") {
     return (
       <ProjectInventoryTab
-        environments={page.environments}
         onOpenIssue={page.openIssue}
         onSelectRelease={page.setSelectedReleaseVersion}
         orgSlug={page.orgSlug}
         projectSlug={page.projectSlug}
-        releases={page.releases}
         selectedReleaseVersion={page.selectedReleaseVersion}
       />
     );

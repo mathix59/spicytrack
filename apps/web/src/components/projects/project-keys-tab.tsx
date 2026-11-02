@@ -7,29 +7,19 @@ function ProjectKeysTab(props: ProjectKeysTabProps) {
   const state = useProjectKeysTab(props);
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-2">
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
       <ProjectKeySetupCard
         dsn={state.primaryKey?.dsn}
         effectivePlatform={state.effectivePlatform}
+        firstEvent={state.firstEvent}
+        isLoading={state.isLoading}
+        loadFailed={Boolean(state.loadError)}
+        onCreateKey={() => state.setCreateOpen(true)}
         onPlatformChange={state.setSelectedPlatform}
+        orgSlug={props.orgSlug}
+        projectSlug={props.projectSlug}
       />
-      <ProjectKeyListCard
-        createOpen={state.createOpen}
-        error={state.error}
-        isCreating={state.isCreating}
-        isRotating={state.isRotating}
-        isUpdating={state.isUpdating}
-        keys={state.keys}
-        managedKey={state.managedKey}
-        onCreateKey={state.createKey}
-        onCreateOpenChange={state.setCreateOpen}
-        onManagedKeyChange={state.setManagedKey}
-        onResetError={state.resetError}
-        onRotateKey={state.rotateKey}
-        onSaveKey={state.saveKey}
-        onToggleKey={state.updateKey}
-        primaryKeyId={state.primaryKey?.id}
-      />
+      <ProjectKeyListCard state={state} />
     </div>
   );
 }

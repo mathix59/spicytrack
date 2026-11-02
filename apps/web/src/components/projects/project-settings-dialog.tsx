@@ -43,11 +43,11 @@ function ProjectSettingsDialog({
           Settings
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] w-[min(96vw,42rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Project settings</DialogTitle>
           <DialogDescription>
-            Configure project metadata, retention, ingestion origins, and processing rules.
+            Configure project metadata, access, ingestion origins, and processing rules.
           </DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={onSubmit}>

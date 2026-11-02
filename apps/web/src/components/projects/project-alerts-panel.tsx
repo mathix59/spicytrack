@@ -7,24 +7,9 @@ function ProjectAlertsPanel(props: ProjectAlertsPanelProps) {
   const state = useProjectAlertsPanel(props);
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-      <ProjectAlertRulesCard
-        createDestinationType={state.createDestinationType}
-        createOpen={state.createOpen}
-        error={state.error}
-        isCreating={state.isCreating}
-        isDeleting={state.isDeleting}
-        isUpdating={state.isUpdating}
-        testingRuleId={state.testingRuleId}
-        onCreateDestinationTypeChange={state.setCreateDestinationType}
-        onCreateOpenChange={state.setCreateOpen}
-        onCreateRule={state.createRule}
-        onRemoveRule={state.removeRule}
-        onUpdateRule={state.updateRule}
-        onTestRule={state.testRule}
-        rules={state.rules}
-      />
-      <ProjectAlertDeliveriesCard deliveries={state.deliveries} />
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+      <ProjectAlertRulesCard state={state} />
+      <ProjectAlertDeliveriesCard state={state} />
     </div>
   );
 }

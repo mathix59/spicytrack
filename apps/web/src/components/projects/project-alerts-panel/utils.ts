@@ -1,5 +1,6 @@
 import { BellRing, Hash, Mail, Webhook } from "lucide-react";
 
+import type { AlertRuleDto } from "@/generated/api";
 import { formatLocalDateTime } from "@/lib/utils";
 
 import type { DestinationType, TriggerType } from "./types";
@@ -11,6 +12,13 @@ const TRIGGER_TYPES: Array<{ value: TriggerType; label: string }> = [
   { value: "event_threshold", label: "Event threshold" },
   { value: "daily_digest", label: "Daily digest" },
 ];
+
+function ruleTriggerTypes(rule: AlertRuleDto): TriggerType[] {
+  const values = rule.triggerTypes?.length ? rule.triggerTypes : [rule.triggerType ?? "new_issue"];
+  return values.filter((value): value is TriggerType =>
+    TRIGGER_TYPES.some((trigger) => trigger.value === value),
+  );
+}
 
 function compactDate(value: string | null | undefined) {
   if (!value) {
@@ -79,26 +87,18 @@ function destinationTargetPlaceholder(destinationType: DestinationType) {
   }
 }
 
-function destinationIcon(destinationType: string) {
-  return destinationType === "email"
-    ? Mail
-    : destinationType === "slack" || destinationType === "teams" || destinationType === "discord"
-      ? Hash
-      : Webhook;
-}
-
 export {
   BellRing,
   DESTINATION_TYPES,
   TRIGGER_TYPES,
   compactDate,
   deliveryTitle,
-  destinationIcon,
   destinationTargetInputType,
   destinationTargetLabel,
   destinationTargetPlaceholder,
   Hash,
   Mail,
+  ruleTriggerTypes,
   triggerLabel,
   Webhook,
 };

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   getListProjectAlertDeliveriesQueryKey,
@@ -14,6 +15,7 @@ import {
   type AlertDeliveryDto,
   type AlertRuleDto,
 } from "@/generated/api";
+import { runAsyncFormAction } from "@/lib/form-submission";
 import { invalidateQueryKeys } from "@/lib/query-utils";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -22,13 +24,34 @@ import type { DestinationType, ProjectAlertsPanelData, ProjectAlertsPanelProps }
 const EMPTY_RULES: AlertRuleDto[] = [];
 const EMPTY_DELIVERIES: AlertDeliveryDto[] = [];
 
+/** Reads the trigger/threshold/cooldown/destination fields shared by create and edit forms. */
+function readRuleConfig(formData: FormData, fallback?: AlertRuleDto) {
+  const triggerTypes = formData.getAll("triggerTypes").map(String);
+  const thresholdValue = String(formData.get("threshold") ?? "");
+
+  return {
+    triggerTypes,
+    threshold:
+      triggerTypes.includes("event_threshold") && thresholdValue.length > 0
+        ? Number(thresholdValue)
+        : null,
+    cooldownMinutes: Number(formData.get("cooldownMinutes") ?? 30) || 30,
+    destinationType: String(
+      formData.get("destinationType") ?? fallback?.destinationType ?? "webhook",
+    ),
+    destinationTarget: String(
+      formData.get("destinationTarget") ?? fallback?.destinationTarget ?? "",
+    ),
+  };
+}
+
 function useProjectAlertsPanel({
   orgSlug,
   projectSlug,
 }: ProjectAlertsPanelProps): ProjectAlertsPanelData {
   const queryClient = useQueryClient();
-  const [error, setError] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createOpen, setCreateOpenState] = useState(false);
   const [createDestinationType, setCreateDestinationType] = useState<DestinationType>("webhook");
 
   const alertsQuery = useListProjectAlerts(orgSlug, projectSlug);
@@ -41,124 +64,91 @@ function useProjectAlertsPanel({
     ]);
   };
 
-  const createAlertMutation = useCreateProjectAlert({
-    mutation: {
-      onSuccess: invalidateAlerts,
-    },
-  });
-  const updateAlertMutation = useUpdateProjectAlert({
-    mutation: {
-      onSuccess: invalidateAlerts,
-    },
-  });
-  const deleteAlertMutation = useDeleteProjectAlert({
-    mutation: {
-      onSuccess: invalidateAlerts,
-    },
-  });
-  const testAlertMutation = useTestProjectAlert({
-    mutation: {
-      onSuccess: invalidateAlerts,
-    },
-  });
+  const createAlertMutation = useCreateProjectAlert({ mutation: { onSuccess: invalidateAlerts } });
+  const updateAlertMutation = useUpdateProjectAlert({ mutation: { onSuccess: invalidateAlerts } });
+  const deleteAlertMutation = useDeleteProjectAlert({ mutation: { onSuccess: invalidateAlerts } });
+  const testAlertMutation = useTestProjectAlert({ mutation: { onSuccess: invalidateAlerts } });
 
-  const rules = alertsQuery.data?.data ?? EMPTY_RULES;
-  const deliveries = deliveriesQuery.data?.data ?? EMPTY_DELIVERIES;
+  const setCreateOpen = (open: boolean) => {
+    setCreateError(null);
+    if (!open) setCreateDestinationType("webhook");
+    setCreateOpenState(open);
+  };
 
   const createRule = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null);
     const formData = new FormData(event.currentTarget);
-    const triggerTypes = formData.getAll("triggerTypes").map(String);
-    const thresholdValue = String(formData.get("threshold") ?? "");
 
-    try {
-      await createAlertMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        data: {
-          name: String(formData.get("name") ?? ""),
-          triggerTypes,
-          threshold:
-            triggerTypes.includes("event_threshold") && thresholdValue.length > 0
-              ? Number(thresholdValue)
-              : null,
-          cooldownMinutes: Number(formData.get("cooldownMinutes") ?? 30) || 30,
-          destinationType: String(formData.get("destinationType") ?? "webhook"),
-          destinationTarget: String(formData.get("destinationTarget") ?? ""),
-        },
-      });
-      setCreateDestinationType("webhook");
-      setCreateOpen(false);
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+    await runAsyncFormAction({
+      setError: setCreateError,
+      action: () =>
+        createAlertMutation.mutateAsync({
+          orgSlug,
+          projectSlug,
+          data: { name: String(formData.get("name") ?? ""), ...readRuleConfig(formData) },
+        }),
+      onSuccess: () => {
+        setCreateDestinationType("webhook");
+        setCreateOpenState(false);
+        toast.success("Alert rule created");
+      },
+    });
   };
 
+  /** Throws on failure so the rule form can show the error next to its fields. */
   const updateRule = async (event: FormEvent<HTMLFormElement>, rule: AlertRuleDto) => {
     event.preventDefault();
-    setError(null);
     const formData = new FormData(event.currentTarget);
-    const triggerTypes = formData.getAll("triggerTypes").map(String);
-    const thresholdValue = String(formData.get("threshold") ?? "");
 
-    try {
-      await updateAlertMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        alertRuleId: rule.id,
-        data: {
-          name: String(formData.get("name") ?? rule.name),
-          isActive: String(formData.get("isActive") ?? "true") === "true",
-          triggerTypes,
-          threshold:
-            triggerTypes.includes("event_threshold") && thresholdValue.length > 0
-              ? Number(thresholdValue)
-              : null,
-          cooldownMinutes: Number(formData.get("cooldownMinutes") ?? 30) || 30,
-          destinationType: String(formData.get("destinationType") ?? rule.destinationType),
-          destinationTarget: String(formData.get("destinationTarget") ?? rule.destinationTarget),
-        },
-      });
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+    await updateAlertMutation.mutateAsync({
+      orgSlug,
+      projectSlug,
+      alertRuleId: rule.id,
+      data: {
+        name: String(formData.get("name") ?? rule.name),
+        isActive: String(formData.get("isActive") ?? "true") === "true",
+        ...readRuleConfig(formData, rule),
+      },
+    });
+    toast.success("Alert rule saved");
   };
 
   const removeRule = async (ruleId: string) => {
-    setError(null);
-
-    try {
-      await deleteAlertMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        alertRuleId: ruleId,
-      });
-    } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
-    }
+    await deleteAlertMutation.mutateAsync({ orgSlug, projectSlug, alertRuleId: ruleId });
   };
 
   const testRule = async (ruleId: string) => {
-    setError(null);
-
     try {
       await testAlertMutation.mutateAsync({ orgSlug, projectSlug, alertRuleId: ruleId });
+      toast.success("Test alert sent. Check the deliveries list for the result.");
     } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
+      toast.error(getErrorMessage(caughtError));
     }
   };
 
   return {
-    error,
+    rules: alertsQuery.data?.data ?? EMPTY_RULES,
+    deliveries: deliveriesQuery.data?.data ?? EMPTY_DELIVERIES,
+    rulesQuery: {
+      isLoading: alertsQuery.isLoading,
+      error: alertsQuery.error,
+      retry: () => void alertsQuery.refetch(),
+    },
+    deliveriesQuery: {
+      isLoading: deliveriesQuery.isLoading,
+      error: deliveriesQuery.error,
+      retry: () => void deliveriesQuery.refetch(),
+    },
+    createError,
     createOpen,
     createDestinationType,
-    rules,
-    deliveries,
     isCreating: createAlertMutation.isPending,
-    isUpdating: updateAlertMutation.isPending,
-    isDeleting: deleteAlertMutation.isPending,
-    testingRuleId: testAlertMutation.isPending ? testAlertMutation.variables?.alertRuleId : null,
+    savingRuleId: updateAlertMutation.isPending
+      ? (updateAlertMutation.variables?.alertRuleId ?? null)
+      : null,
+    testingRuleId: testAlertMutation.isPending
+      ? (testAlertMutation.variables?.alertRuleId ?? null)
+      : null,
     setCreateOpen,
     setCreateDestinationType,
     createRule,

@@ -2,6 +2,7 @@ import { GitBranch, Plus } from "lucide-react";
 
 import type { ProjectReleaseDto } from "@/generated/api";
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
+import { QueryError } from "@/components/common/query-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,11 +15,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { SkeletonRows } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 function ReleaseListCard({
   releases,
+  isLoading,
+  error,
+  onRetry,
   selectedReleaseVersion,
   createOpen,
   createError,
@@ -28,6 +35,9 @@ function ReleaseListCard({
   onCreateRelease,
 }: {
   releases: ProjectReleaseDto[];
+  isLoading: boolean;
+  error: unknown;
+  onRetry: () => void;
   selectedReleaseVersion: string;
   createOpen: boolean;
   createError: string | null;
@@ -42,12 +52,12 @@ function ReleaseListCard({
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <CardTitle>Releases</CardTitle>
-            <Badge variant="muted">{releases.length}</Badge>
+            {isLoading ? null : <Badge variant="muted">{releases.length}</Badge>}
           </div>
           <Dialog onOpenChange={onCreateOpenChange} open={createOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="secondary">
-                <Plus className="size-4" />
+              <Button size="sm" type="button" variant="secondary">
+                <Plus />
                 New
               </Button>
             </DialogTrigger>
@@ -59,7 +69,7 @@ function ReleaseListCard({
                 </DialogDescription>
               </DialogHeader>
               <form className="grid gap-4" onSubmit={onCreateRelease}>
-                <Field label="Version">
+                <Field hint="Must match the release your SDK reports." label="Version">
                   <Input name="version" placeholder="1.4.0" required />
                 </Field>
                 {createError ? (
@@ -74,48 +84,50 @@ function ReleaseListCard({
         </div>
       </CardHeader>
       <CardContent className="grid gap-1">
-        {releases.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-5">
-            <div className="flex size-9 items-center justify-center rounded-lg border border-border bg-background">
-              <GitBranch className="size-4 text-primary" />
-            </div>
-            <p className="mt-4 text-sm font-medium text-foreground">Ship your first release</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Create it here or send a <code className="text-foreground">release</code> field from
-              your SDK.
-            </p>
-            <Button
-              className="mt-4"
-              onClick={() => onCreateOpenChange(true)}
-              size="sm"
-              type="button"
-            >
-              <Plus className="size-4" />
-              Create release
-            </Button>
-          </div>
+        {isLoading ? (
+          <SkeletonRows className="[&>*]:h-9" rows={4} />
+        ) : error ? (
+          <QueryError error={error} onRetry={onRetry} title="Could not load releases" />
+        ) : releases.length === 0 ? (
+          <EmptyState
+            action={
+              <Button onClick={() => onCreateOpenChange(true)} size="sm" type="button">
+                <Plus />
+                Create release
+              </Button>
+            }
+            description="Create a release here or send a release field from your SDK, then upload source maps."
+            icon={GitBranch}
+            title="Ship your first release"
+          />
         ) : (
-          releases.map((release) => (
-            <button
-              className={
-                selectedReleaseVersion === release.version
-                  ? "flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden rounded-md bg-accent px-3 py-2 text-left"
-                  : "flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
-              }
-              key={release.id}
-              onClick={() => onSelectRelease(release.version)}
-              title={release.version}
-              type="button"
-            >
-              <span className="flex min-w-0 flex-1 items-center gap-2">
-                <GitBranch className="size-4 shrink-0 text-muted-foreground" />
-                <span className="truncate text-sm font-medium">{release.version}</span>
-              </span>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {release.eventCount} events
-              </span>
-            </button>
-          ))
+          <ul className="grid gap-1">
+            {releases.map((release) => {
+              const selected = selectedReleaseVersion === release.version;
+              return (
+                <li className="min-w-0" key={release.id}>
+                  <button
+                    aria-current={selected ? "true" : undefined}
+                    className={cn(
+                      "flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden rounded-md px-3 py-2 text-left transition-colors",
+                      selected ? "bg-accent" : "hover:bg-accent/50",
+                    )}
+                    onClick={() => onSelectRelease(release.version)}
+                    title={release.version}
+                    type="button"
+                  >
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
+                      <GitBranch className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-sm font-medium">{release.version}</span>
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {release.eventCount} events
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </CardContent>
     </Card>

@@ -1,5 +1,6 @@
+import { Link } from "react-router-dom";
+
 import { AutofixConfigCard } from "@/components/integrations/autofix-config-card";
-import { OrgGithubAppCard } from "@/components/integrations/org-github-app-card";
 import { RepoConnectionCard } from "@/components/integrations/repo-connection-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -22,7 +23,16 @@ function ProjectIntegrationsPanel({
       </TabsList>
 
       <TabsContent className="mt-0 grid gap-6" value="repository">
-        <OrgGithubAppCard canManage={canManage} orgSlug={orgSlug} />
+        <p className="text-sm text-muted-foreground">
+          GitHub App credentials are shared by every project and are managed in{" "}
+          <Link
+            className="font-medium text-primary-accent hover:underline"
+            to={`/orgs/${orgSlug}?tab=settings&section=general`}
+          >
+            organization settings
+          </Link>
+          .
+        </p>
         <RepoConnectionCard canManage={canManage} orgSlug={orgSlug} projectSlug={projectSlug} />
       </TabsContent>
 
