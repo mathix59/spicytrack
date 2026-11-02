@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 const rootDir = process.cwd();
 const apiDir = resolve(rootDir, "apps/api");
 const webDir = resolve(rootDir, "apps/web");
+// Nest 12 is ESM-only; Jest needs native require(esm) support (Node >= 24.9).
+const jestNodeArgs = ["--experimental-vm-modules", "./node_modules/jest/bin/jest.js"];
 
 function run(command, args, cwd) {
   return new Promise((resolvePromise, rejectPromise) => {
@@ -100,7 +102,7 @@ const checks = {
     await run("./node_modules/.bin/vite", ["build"], webDir);
   },
   "test:api": async () => {
-    await run("./node_modules/.bin/jest", [], apiDir);
+    await run("node", [...jestNodeArgs], apiDir);
   },
   "test:api:e2e": async () => {
     process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5433/spicytrack";
@@ -110,7 +112,7 @@ const checks = {
     process.env.MAILPIT_URL ??= "http://localhost:8025";
 
     await assertApiE2eServices();
-    await run("./node_modules/.bin/jest", ["--config", "./test/jest-e2e.json"], apiDir);
+    await run("node", [...jestNodeArgs, "--config", "./test/jest-e2e.json"], apiDir);
   },
 };
 

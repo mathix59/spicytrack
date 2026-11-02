@@ -6,6 +6,17 @@ overrides:
   fastify: 5.11.3
 
 allowBuilds:
+  '@parcel/watcher': false
   '@scarf/scarf': true
   esbuild: true
   unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - '@better-auth/core@1.6.34'
+  - '@better-auth/drizzle-adapter@1.6.34'
+  - '@better-auth/kysely-adapter@1.6.34'
+  - '@better-auth/memory-adapter@1.6.34'
+  - '@better-auth/mongo-adapter@1.6.34'
+  - '@better-auth/prisma-adapter@1.6.34'
+  - '@better-auth/telemetry@1.6.34'
+  - better-auth@1.6.34

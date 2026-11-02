@@ -16,6 +16,15 @@ describe("buildBetterAuthRequestUrl", () => {
       "https://errors.example.com/api/better-auth/session",
     );
   });
+
+  it("keeps the historical OIDC callback path working as an alias of /callback/:id", () => {
+    process.env.BETTER_AUTH_URL = "https://errors.example.com/api/better-auth";
+    expect(
+      buildBetterAuthRequestUrl(
+        "/api/better-auth/oauth2/callback/keycloak?code=abc&state=s",
+      ).toString(),
+    ).toBe("https://errors.example.com/api/better-auth/callback/keycloak?code=abc&state=s");
+  });
 });
 
 describe("decodeSentryBody", () => {

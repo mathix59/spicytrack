@@ -1,10 +1,27 @@
+import { createSign, generateKeyPairSync } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { Test } from "@nestjs/testing";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
 import { fromNodeHeaders } from "better-auth/node";
+import { buildBetterAuthRequestUrl } from "../src/auth/auth-request-url";
 
 const ORIGIN = process.env.WEB_ORIGIN?.split(",")[0] ?? "http://localhost:5174";
+
+const CLIENT_ID = "spicytrack-e2e";
+const KEY_ID = "fake-oidc-key";
+const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+
+function base64Url(value: string | Buffer): string {
+  return Buffer.from(value).toString("base64url");
+}
+
+function signIdToken(claims: Record<string, unknown>): string {
+  const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT", kid: KEY_ID }));
+  const payload = base64Url(JSON.stringify(claims));
+  const signature = createSign("RSA-SHA256").update(`${header}.${payload}`).sign(privateKey);
+  return `${header}.${payload}.${base64Url(signature)}`;
+}
 
 function cookieHeader(value: string | string[] | undefined): string {
   const values = Array.isArray(value) ? value : [value ?? ""];
@@ -24,6 +41,7 @@ describe("Generic OAuth flow (e2e)", () => {
   const existingUserId = "10000000-0000-4000-8000-000000000003";
   let providerEmail = email;
   let providerSubject = "fake-provider-user";
+  let authorizationNonce: string | undefined;
   const organizationId = "10000000-0000-4000-8000-000000000001";
   const ownerUserId = "10000000-0000-4000-8000-000000000002";
 
@@ -38,12 +56,41 @@ describe("Generic OAuth flow (e2e)", () => {
             authorization_endpoint: `${issuer}/authorize`,
             token_endpoint: `${issuer}/token`,
             userinfo_endpoint: `${issuer}/userinfo`,
+            jwks_uri: `${issuer}/jwks`,
+            id_token_signing_alg_values_supported: ["RS256"],
+          }),
+        );
+        return;
+      }
+      if (path === "/jwks") {
+        response.end(
+          JSON.stringify({
+            keys: [
+              { ...publicKey.export({ format: "jwk" }), kid: KEY_ID, alg: "RS256", use: "sig" },
+            ],
           }),
         );
         return;
       }
       if (path === "/token") {
-        response.end(JSON.stringify({ access_token: "fake-access-token", token_type: "Bearer" }));
+        const now = Math.floor(Date.now() / 1000);
+        response.end(
+          JSON.stringify({
+            access_token: "fake-access-token",
+            token_type: "Bearer",
+            id_token: signIdToken({
+              iss: issuer,
+              aud: CLIENT_ID,
+              sub: providerSubject,
+              iat: now,
+              exp: now + 300,
+              nonce: authorizationNonce,
+              email: providerEmail,
+              email_verified: true,
+              name: "OIDC Flow E2E",
+            }),
+          }),
+        );
         return;
       }
       if (path === "/userinfo") {
@@ -64,7 +111,7 @@ describe("Generic OAuth flow (e2e)", () => {
     issuer = `http://127.0.0.1:${(provider.address() as AddressInfo).port}`;
 
     process.env.OIDC_DISCOVERY_URL = `${issuer}/.well-known/openid-configuration`;
-    process.env.OIDC_CLIENT_ID = "spicytrack-e2e";
+    process.env.OIDC_CLIENT_ID = CLIENT_ID;
     process.env.OIDC_CLIENT_SECRET = "spicytrack-e2e-secret";
     process.env.OIDC_PROVIDER_ID = "fake-oidc";
     process.env.OIDC_AUTO_JOIN_ORGANIZATION_SLUG = "oidc-e2e";
@@ -96,7 +143,7 @@ describe("Generic OAuth flow (e2e)", () => {
       .getHttpAdapter()
       .getInstance()
       .all("/api/better-auth/*", async (request, reply) => {
-        const url = new URL(request.url, `http://${request.headers.host}`);
+        const url = buildBetterAuthRequestUrl(request.url);
         const authRequest = new Request(url, {
           method: request.method,
           headers: fromNodeHeaders(request.headers),
@@ -141,12 +188,13 @@ describe("Generic OAuth flow (e2e)", () => {
   it("discovers the provider, completes the callback, and auto-joins the configured organization", async () => {
     const start = await app.inject({
       method: "POST",
-      url: "/api/better-auth/sign-in/oauth2",
+      url: "/api/better-auth/sign-in/social",
       headers: { origin: ORIGIN, "content-type": "application/json" },
-      payload: { providerId: "fake-oidc", callbackURL: `${ORIGIN}/app`, disableRedirect: true },
+      payload: { provider: "fake-oidc", callbackURL: `${ORIGIN}/app`, disableRedirect: true },
     });
     expect(start.statusCode).toBe(200);
     const authorizationUrl = new URL(start.json().url);
+    authorizationNonce = authorizationUrl.searchParams.get("nonce") ?? undefined;
     expect(authorizationUrl.origin).toBe(issuer);
     expect(authorizationUrl.searchParams.get("code_challenge")).toBeTruthy();
 
@@ -187,12 +235,13 @@ describe("Generic OAuth flow (e2e)", () => {
 
     const start = await app.inject({
       method: "POST",
-      url: "/api/better-auth/sign-in/oauth2",
+      url: "/api/better-auth/sign-in/social",
       headers: { origin: ORIGIN, "content-type": "application/json" },
-      payload: { providerId: "fake-oidc", callbackURL: `${ORIGIN}/app`, disableRedirect: true },
+      payload: { provider: "fake-oidc", callbackURL: `${ORIGIN}/app`, disableRedirect: true },
     });
     expect(start.statusCode).toBe(200);
     const authorizationUrl = new URL(start.json().url);
+    authorizationNonce = authorizationUrl.searchParams.get("nonce") ?? undefined;
     const callback = await app.inject({
       method: "GET",
       url: `/api/better-auth/oauth2/callback/fake-oidc?code=fake-code&state=${encodeURIComponent(authorizationUrl.searchParams.get("state") ?? "")}&iss=${encodeURIComponent(issuer)}`,

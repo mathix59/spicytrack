@@ -114,8 +114,8 @@ function useAuthForm({
     setError(null);
     try {
       setIsPending(true);
-      const result = await authClient.signIn.oauth2({
-        providerId,
+      const result = await authClient.signIn.social({
+        provider: providerId,
         callbackURL: window.location.href,
         errorCallbackURL: window.location.origin,
       });

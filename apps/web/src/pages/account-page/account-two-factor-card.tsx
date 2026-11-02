@@ -44,14 +44,16 @@ function AccountTwoFactorCard({ user }: { user: UserDto | undefined }) {
     try {
       const result = await authClient.twoFactor.enable({
         password: setupPassword,
+        method: "totp",
       });
 
       if (result.error) {
         throw new Error(result.error.message ?? "Unable to enable two-factor authentication");
       }
 
-      setTotpUri(result.data?.totpURI ?? null);
-      setBackupCodes(result.data?.backupCodes ?? []);
+      const setup = result.data && "totpURI" in result.data ? result.data : null;
+      setTotpUri(setup?.totpURI ?? null);
+      setBackupCodes(setup?.backupCodes ?? []);
       setVerificationCode("");
       setSuccess("Scan the setup key in your authenticator app, then verify the current code.");
     } catch (caughtError) {

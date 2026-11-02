@@ -16,7 +16,7 @@ export const betterAuthPool = createDatabasePool(databaseUrl, "Better Auth");
 
 function isOidcCallback(context: unknown): boolean {
   const path = (context as { path?: unknown } | null)?.path;
-  return typeof path === "string" && path.includes("/oauth2/callback/");
+  return typeof path === "string" && path.includes("/callback/");
 }
 
 async function hasPendingInvitation(email: string): Promise<boolean> {
@@ -66,9 +66,13 @@ function appUrl(path: string, token: string): string {
   return `${base}${path}?token=${encodeURIComponent(token)}`;
 }
 
+const betterAuthBaseUrl = (
+  process.env.BETTER_AUTH_URL ?? "http://localhost:3002/api/better-auth"
+).replace(/\/+$/, "");
+
 const betterAuth = createBetterAuth({
   database: betterAuthPool,
-  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3002/api/better-auth",
+  baseURL: betterAuthBaseUrl,
   secret: authenticationConfiguration.secret,
   advanced: {
     database: {
@@ -104,7 +108,7 @@ const betterAuth = createBetterAuth({
         window: authenticationConfiguration.rateLimitWindowSeconds,
         max: authenticationConfiguration.signInRateLimitMax,
       },
-      "/sign-in/oauth2": {
+      "/sign-in/social": {
         window: authenticationConfiguration.rateLimitWindowSeconds,
         max: authenticationConfiguration.signInRateLimitMax,
       },
@@ -182,7 +186,8 @@ const betterAuth = createBetterAuth({
                 clientSecret: authenticationConfiguration.oidc.clientSecret,
                 scopes: ["openid", "profile", "email"],
                 pkce: true,
-                requireIssuerValidation: true,
+                requireIdTokenVerification: true,
+                redirectURI: `${betterAuthBaseUrl}/oauth2/callback/${authenticationConfiguration.oidc.providerId}`,
                 disableSignUp: authenticationConfiguration.oidc.accessMode === "existing",
               },
             ],
