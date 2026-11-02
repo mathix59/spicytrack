@@ -17,7 +17,7 @@ function ShellLink({
   return (
     <Link
       className={cn(
-        "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+        "group flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors",
         active
           ? "bg-accent text-accent-foreground font-medium"
           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -25,7 +25,7 @@ function ShellLink({
       aria-current={active ? "page" : undefined}
       to={to}
     >
-      <Icon className="size-4 shrink-0" />
+      <Icon className={cn("size-4 shrink-0", active && "text-primary-accent")} />
       <span className="truncate">{label}</span>
     </Link>
   );

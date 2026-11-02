@@ -23,7 +23,7 @@ function SegmentedControl<T extends string>({
     <div
       aria-label={label}
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-md border border-border bg-muted/40 p-0.5",
+        "inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/60 p-0.5",
         className,
       )}
       role="group"
@@ -34,8 +34,8 @@ function SegmentedControl<T extends string>({
           <button
             aria-pressed={active}
             className={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground",
-              active && "bg-background text-foreground shadow-sm",
+              "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-muted-foreground transition-[color,background-color,box-shadow] duration-150 hover:text-foreground",
+              active && "bg-card text-foreground shadow-sm",
             )}
             key={option.value}
             onClick={() => onChange(option.value)}

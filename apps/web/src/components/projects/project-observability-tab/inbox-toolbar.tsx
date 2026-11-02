@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select } from "@/components/ui/select";
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
 import { renderNullableText } from "@/lib/utils";
@@ -236,8 +238,8 @@ function InboxToolbar({
               <option value="debug">Debug</option>
             </Select>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <Popover>
+            <PopoverTrigger asChild>
               <Button className="col-span-2 w-full sm:w-auto" type="button" variant="secondary">
                 <SlidersHorizontal className="size-4" />
                 Filters
@@ -245,21 +247,24 @@ function InboxToolbar({
                   <Badge variant="accent">{activeSecondaryFilterCount}</Badge>
                 ) : null}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="grid w-72 gap-3 p-3">
+            </PopoverTrigger>
+            <PopoverContent align="end" aria-label="Issue filters" className="grid w-80 gap-3">
               <Field label="Assignee">
-                <Select
-                  onChange={(event) => updateAssignedUserFilter(event.target.value)}
+                <Combobox
+                  emptyText="No matching member."
+                  onChange={updateAssignedUserFilter}
+                  options={[
+                    { value: "all", label: "All assignees" },
+                    { value: "__unassigned__", label: "Unassigned" },
+                    ...members.map((member) => ({
+                      value: member.userId,
+                      label: renderNullableText(member.name, member.email),
+                      description: member.name ? member.email : undefined,
+                    })),
+                  ]}
+                  searchPlaceholder="Search members…"
                   value={assignedUserFilter}
-                >
-                  <option value="all">All assignees</option>
-                  <option value="__unassigned__">Unassigned</option>
-                  {members.map((member) => (
-                    <option key={member.userId} value={member.userId}>
-                      {renderNullableText(member.name, member.email)}
-                    </option>
-                  ))}
-                </Select>
+                />
               </Field>
               <Field label="Environment">
                 <Select
@@ -275,17 +280,19 @@ function InboxToolbar({
                 </Select>
               </Field>
               <Field label="Release">
-                <Select
-                  onChange={(event) => updateReleaseFilter(event.target.value)}
+                <Combobox
+                  emptyText="No matching release."
+                  onChange={updateReleaseFilter}
+                  options={[
+                    { value: "all", label: "All releases" },
+                    ...projectReleases.map((release) => ({
+                      value: release.version,
+                      label: release.version,
+                    })),
+                  ]}
+                  searchPlaceholder="Search releases…"
                   value={releaseFilter}
-                >
-                  <option value="all">All releases</option>
-                  {projectReleases.map((release) => (
-                    <option key={release.id} value={release.version}>
-                      {release.version}
-                    </option>
-                  ))}
-                </Select>
+                />
               </Field>
               <Field label="Regression">
                 <Select
@@ -323,8 +330,8 @@ function InboxToolbar({
                   <option value="100">100 per page</option>
                 </Select>
               </Field>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

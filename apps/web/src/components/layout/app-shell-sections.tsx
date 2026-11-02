@@ -197,7 +197,7 @@ function AppShellProjectsNav({
           <div key={project.id}>
             <Link
               className={cn(
-                "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
+                "flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors",
                 isCurrent
                   ? "bg-accent text-accent-foreground font-medium"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -205,7 +205,7 @@ function AppShellProjectsNav({
               aria-current={isCurrent ? (currentIssueId ? "location" : "page") : undefined}
               to={`/orgs/${currentOrgSlug}/projects/${project.slug}`}
             >
-              <FolderKanban className="size-4 shrink-0" />
+              <FolderKanban className={cn("size-4 shrink-0", isCurrent && "text-primary-accent")} />
               <span className="truncate">{project.name}</span>
             </Link>
           </div>

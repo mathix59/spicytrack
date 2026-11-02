@@ -1,10 +1,11 @@
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import type { MeResponseDto } from "@/generated/api";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Kbd } from "@/components/ui/kbd";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { APP_VERSION } from "@/lib/app-version";
 
 import {
@@ -15,7 +16,29 @@ import {
   AppShellUserMenu,
 } from "./app-shell-sections";
 import { AppUpdateNotice } from "./app-update-notice";
+import { CommandPalette } from "./command-palette";
+import { useCommandPalette } from "./use-command-palette";
 import { useAppShell } from "./use-app-shell";
+
+const IS_APPLE_PLATFORM =
+  typeof navigator !== "undefined" && /mac|iphone|ipad/i.test(navigator.userAgent);
+
+function CommandPaletteTrigger({ onOpen }: { onOpen: () => void }) {
+  return (
+    <div className="px-3 pt-3">
+      <button
+        aria-keyshortcuts={IS_APPLE_PLATFORM ? "Meta+K" : "Control+K"}
+        className="flex h-8 w-full items-center gap-2 rounded-md border border-border bg-background px-2.5 text-sm text-muted-foreground shadow-xs transition-colors hover:border-border-strong hover:text-foreground"
+        onClick={onOpen}
+        type="button"
+      >
+        <Search aria-hidden="true" className="size-3.5" />
+        <span className="flex-1 text-left">Search…</span>
+        <Kbd>{IS_APPLE_PLATFORM ? "⌘K" : "Ctrl K"}</Kbd>
+      </button>
+    </div>
+  );
+}
 
 function AppShell({
   me,
@@ -32,6 +55,7 @@ function AppShell({
   const location = useLocation();
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const mobileNavigationTriggerRef = useRef<HTMLButtonElement>(null);
+  const palette = useCommandPalette();
 
   useEffect(() => {
     setMobileNavigationOpen(false);
@@ -46,6 +70,7 @@ function AppShell({
         me={me}
         navigate={state.navigate}
       />
+      <CommandPaletteTrigger onOpen={() => palette.setOpen(() => true)} />
 
       <nav aria-label="Primary navigation" className="flex-1 overflow-y-auto p-3">
         <AppShellOrgNav
@@ -93,23 +118,46 @@ function AppShell({
         </Button>
         <img alt="" className="size-5" src="/logo.svg" />
         <span className="truncate text-sm font-semibold tracking-tight">SpicyTrack</span>
+        <Button
+          aria-label="Search"
+          className="order-last ms-auto"
+          onClick={() => palette.setOpen(() => true)}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <Search className="size-4" />
+        </Button>
         <span className="ms-2 rounded-full border border-muted-foreground/30 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
           {APP_VERSION}
         </span>
       </header>
 
-      <Dialog onOpenChange={setMobileNavigationOpen} open={mobileNavigationOpen}>
-        <DialogContent
-          className="top-0 left-0 h-dvh max-h-none w-[min(88vw,20rem)] max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-y-0 border-l-0 p-0 md:hidden"
+      <Sheet onOpenChange={setMobileNavigationOpen} open={mobileNavigationOpen}>
+        <SheetContent
+          aria-describedby={undefined}
+          className="gap-0 md:hidden"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             mobileNavigationTriggerRef.current?.focus();
           }}
+          side="left"
         >
-          <DialogTitle className="sr-only">Navigation</DialogTitle>
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
           {navigation}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
+
+      <CommandPalette
+        currentOrgSlug={currentOrgSlug}
+        currentProjectSlug={state.currentProjectSlug}
+        me={me}
+        navigate={state.navigate}
+        onLogout={() => void state.handleLogout()}
+        onOpenChange={(open) => palette.setOpen(() => open)}
+        open={palette.open}
+        projects={state.projects}
+      />
 
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
         {navigation}

@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import type { IssueDto } from "@/generated/api";
 import { formatRelativeTime, renderNullableText } from "@/lib/utils";
 
@@ -52,19 +52,22 @@ function IssueSidebar({
       <Card>
         <CardContent className="grid gap-4 pt-6">
           <PropertyRow htmlFor="issue-assignee" label="Assignee">
-            <Select
+            <Combobox
               disabled={sidebar.isUpdatingAssignee}
+              emptyText="No matching member."
               id="issue-assignee"
-              onChange={(event) => void sidebar.updateAssignee(event.target.value)}
+              onChange={(value) => void sidebar.updateAssignee(value)}
+              options={[
+                { value: "", label: "Unassigned" },
+                ...sidebar.members.map((member) => ({
+                  value: member.userId,
+                  label: renderNullableText(member.name, member.email),
+                  description: member.name ? member.email : undefined,
+                })),
+              ]}
+              searchPlaceholder="Search members…"
               value={issue.assignedUserId ?? ""}
-            >
-              <option value="">Unassigned</option>
-              {sidebar.members.map((member) => (
-                <option key={member.userId} value={member.userId}>
-                  {renderNullableText(member.name, member.email)}
-                </option>
-              ))}
-            </Select>
+            />
           </PropertyRow>
           <PropertyRow label="Priority">
             <div>
