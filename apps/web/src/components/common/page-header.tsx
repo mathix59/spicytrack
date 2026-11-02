@@ -20,7 +20,7 @@ function PageHeader({
     <header className="flex min-w-0 flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex min-w-0 flex-1 items-start gap-3">
         {Icon ? (
-          <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40 text-primary">
+          <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/40 text-primary-accent">
             <Icon className="size-5" />
           </div>
         ) : null}

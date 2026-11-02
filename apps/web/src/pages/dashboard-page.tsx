@@ -176,7 +176,7 @@ function OrganizationCard({ organization }: { organization: OrganizationListItem
           <div className="flex items-center gap-3">
             <CardTitle>
               <Link
-                className="transition-colors hover:text-primary"
+                className="transition-colors hover:text-primary-accent"
                 to={`/orgs/${organization.slug}`}
               >
                 {organization.name}
@@ -231,7 +231,7 @@ function OrganizationCard({ organization }: { organization: OrganizationListItem
             </p>
             {overview.topRegressions.map((issue) => (
               <Link
-                className="flex items-center justify-between gap-3 text-sm hover:text-primary"
+                className="flex items-center justify-between gap-3 text-sm hover:text-primary-accent"
                 key={issue.id}
                 to={`/orgs/${organization.slug}/projects/${issue.projectSlug}/issues/${issue.id}`}
               >

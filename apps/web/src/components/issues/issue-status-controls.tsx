@@ -76,7 +76,7 @@ function PriorityControl({
           >
             <span className={`size-2 rounded-full ${priorityDotClass(priority)}`} />
             <span className="flex-1">{priorityLabel(priority)}</span>
-            {priority === value ? <span className="text-primary">✓</span> : null}
+            {priority === value ? <span className="text-primary-accent">✓</span> : null}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

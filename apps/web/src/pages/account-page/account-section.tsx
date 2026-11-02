@@ -21,7 +21,7 @@ function AccountSection({
     <Card>
       <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-primary">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40 text-primary-accent">
             <Icon aria-hidden="true" className="size-4" />
           </div>
           <div className="grid min-w-0 gap-1">

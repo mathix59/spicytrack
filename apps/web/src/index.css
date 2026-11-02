@@ -1,8 +1,36 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* The resolved theme is written to <html data-theme> before first paint (public/theme-init.js). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    monospace;
+
+  /* Dense product type scale: 13px is the default UI size, 14px for reading. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+  --text-lg: 1rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.125rem;
+  --text-xl--line-height: 1.625rem;
+  --text-2xl: 1.375rem;
+  --text-2xl--line-height: 1.875rem;
+  --text-3xl: 1.75rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: 2.625rem;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -17,14 +45,17 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-solid: var(--destructive-solid);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
@@ -32,43 +63,124 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --shadow-xs: var(--elevation-xs);
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
+  --shadow-xl: var(--elevation-xl);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
+/*
+ * "Piment" identity: a paprika accent taken from the logo, warm-tinted neutrals, and a cooler
+ * crimson for errors so severity never reads as branding. Text tokens meet WCAG AA (4.5:1) on
+ * every surface; filled buttons use *-solid / primary tokens that meet it with their foreground.
+ */
 :root {
-  --radius: 0.5rem;
+  color-scheme: light;
+  --radius: 0.625rem;
 
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.98 0 0);
+  --background: oklch(0.985 0.003 70);
+  --foreground: oklch(0.21 0.012 55);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
 
-  --card: oklch(0.185 0 0);
-  --card-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.57 0.2 38);
+  --primary-foreground: oklch(0.99 0.004 70);
+  --primary-accent: oklch(0.52 0.19 38);
 
-  --popover: oklch(0.23 0 0);
-  --popover-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.965 0.005 70);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.96 0.005 70);
+  --muted-foreground: oklch(0.5 0.014 55);
+  --subtle-foreground: oklch(0.6 0.012 55);
+  --accent: oklch(0.945 0.008 60);
+  --accent-foreground: var(--foreground);
 
-  --primary: oklch(0.52 0.19 275);
-  --primary-accent: oklch(0.78 0.14 275);
-  --primary-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.52 0.2 15);
+  --destructive-solid: oklch(0.55 0.21 15);
+  --destructive-foreground: oklch(0.99 0.004 70);
+  --success: oklch(0.5 0.13 155);
+  --warning: oklch(0.52 0.13 65);
+  --info: oklch(0.5 0.13 240);
 
-  --secondary: oklch(0.26 0 0);
-  --secondary-foreground: oklch(0.98 0 0);
+  --border: oklch(0.91 0.006 65);
+  --border-strong: oklch(0.85 0.008 65);
+  --input: oklch(0.88 0.008 65);
+  --ring: oklch(0.57 0.2 38 / 55%);
 
-  --muted: oklch(0.24 0 0);
-  --muted-foreground: oklch(0.65 0 0);
+  --elevation-xs: 0 1px 2px oklch(0.25 0.02 55 / 6%);
+  --elevation-sm: 0 1px 2px oklch(0.25 0.02 55 / 6%), 0 1px 3px oklch(0.25 0.02 55 / 8%);
+  --elevation-md: 0 2px 4px oklch(0.25 0.02 55 / 5%), 0 6px 16px oklch(0.25 0.02 55 / 8%);
+  --elevation-lg: 0 4px 8px oklch(0.25 0.02 55 / 6%), 0 16px 40px oklch(0.25 0.02 55 / 12%);
+  --elevation-xl: 0 8px 16px oklch(0.25 0.02 55 / 8%), 0 24px 64px oklch(0.25 0.02 55 / 18%);
+  --overlay: oklch(0.2 0.01 55 / 40%);
 
-  --accent: oklch(0.26 0 0);
-  --accent-foreground: oklch(0.98 0 0);
+  --code-background: oklch(0.975 0.004 70);
+  --code-foreground: #24292f;
+  --code-comment: #636c76;
+  --code-keyword: #cf222e;
+  --code-string: #0a3069;
+  --code-function: #8250df;
+  --code-number: #0550ae;
+  --code-type: #953800;
+  --code-property: #0550ae;
+  --code-punctuation: #57606a;
+}
 
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
+[data-theme="dark"] {
+  color-scheme: dark;
 
-  --success: oklch(0.72 0.15 155);
-  --warning: oklch(0.8 0.15 75);
-  --info: oklch(0.72 0.13 235);
+  --background: oklch(0.16 0.006 55);
+  --foreground: oklch(0.97 0.004 70);
+  --card: oklch(0.195 0.007 55);
+  --popover: oklch(0.225 0.008 55);
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.6 0.19 275 / 60%);
+  --primary: oklch(0.57 0.2 38);
+  --primary-foreground: oklch(0.99 0.004 70);
+  --primary-accent: oklch(0.76 0.15 45);
+
+  --secondary: oklch(0.235 0.008 55);
+  --muted: oklch(0.235 0.008 55);
+  --muted-foreground: oklch(0.72 0.012 65);
+  --subtle-foreground: oklch(0.62 0.012 65);
+  --accent: oklch(0.26 0.009 55);
+
+  --destructive: oklch(0.7 0.18 15);
+  --destructive-solid: oklch(0.56 0.21 15);
+  --success: oklch(0.76 0.15 155);
+  --warning: oklch(0.83 0.15 80);
+  --info: oklch(0.76 0.12 235);
+
+  --border: oklch(0.27 0.008 55);
+  --border-strong: oklch(0.33 0.01 55);
+  --input: oklch(0.31 0.009 55);
+  --ring: oklch(0.7 0.17 42 / 60%);
+
+  /* On dark surfaces depth comes from a top highlight plus a deep, soft drop. */
+  --elevation-xs: inset 0 1px 0 oklch(1 0 0 / 3%);
+  --elevation-sm: inset 0 1px 0 oklch(1 0 0 / 4%), 0 1px 2px oklch(0 0 0 / 30%);
+  --elevation-md: inset 0 1px 0 oklch(1 0 0 / 5%), 0 4px 12px oklch(0 0 0 / 35%);
+  --elevation-lg: inset 0 1px 0 oklch(1 0 0 / 6%), 0 12px 32px oklch(0 0 0 / 45%);
+  --elevation-xl: inset 0 1px 0 oklch(1 0 0 / 6%), 0 24px 64px oklch(0 0 0 / 55%);
+  --overlay: oklch(0.08 0.005 55 / 70%);
+
+  --code-background: oklch(0.15 0.006 55);
+  --code-foreground: #e6edf3;
+  --code-comment: #8b949e;
+  --code-keyword: #ff7b72;
+  --code-string: #a5d6ff;
+  --code-function: #d2a8ff;
+  --code-number: #79c0ff;
+  --code-type: #ffa657;
+  --code-property: #79c0ff;
+  --code-punctuation: #b1bac4;
 }
 
 @layer base {
@@ -77,11 +189,27 @@
   }
 
   html {
-    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
   }
 
   body {
     @apply min-h-screen bg-background font-sans text-foreground antialiased;
+  }
+
+  /* iOS zooms into focused fields under 16px; keep the dense scale everywhere else. */
+  @supports (-webkit-touch-callout: none) {
+    input,
+    select,
+    textarea {
+      font-size: max(16px, 1em);
+    }
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
 
   a {
@@ -90,8 +218,17 @@
 
   button,
   input,
-  select {
+  select,
+  textarea {
     font: inherit;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    @apply font-mono;
+    font-feature-settings: "liga" 0;
   }
 
   :focus-visible {
@@ -100,7 +237,7 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--primary) 38%, transparent);
+    background: color-mix(in oklch, var(--primary) 30%, transparent);
   }
 
   ::-webkit-scrollbar {
@@ -114,8 +251,22 @@
 
   ::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background: oklch(0.65 0 0 / 30%);
+    background: color-mix(in oklch, var(--muted-foreground) 30%, transparent);
     border: 2px solid transparent;
     background-clip: padding-box;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
 }

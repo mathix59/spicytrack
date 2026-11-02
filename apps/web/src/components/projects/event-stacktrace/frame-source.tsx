@@ -1,6 +1,7 @@
 import { memo } from "react";
-import { Highlight, themes } from "prism-react-renderer";
+import { Highlight } from "prism-react-renderer";
 
+import { codeTheme } from "@/lib/code-theme";
 import { cn } from "@/lib/utils";
 
 import type { StackFrame } from "./types";
@@ -19,7 +20,7 @@ const FrameSource = memo(function FrameSource({ frame }: { frame: StackFrame }) 
     <Highlight
       code={lines.join("\n")}
       language={languageForFilename(frame.filename)}
-      theme={themes.oneDark}
+      theme={codeTheme}
     >
       {({ tokens, getTokenProps }) => (
         <pre className="overflow-x-auto bg-background/60 py-1 font-mono text-[12.5px] leading-6">

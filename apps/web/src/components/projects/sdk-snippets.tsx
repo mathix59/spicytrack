@@ -1,5 +1,6 @@
-import { Highlight, themes } from "prism-react-renderer";
+import { Highlight } from "prism-react-renderer";
 
+import { codeTheme } from "@/lib/code-theme";
 import { CopyButton } from "@/components/ui/copy-button";
 
 const PRE_CLASS_NAME =
@@ -22,7 +23,7 @@ function CopyableCode({
         <CopyButton label={`Copy ${label}`} successMessage={`${label} copied`} value={value} />
       </div>
       {language ? (
-        <Highlight code={value} language={language} theme={themes.oneDark}>
+        <Highlight code={value} language={language} theme={codeTheme}>
           {({ tokens, getLineProps, getTokenProps }) => (
             <pre aria-label={`${label} code`} className={PRE_CLASS_NAME} tabIndex={0}>
               <code>

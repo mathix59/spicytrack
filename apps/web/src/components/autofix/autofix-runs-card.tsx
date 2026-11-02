@@ -84,7 +84,7 @@ function RunRow({
       </div>
       {prUrl ? (
         <a
-          className="min-w-0 truncate text-xs font-medium text-primary underline underline-offset-2"
+          className="min-w-0 truncate text-xs font-medium text-primary-accent underline underline-offset-2"
           href={prUrl}
           rel="noreferrer"
           target="_blank"

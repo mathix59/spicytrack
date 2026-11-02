@@ -61,7 +61,7 @@ function TwoFactorPage() {
     <main className="grid min-h-screen place-items-center bg-background px-4 py-10 text-foreground sm:px-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <div className="mb-2 flex size-10 items-center justify-center rounded-xl border border-border bg-muted/40 text-primary">
+          <div className="mb-2 flex size-10 items-center justify-center rounded-xl border border-border bg-muted/40 text-primary-accent">
             <ShieldCheck aria-hidden="true" className="size-5" />
           </div>
           <h1 className="text-lg font-semibold tracking-tight">Two-factor verification</h1>

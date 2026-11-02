@@ -100,7 +100,7 @@ function AssigneeAvatar({ name }: { name: string | null }) {
   return (
     <span
       aria-label={`Assigned to ${name}`}
-      className="inline-flex size-6 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary"
+      className="inline-flex size-6 items-center justify-center rounded-full bg-primary/12 text-[10px] font-semibold text-primary-accent"
       role="img"
       title={name}
     >

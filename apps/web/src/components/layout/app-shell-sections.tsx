@@ -5,10 +5,13 @@ import {
   FolderKanban,
   LayoutGrid,
   LogOut,
+  Monitor,
+  Moon,
   Search,
   Settings,
   Shield,
   ShieldCheck,
+  Sun,
   UserCog,
   Users,
   UsersRound,
@@ -19,11 +22,15 @@ import { Link } from "react-router-dom";
 import type { MeResponseDto, ProjectDto } from "@/generated/api";
 import { cn } from "@/lib/utils";
 import { APP_VERSION } from "@/lib/app-version";
+import { type ThemePreference, useTheme } from "@/lib/theme";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -208,6 +215,40 @@ function AppShellProjectsNav({
   );
 }
 
+const THEME_OPTIONS = [
+  { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+] as const;
+
+function AppShellThemeOptions() {
+  const { preference, setPreference } = useTheme();
+
+  return (
+    <>
+      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+        Theme
+      </DropdownMenuLabel>
+      <DropdownMenuRadioGroup
+        onValueChange={(value) => setPreference(value as ThemePreference)}
+        value={preference}
+      >
+        {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+          <DropdownMenuRadioItem
+            className="gap-2"
+            key={value}
+            onSelect={(event) => event.preventDefault()}
+            value={value}
+          >
+            <Icon className="size-4" />
+            {label}
+          </DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+    </>
+  );
+}
+
 function AppShellUserMenu({
   me,
   displayName,
@@ -250,6 +291,8 @@ function AppShellUserMenu({
               Instance administration
             </DropdownMenuItem>
           )}
+          <DropdownMenuSeparator />
+          <AppShellThemeOptions />
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:bg-destructive/10 focus:text-destructive"

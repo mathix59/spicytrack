@@ -49,7 +49,11 @@ function OrganizationSettingsPanel({
   };
 
   return (
-    <Tabs className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4" onValueChange={selectSection} value={section}>
+    <Tabs
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4"
+      onValueChange={selectSection}
+      value={section}
+    >
       <div className="-mx-1 overflow-x-auto px-1">
         <TabsList className="w-fit">
           <TabsTrigger value="general">General</TabsTrigger>
