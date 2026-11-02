@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   type EventDto,
@@ -30,6 +31,7 @@ import {
   useUnmergeIssue,
 } from "@/generated/api";
 import { invalidateQueryKeys } from "@/lib/query-utils";
+import { useHotkeys } from "@/lib/use-hotkeys";
 import { getErrorMessage } from "@/lib/utils";
 
 import type { IssuePageData } from "./types";
@@ -47,11 +49,7 @@ function useIssueDetailPage(): IssuePageData {
   const navigate = useNavigate();
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [eventPage, setEventPage] = useState(1);
-  const [issueStatusError, setIssueStatusError] = useState<string | null>(null);
-  const [issueAssigneeError, setIssueAssigneeError] = useState<string | null>(null);
-  const [issuePriorityError, setIssuePriorityError] = useState<string | null>(null);
   const [commentError, setCommentError] = useState<string | null>(null);
-  const [autofixError, setAutofixError] = useState<string | null>(null);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
 
   const projectQuery = useGetProject(orgSlug, projectSlug);
@@ -218,21 +216,26 @@ function useIssueDetailPage(): IssuePageData {
   };
 
   const triggerAutofix = async () => {
-    setAutofixError(null);
-
     try {
       await triggerAutofixMutation.mutateAsync({
         orgSlug,
         projectSlug,
         issueId,
       });
+      toast.success("Autofix started", {
+        description: "Progress appears in the Autofix card.",
+      });
     } catch (error) {
-      setAutofixError(getErrorMessage(error));
+      toast.error("Could not start Autofix", { description: getErrorMessage(error) });
     }
   };
 
-  const updateStatus = async (status: string, ignoredUntil?: string | null) => {
-    setIssueStatusError(null);
+  const updateStatus = async (
+    status: string,
+    ignoredUntil?: string | null,
+    { undoable = true }: { undoable?: boolean } = {},
+  ) => {
+    const previousStatus = issue?.status;
 
     try {
       await updateIssueStatusMutation.mutateAsync({
@@ -241,14 +244,21 @@ function useIssueDetailPage(): IssuePageData {
         issueId,
         data: { status, ignoredUntil },
       });
+      toast.success(statusToastLabel(status, ignoredUntil), {
+        action:
+          undoable && previousStatus && previousStatus !== status
+            ? {
+                label: "Undo",
+                onClick: () => void updateStatus(previousStatus, null, { undoable: false }),
+              }
+            : undefined,
+      });
     } catch (error) {
-      setIssueStatusError(getErrorMessage(error));
+      toast.error("Could not update the issue status", { description: getErrorMessage(error) });
     }
   };
 
   const updateAssignee = async (assignedUserId: string) => {
-    setIssueAssigneeError(null);
-
     try {
       await updateIssueAssigneeMutation.mutateAsync({
         orgSlug,
@@ -256,14 +266,14 @@ function useIssueDetailPage(): IssuePageData {
         issueId,
         data: { assignedUserId: assignedUserId.length > 0 ? assignedUserId : null },
       });
+      const member = memberByUserId.get(assignedUserId);
+      toast.success(member ? `Assigned to ${member.name || member.email}` : "Issue unassigned");
     } catch (error) {
-      setIssueAssigneeError(getErrorMessage(error));
+      toast.error("Could not update the assignee", { description: getErrorMessage(error) });
     }
   };
 
   const updatePriority = async (priority: string) => {
-    setIssuePriorityError(null);
-
     try {
       await updateIssuePriorityMutation.mutateAsync({
         orgSlug,
@@ -272,14 +282,15 @@ function useIssueDetailPage(): IssuePageData {
         data: { priority: priority as never },
       });
     } catch (error) {
-      setIssuePriorityError(getErrorMessage(error));
+      toast.error("Could not update the priority", { description: getErrorMessage(error) });
     }
   };
 
   const createComment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCommentError(null);
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
 
     try {
       await createCommentMutation.mutateAsync({
@@ -288,7 +299,7 @@ function useIssueDetailPage(): IssuePageData {
         issueId,
         data: { body: String(formData.get("body") ?? "") },
       });
-      event.currentTarget.reset();
+      form.reset();
     } catch (error) {
       setCommentError(getErrorMessage(error));
     }
@@ -305,6 +316,7 @@ function useIssueDetailPage(): IssuePageData {
         issueId,
         data: { externalIssueUrl: String(formData.get("externalIssueUrl") ?? "") || null },
       });
+      toast.success("External ticket saved");
     } catch (error) {
       setWorkflowError(getErrorMessage(error));
     }
@@ -321,6 +333,7 @@ function useIssueDetailPage(): IssuePageData {
         issueId,
         data: { targetIssueId },
       });
+      toast.success("Issues merged");
       navigate(`/orgs/${orgSlug}/projects/${projectSlug}/issues/${response.data.id}`);
     } catch (error) {
       setWorkflowError(getErrorMessage(error));
@@ -331,10 +344,19 @@ function useIssueDetailPage(): IssuePageData {
     setWorkflowError(null);
     try {
       await unmergeIssueMutation.mutateAsync({ orgSlug, projectSlug, issueId });
+      toast.success("Future events will be grouped separately");
     } catch (error) {
       setWorkflowError(getErrorMessage(error));
     }
   };
+
+  const issuePath = (id: string) => `/orgs/${orgSlug}/projects/${projectSlug}/issues/${id}`;
+  useHotkeys({
+    j: () => nextIssue && navigate(issuePath(nextIssue.id)),
+    k: () => previousIssue && navigate(issuePath(previousIssue.id)),
+    "[": goNewer,
+    "]": goOlder,
+  });
 
   return {
     orgSlug,
@@ -343,6 +365,11 @@ function useIssueDetailPage(): IssuePageData {
     projectName,
     issue,
     issueDetail,
+    issueQuery: {
+      isLoading: issueQuery.isLoading,
+      error: issueQuery.error,
+      refetch: () => void issueQuery.refetch(),
+    },
     navigation: {
       previousIssue,
       nextIssue,
@@ -350,6 +377,9 @@ function useIssueDetailPage(): IssuePageData {
     events: {
       selectedEvent,
       selectedEventId,
+      isLoadingEvent: eventQuery.isLoading,
+      eventError: eventQuery.error,
+      retryEvent: () => void eventQuery.refetch(),
       totalEvents,
       globalEventNumber,
       canGoNewer,
@@ -367,8 +397,6 @@ function useIssueDetailPage(): IssuePageData {
       members,
       memberByUserId,
       timelineEntries,
-      issueAssigneeError,
-      issuePriorityError,
       workflowError,
       updateAssignee,
       updatePriority,
@@ -383,8 +411,6 @@ function useIssueDetailPage(): IssuePageData {
         unmergeIssueMutation.isPending,
     },
     actions: {
-      issueStatusError,
-      autofixError,
       autofixInFlight,
       triggerAutofix,
       updateStatus,
@@ -395,3 +421,14 @@ function useIssueDetailPage(): IssuePageData {
 }
 
 export { useIssueDetailPage };
+
+function statusToastLabel(status: string, ignoredUntil?: string | null) {
+  if (status === "resolved") return "Issue resolved";
+  if (status === "open") return "Issue reopened";
+  if (status === "ignored") {
+    return ignoredUntil
+      ? `Issue snoozed until ${new Date(ignoredUntil).toLocaleString()}`
+      : "Issue ignored";
+  }
+  return "Issue updated";
+}

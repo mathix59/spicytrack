@@ -1,29 +1,29 @@
-import type { ReactNode } from "react";
+import { useState } from "react";
 
+import { CollapsibleSection } from "@/components/common/collapsible-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import type { PackageEntry, PayloadRecord } from "./types";
 import { asRecord, displayValue, formatLabel } from "./utils";
 
-function DetailsSection({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="min-w-0 rounded-lg border border-border bg-muted/20 p-4">
-      <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
+const PREVIEW_LIMIT = 12;
 
-function KeyValueList({ value }: { value: PayloadRecord }) {
+function KeyValueList({ value, className }: { value: PayloadRecord; className?: string }) {
   return (
-    <dl className="grid min-w-0 gap-x-4 gap-y-2 text-xs sm:grid-cols-[minmax(8rem,0.4fr)_minmax(0,1fr)]">
+    <dl
+      className={cn(
+        "grid min-w-0 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-[minmax(7rem,0.35fr)_minmax(0,1fr)]",
+        className,
+      )}
+    >
       {Object.entries(value).map(([key, fieldValue]) => (
         <div className="contents" key={key}>
-          <dt className="min-w-0 text-muted-foreground">{formatLabel(key)}</dt>
-          <dd className="min-w-0 [overflow-wrap:anywhere] font-mono text-foreground">
+          <dt className="min-w-0 truncate text-muted-foreground" title={key}>
+            {formatLabel(key)}
+          </dt>
+          <dd className="min-w-0 font-mono text-foreground [overflow-wrap:anywhere]">
             {displayValue(fieldValue)}
           </dd>
         </div>
@@ -32,176 +32,289 @@ function KeyValueList({ value }: { value: PayloadRecord }) {
   );
 }
 
+function ShowMoreButton({
+  expanded,
+  hiddenCount,
+  onToggle,
+}: {
+  expanded: boolean;
+  hiddenCount: number;
+  onToggle: () => void;
+}) {
+  return (
+    <Button
+      className="w-full rounded-none"
+      onClick={onToggle}
+      size="sm"
+      type="button"
+      variant="ghost"
+    >
+      {expanded ? "Show less" : `Show ${hiddenCount} more`}
+    </Button>
+  );
+}
+
 function HttpRequestSection({ request }: { request: PayloadRecord }) {
   const headers = asRecord(request.headers);
-  const mainFields = Object.fromEntries(
-    ["method", "url", "query_string", "fragment"].flatMap((key) =>
-      request[key] === undefined ? [] : [[key, request[key]]],
+  const method = typeof request.method === "string" ? request.method.toUpperCase() : null;
+  const url = typeof request.url === "string" ? request.url : null;
+  const otherFields = Object.fromEntries(
+    ["query_string", "fragment", "data", "cookies", "env"].flatMap((key) =>
+      request[key] === undefined || request[key] === null || request[key] === ""
+        ? []
+        : [[key, request[key]]],
     ),
   );
 
   return (
-    <DetailsSection title="HTTP Request">
-      <p className="mb-3 text-xs text-muted-foreground">
-        Request context captured by the SDK. In a browser this may be the current page; check HTTP
-        breadcrumbs below for outgoing requests.
-      </p>
-      <KeyValueList value={mainFields} />
+    <CollapsibleSection
+      bodyClassName="grid gap-3 p-4"
+      summary={method && url ? `${method} ${url}` : undefined}
+      title="HTTP request"
+    >
+      {url ? (
+        <p className="flex min-w-0 items-baseline gap-2 font-mono text-xs">
+          {method ? <Badge variant="muted">{method}</Badge> : null}
+          <span className="min-w-0 text-foreground [overflow-wrap:anywhere]">{url}</span>
+        </p>
+      ) : null}
+      {Object.keys(otherFields).length > 0 ? <KeyValueList value={otherFields} /> : null}
       {headers && Object.keys(headers).length > 0 ? (
-        <details className="mt-3 min-w-0 rounded-md border border-border bg-muted/20 px-3 py-2">
+        <details className="min-w-0 rounded-md border border-border px-3 py-2">
           <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
             Headers ({Object.keys(headers).length})
           </summary>
-          <div className="mt-3">
-            <KeyValueList value={headers} />
-          </div>
+          <KeyValueList className="mt-3" value={headers} />
         </details>
       ) : null}
-    </DetailsSection>
+      <p className="text-xs text-muted-foreground">
+        Request context captured by the SDK. In a browser this may be the current page; outgoing
+        requests appear in the breadcrumbs.
+      </p>
+    </CollapsibleSection>
+  );
+}
+
+function breadcrumbTime(value: unknown) {
+  const seconds =
+    typeof value === "number" ? value : typeof value === "string" ? Date.parse(value) / 1000 : NaN;
+  if (!Number.isFinite(seconds)) return null;
+  return new Date(seconds * 1000).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function BreadcrumbSummary({ breadcrumb }: { breadcrumb: PayloadRecord }) {
+  const data = asRecord(breadcrumb.data);
+  if (typeof breadcrumb.message === "string" && breadcrumb.message) {
+    return <span className="truncate">{breadcrumb.message}</span>;
+  }
+  if (data && typeof data.url === "string") {
+    const status = Number(data.status_code);
+    return (
+      <span className="flex min-w-0 items-baseline gap-2">
+        {typeof data.method === "string" ? (
+          <span className="shrink-0 text-muted-foreground">{data.method.toUpperCase()}</span>
+        ) : null}
+        <span className="min-w-0 truncate">{data.url}</span>
+        {data.status_code !== undefined ? (
+          <span
+            className={cn(
+              "shrink-0 tabular-nums",
+              status >= 400 || status === 0 ? "text-destructive" : "text-success",
+            )}
+          >
+            {String(data.status_code)}
+          </span>
+        ) : null}
+      </span>
+    );
+  }
+  if (data && typeof data.to === "string") {
+    return (
+      <span className="truncate">
+        {typeof data.from === "string" ? `${data.from} → ` : ""}
+        {data.to}
+      </span>
+    );
+  }
+  return <span className="truncate">{data ? JSON.stringify(data) : ""}</span>;
+}
+
+function BreadcrumbRow({ breadcrumb }: { breadcrumb: PayloadRecord }) {
+  const [open, setOpen] = useState(false);
+  const data = asRecord(breadcrumb.data);
+  const status = Number(data?.status_code);
+  const failed = status >= 400 || status === 0 || breadcrumb.level === "error";
+  const category = displayValue(breadcrumb.category ?? breadcrumb.type ?? "event");
+  const time = breadcrumbTime(breadcrumb.timestamp);
+  const details = data && Object.keys(data).length > 0;
+
+  return (
+    <li className="border-b border-border last:border-b-0">
+      <button
+        aria-expanded={details ? open : undefined}
+        className={cn(
+          "grid w-full min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1 px-4 py-2 text-left text-xs sm:grid-cols-[4.5rem_8rem_minmax(0,1fr)]",
+          details && "hover:bg-accent/40",
+          failed && "bg-destructive/5",
+        )}
+        disabled={!details}
+        onClick={() => setOpen((current) => !current)}
+        type="button"
+      >
+        <span className="font-mono tabular-nums text-muted-foreground">{time ?? "—"}</span>
+        <span
+          className={cn(
+            "truncate font-medium",
+            failed ? "text-destructive" : "text-muted-foreground",
+          )}
+        >
+          {category}
+        </span>
+        <span className="col-span-2 min-w-0 font-mono text-foreground sm:col-span-1">
+          <BreadcrumbSummary breadcrumb={breadcrumb} />
+        </span>
+      </button>
+      {open && data ? (
+        <div className="border-t border-border bg-background/60 px-4 py-3">
+          <KeyValueList value={data} />
+        </div>
+      ) : null}
+    </li>
   );
 }
 
 function BreadcrumbsSection({ breadcrumbs }: { breadcrumbs: PayloadRecord[] }) {
+  const [showAll, setShowAll] = useState(false);
   if (breadcrumbs.length === 0) return null;
 
+  // Most recent activity first: the crumbs closest to the error matter most.
+  const ordered = [...breadcrumbs].reverse();
+  const visible = showAll ? ordered : ordered.slice(0, PREVIEW_LIMIT);
+
   return (
-    <DetailsSection title="Breadcrumbs">
-      <p className="mb-3 text-xs text-muted-foreground">
-        Activity recorded before the error, in capture order. A failed request here is a diagnostic
-        clue, not necessarily the cause of this exception.
-      </p>
-      <ol className="grid min-w-0 gap-2">
-        {breadcrumbs.map((breadcrumb, index) => {
-          const data = asRecord(breadcrumb.data);
-          const status = Number(data?.status_code);
-          return (
-            <li className="min-w-0 rounded-md border border-border p-3" key={index}>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-foreground">{index + 1}</span>
-                <Badge
-                  variant="muted"
-                  className={status >= 400 ? "border-destructive text-destructive" : undefined}
-                >
-                  {displayValue(breadcrumb.category ?? breadcrumb.type ?? "event")}
-                </Badge>
-              </div>
-              <KeyValueList
-                value={Object.fromEntries(
-                  Object.entries(breadcrumb).filter(
-                    ([key]) => !["data", "category", "type"].includes(key),
-                  ),
-                )}
-              />
-              {data && Object.keys(data).length > 0 ? (
-                <div className="mt-2">
-                  <KeyValueList value={data} />
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
+    <CollapsibleSection summary={`${breadcrumbs.length} · most recent first`} title="Breadcrumbs">
+      <ol className="min-w-0">
+        {visible.map((breadcrumb, index) => (
+          <BreadcrumbRow breadcrumb={breadcrumb} key={index} />
+        ))}
       </ol>
-    </DetailsSection>
+      {ordered.length > PREVIEW_LIMIT ? (
+        <ShowMoreButton
+          expanded={showAll}
+          hiddenCount={ordered.length - PREVIEW_LIMIT}
+          onToggle={() => setShowAll((current) => !current)}
+        />
+      ) : null}
+    </CollapsibleSection>
   );
 }
 
-function PackagesSection({
-  packages,
-  showAllPackages,
-  onToggle,
-}: {
-  packages: PackageEntry[];
-  showAllPackages: boolean;
-  onToggle: () => void;
-}) {
-  const visiblePackages = showAllPackages ? packages : packages.slice(0, 16);
+function PackagesSection({ packages }: { packages: PackageEntry[] }) {
+  const [showAll, setShowAll] = useState(false);
+  if (packages.length === 0) return null;
 
-  if (packages.length === 0) {
-    return null;
-  }
+  const visible = showAll ? packages : packages.slice(0, PREVIEW_LIMIT);
 
   return (
-    <DetailsSection title={`Packages (${packages.length})`}>
-      <div className="min-w-0 rounded-md border border-border">
-        {visiblePackages.map((pkg) => (
+    <CollapsibleSection defaultOpen={false} summary={String(packages.length)} title="Packages">
+      <div className="grid min-w-0 sm:grid-cols-2">
+        {visible.map((pkg) => (
           <div
-            className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-border px-3 py-2 text-xs last:border-b-0"
+            className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-border px-4 py-1.5 font-mono text-xs"
             key={`${pkg.name}:${pkg.version}`}
           >
-            <span className="min-w-0 break-all font-mono text-foreground">{pkg.name}</span>
-            <span className="font-mono text-muted-foreground">{pkg.version}</span>
+            <span className="min-w-0 truncate text-foreground" title={pkg.name}>
+              {pkg.name}
+            </span>
+            <span className="text-muted-foreground">{pkg.version}</span>
           </div>
         ))}
       </div>
-      {packages.length > 16 ? (
-        <Button className="mt-3" onClick={onToggle} size="sm" type="button" variant="ghost">
-          {showAllPackages ? "Voir moins" : `Voir plus (${packages.length - 16})`}
-        </Button>
+      {packages.length > PREVIEW_LIMIT ? (
+        <ShowMoreButton
+          expanded={showAll}
+          hiddenCount={packages.length - PREVIEW_LIMIT}
+          onToggle={() => setShowAll((current) => !current)}
+        />
       ) : null}
-    </DetailsSection>
+    </CollapsibleSection>
   );
 }
 
 function TagsSection({ tags }: { tags: [string, unknown][] }) {
-  if (tags.length === 0) {
-    return null;
-  }
+  if (tags.length === 0) return null;
 
   return (
-    <DetailsSection title="Tags">
-      <div className="flex flex-wrap gap-2">
+    <CollapsibleSection bodyClassName="p-3" summary={String(tags.length)} title="Tags">
+      <div className="flex flex-wrap gap-1.5">
         {tags.map(([key, value]) => (
-          <Badge className="max-w-full gap-1 font-normal" key={key} variant="muted">
-            <span className="shrink-0 text-muted-foreground">{key}</span>
-            <span className="truncate text-foreground">{displayValue(value)}</span>
-          </Badge>
+          <span
+            className="inline-flex max-w-full overflow-hidden rounded-md border border-border font-mono text-xs"
+            key={key}
+          >
+            <span className="shrink-0 bg-muted/60 px-2 py-0.5 text-muted-foreground">{key}</span>
+            <span className="truncate px-2 py-0.5 text-foreground">{displayValue(value)}</span>
+          </span>
         ))}
       </div>
-    </DetailsSection>
+    </CollapsibleSection>
   );
 }
 
-function ContextCard({ name, values }: { name: string; values: PayloadRecord }) {
+function RecordSection({
+  title,
+  value,
+  defaultOpen = true,
+}: {
+  title: string;
+  value: PayloadRecord | null;
+  defaultOpen?: boolean;
+}) {
+  if (!value || Object.keys(value).length === 0) return null;
   return (
-    <div className="min-w-0 rounded-md border border-border bg-muted/20 p-3">
-      <p className="mb-2 text-xs font-medium text-foreground">{formatLabel(name)}</p>
-      <KeyValueList value={values} />
-    </div>
+    <CollapsibleSection bodyClassName="p-4" defaultOpen={defaultOpen} title={title}>
+      <KeyValueList value={value} />
+    </CollapsibleSection>
   );
 }
 
 function ContextsSection({ contextEntries }: { contextEntries: [string, PayloadRecord][] }) {
-  if (contextEntries.length === 0) {
-    return null;
-  }
-
-  const leftColumn = contextEntries.filter((_, index) => index % 2 === 0);
-  const rightColumn = contextEntries.filter((_, index) => index % 2 === 1);
+  if (contextEntries.length === 0) return null;
 
   return (
-    <DetailsSection title="Contexts">
-      <div className="grid items-start gap-3 md:grid-cols-2">
-        <div className="grid content-start gap-3">
-          {leftColumn.map(([name, values]) => (
-            <ContextCard key={name} name={name} values={values} />
-          ))}
-        </div>
-        <div className="grid content-start gap-3">
-          {rightColumn.map(([name, values]) => (
-            <ContextCard key={name} name={name} values={values} />
-          ))}
-        </div>
+    <CollapsibleSection
+      bodyClassName="p-3"
+      summary={contextEntries.map(([name]) => formatLabel(name)).join(", ")}
+      title="Contexts"
+    >
+      {/* CSS columns balance cards of different heights without index-based splitting. */}
+      <div className="gap-3 md:columns-2">
+        {contextEntries.map(([name, values]) => (
+          <div
+            className="mb-3 min-w-0 break-inside-avoid rounded-md border border-border p-3"
+            key={name}
+          >
+            <p className="mb-2 text-xs font-semibold capitalize text-foreground">
+              {formatLabel(name)}
+            </p>
+            <KeyValueList value={values} />
+          </div>
+        ))}
       </div>
-    </DetailsSection>
+    </CollapsibleSection>
   );
 }
 
 export {
   BreadcrumbsSection,
   ContextsSection,
-  DetailsSection,
   HttpRequestSection,
   KeyValueList,
   PackagesSection,
+  RecordSection,
   TagsSection,
 };

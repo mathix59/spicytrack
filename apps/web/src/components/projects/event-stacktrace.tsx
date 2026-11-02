@@ -1,34 +1,30 @@
-import { EventDetails } from "@/components/projects/event-details";
+import { useMemo } from "react";
+
+import { EventDetails, EventTags } from "@/components/projects/event-details";
+
 import { FailedRequests } from "./event-details/failed-requests";
-
+import { ExceptionStack } from "./event-stacktrace/exception-stack";
 import { RawPayloadCard } from "./event-stacktrace/raw-payload-card";
-import { StackFrameList } from "./event-stacktrace/stack-frame-list";
 import type { EventStacktraceProps } from "./event-stacktrace/types";
-import { useEventStacktrace } from "./event-stacktrace/use-event-stacktrace";
+import { extractExceptions } from "./event-stacktrace/utils";
 
-function EventStacktrace(props: EventStacktraceProps) {
-  const state = useEventStacktrace(props);
-
-  if (state.displayFrames.length === 0) {
-    return (
-      <div className="grid min-w-0 gap-3">
-        <FailedRequests rawPayload={props.rawPayload} />
-        <EventDetails rawPayload={props.rawPayload} />
-        <RawPayloadCard rawPayload={props.rawPayload} summary="No stack trace, view raw payload" />
-      </div>
-    );
-  }
+function EventStacktrace({ rawPayload, resolvedFrames }: EventStacktraceProps) {
+  const exceptions = useMemo(
+    () => extractExceptions(rawPayload, resolvedFrames),
+    [rawPayload, resolvedFrames],
+  );
+  // Stack view state (expanded frames, revealed groups) resets whenever the event changes.
+  const eventKey = typeof rawPayload.event_id === "string" ? rawPayload.event_id : "event";
 
   return (
     <div className="grid min-w-0 gap-3">
-      <FailedRequests rawPayload={props.rawPayload} />
-      <StackFrameList
-        expanded={state.expanded}
-        frames={state.displayFrames}
-        onToggle={state.toggle}
-      />
-      <EventDetails rawPayload={props.rawPayload} />
-      <RawPayloadCard rawPayload={props.rawPayload} summary="View raw payload" />
+      <EventTags rawPayload={rawPayload} />
+      <FailedRequests rawPayload={rawPayload} />
+      {exceptions.map((exception, index) => (
+        <ExceptionStack causedBy={index > 0} exception={exception} key={`${eventKey}:${index}`} />
+      ))}
+      <EventDetails rawPayload={rawPayload} />
+      <RawPayloadCard rawPayload={rawPayload} />
     </div>
   );
 }

@@ -14,9 +14,19 @@ type StackFrame = {
   diagnostic: string | null;
 };
 
+type EventException = {
+  type: string | null;
+  value: string | null;
+  module: string | null;
+  handled: boolean | null;
+  mechanism: string | null;
+  /** Most recent call first. */
+  frames: StackFrame[];
+};
+
 type EventStacktraceProps = {
   rawPayload: Record<string, unknown>;
   resolvedFrames?: ResolvedFrameDto[];
 };
 
-export type { EventStacktraceProps, StackFrame };
+export type { EventException, EventStacktraceProps, StackFrame };

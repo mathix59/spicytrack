@@ -36,7 +36,7 @@ function IssueStateBadge({ value }: { value: string }) {
 function IssueBadge({ value, className }: { value: string; className: string }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-medium ${className}`}
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${className}`}
     >
       {value}
     </span>

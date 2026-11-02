@@ -1,12 +1,24 @@
 import type { OrganizationMemberDto } from "@/generated/api";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { renderNullableText } from "@/lib/utils";
+import { Kbd } from "@/components/ui/kbd";
+import { Textarea } from "@/components/ui/textarea";
+import { formatRelativeTime, renderNullableText } from "@/lib/utils";
 
 import type { IssueCommentsState, MemberByUserId } from "./types";
 import { formatTimelineDate } from "./utils";
+
+function initials(value: string) {
+  return value
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
 
 function IssueCommentsCard({
   comments,
@@ -18,13 +30,38 @@ function IssueCommentsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Comments</CardTitle>
+        <CardTitle className="text-base">
+          Comments
+          {comments.comments.length > 0 ? (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              {comments.comments.length}
+            </span>
+          ) : null}
+        </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <form className="grid gap-3" onSubmit={comments.createComment}>
-          <textarea
-            className="min-h-24 w-full rounded-lg border border-border bg-background px-3 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        {comments.comments.length > 0 ? (
+          <ol className="grid gap-4">
+            {comments.comments.map((comment) => (
+              <CommentRow
+                comment={comment}
+                key={comment.id}
+                member={memberByUserId.get(comment.userId)}
+              />
+            ))}
+          </ol>
+        ) : null}
+        <form className="grid gap-2" onSubmit={comments.createComment}>
+          <Textarea
+            aria-label="Comment"
+            className="min-h-20"
             name="body"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }}
             placeholder="Add a comment..."
             required
           />
@@ -33,23 +70,17 @@ function IssueCommentsCard({
               <AlertDescription>{comments.commentError}</AlertDescription>
             </Alert>
           ) : null}
-          <div>
-            <Button disabled={comments.isSubmitting} size="sm" type="submit" variant="secondary">
+          <div className="flex items-center justify-between gap-2">
+            <p className="hidden items-center gap-1 text-xs text-muted-foreground sm:flex">
+              <Kbd>⌘</Kbd>
+              <Kbd>Enter</Kbd>
+              to send
+            </p>
+            <Button disabled={comments.isSubmitting} size="sm" type="submit">
               Add comment
             </Button>
           </div>
         </form>
-        {comments.comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No comments yet.</p>
-        ) : (
-          comments.comments.map((comment) => (
-            <CommentRow
-              comment={comment}
-              key={comment.id}
-              member={memberByUserId.get(comment.userId)}
-            />
-          ))
-        )}
       </CardContent>
     </Card>
   );
@@ -62,18 +93,25 @@ function CommentRow({
   comment: IssueCommentsState["comments"][number];
   member: OrganizationMemberDto | undefined;
 }) {
+  const author = renderNullableText(member?.name, member?.email ?? comment.userId);
   return (
-    <div className="rounded-lg border border-border bg-muted/20 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium">
-          {renderNullableText(member?.name, member?.email ?? comment.userId)}
+    <li className="flex min-w-0 gap-3">
+      <Avatar className="size-8 shrink-0">
+        <AvatarFallback className="text-xs">{initials(author)}</AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+          <span className="font-medium">{author}</span>
+          <span
+            className="text-xs text-muted-foreground"
+            title={formatTimelineDate(comment.createdAt)}
+          >
+            {formatRelativeTime(comment.createdAt)}
+          </span>
         </p>
-        <p className="shrink-0 text-xs text-muted-foreground">
-          {formatTimelineDate(comment.createdAt)}
-        </p>
+        <p className="mt-1 whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{comment.body}</p>
       </div>
-      <p className="mt-2 whitespace-pre-wrap text-sm">{comment.body}</p>
-    </div>
+    </li>
   );
 }
 

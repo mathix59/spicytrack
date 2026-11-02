@@ -1,139 +1,159 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { memo } from "react";
+import { ChevronRight, Layers } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-import { CodeLine } from "./code-line";
+import { FrameSource } from "./frame-source";
 import type { StackFrame } from "./types";
+import type { FrameRow } from "./use-event-stacktrace";
+import { splitPath } from "./utils";
 
-function StackFrameList({
-  frames,
+function resolutionLabel(resolution: StackFrame["resolution"]) {
+  if (resolution === "sourcemap") return "source map";
+  if (resolution === "proguard" || resolution === "dart_obfuscation") return "deobfuscated";
+  return null;
+}
+
+function missingSourceMessage(frame: StackFrame) {
+  if (frame.resolution === "sourcemap" && frame.resolved) {
+    return "Location resolved, but this source map does not include the original source text.";
+  }
+  switch (frame.diagnostic) {
+    case "artifact_not_found":
+      return "No uploaded artifact matches this script in the event's release. It may be an external or injected script.";
+    case "no_release":
+      return "This event has no release. Associate it with the release containing its source maps.";
+    case "no_artifacts":
+      return "No artifacts are uploaded for this event's release.";
+    default:
+      return "Source code is unavailable for this frame.";
+  }
+}
+
+const FrameItem = memo(function FrameItem({
+  frame,
+  index,
   expanded,
   onToggle,
 }: {
-  frames: StackFrame[];
-  expanded: Set<number>;
+  frame: StackFrame;
+  index: number;
+  expanded: boolean;
   onToggle: (index: number) => void;
 }) {
-  const resolutionLabel = (resolution: StackFrame["resolution"]) => {
-    if (resolution === "sourcemap") return "source map";
-    if (resolution === "proguard") return "deobfuscated";
-    if (resolution === "dart_obfuscation") return "deobfuscated";
-    return null;
-  };
+  const { directory, basename } = splitPath(frame.filename);
+  const badgeLabel = frame.resolved ? resolutionLabel(frame.resolution) : null;
+  const location = `${frame.filename}:${frame.lineno}${frame.colno != null ? `:${frame.colno}` : ""}`;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <div className="border-b border-border bg-muted/20 px-4 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        Stack trace
-        <span className="ml-2 normal-case tracking-normal">most recent call first</span>
-      </div>
-      {!frames.some(
-        (frame) => frame.inApp && (frame.resolved !== false || frame.contextLine !== null),
-      ) && (
-        <p className="border-b border-border px-4 py-3 text-sm text-muted-foreground">
-          No application source could be resolved in this stack. Check the release artifacts and
-          captured frames; source maps cannot recover calls absent from the event.
-        </p>
-      )}
-      {frames.map((frame, index) => {
-        const hasContext = frame.contextLine !== null;
-        const isExpanded = expanded.has(index);
-        const badgeLabel = frame.resolved ? resolutionLabel(frame.resolution) : null;
-
-        return (
-          <div
-            className={cn("border-b border-border last:border-b-0")}
-            key={`${frame.filename}:${frame.lineno}:${index}`}
-          >
-            <button
-              className={cn(
-                "flex w-full items-center gap-2 px-4 py-2 text-left text-sm",
-                "transition-colors hover:bg-accent/50",
-                !frame.inApp && "opacity-60",
-              )}
-              onClick={() => onToggle(index)}
-              aria-expanded={isExpanded}
-              title={`${frame.filename}:${frame.lineno}:${frame.colno ?? 0}`}
-              type="button"
-            >
-              {hasContext ? (
-                isExpanded ? (
-                  <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-                )
-              ) : (
-                <span className="size-3.5 shrink-0" />
-              )}
-              <span className="min-w-0 flex-1 truncate font-mono text-[11px]">
-                <span className="text-foreground">{frame.filename}</span>
-                {frame.function ? (
-                  <span className="text-muted-foreground">
-                    {" in "}
-                    <span className="text-foreground">{frame.function}</span>
-                  </span>
-                ) : null}
-                <span className="text-muted-foreground">
-                  {" at line "}
-                  {frame.lineno}
-                  {frame.colno != null ? `:${frame.colno}` : ""}
-                </span>
-              </span>
-              {!frame.inApp ? <Badge variant="muted">library</Badge> : null}
-              {badgeLabel ? <Badge variant="accent">{badgeLabel}</Badge> : null}
-              {frame.resolved === false && frame.inApp ? (
-                <Badge title={frame.diagnostic ?? "Symbol resolution unavailable"} variant="muted">
-                  no symbols
-                </Badge>
-              ) : null}
-            </button>
-
-            {isExpanded && (
-              <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                <p className="font-mono">
-                  {frame.filename}
-                  {frame.function ? ` in ${frame.function}` : ""} at line {frame.lineno}
-                  {frame.colno != null ? `:${frame.colno}` : ""}
-                </p>
-                {!hasContext && (
-                  <p className="mt-2">
-                    {frame.resolution === "sourcemap" && frame.resolved
-                      ? "Location resolved, but this source map does not include the original source text."
-                      : frame.diagnostic === "artifact_not_found"
-                        ? "No uploaded artifact matches this script in the event's release. It may be an external or injected script."
-                        : frame.diagnostic === "no_release"
-                          ? "This event has no release. Associate it with the release containing its source maps."
-                          : frame.diagnostic === "no_artifacts"
-                            ? "No artifacts are uploaded for this event's release."
-                            : "Source code is unavailable for this frame."}
-                  </p>
-                )}
-              </div>
+    <li className="border-b border-border last:border-b-0">
+      <button
+        aria-expanded={expanded}
+        className={cn(
+          "group flex w-full min-w-0 items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-accent/40 sm:items-center",
+          expanded && "bg-accent/20",
+        )}
+        onClick={() => onToggle(index)}
+        title={location}
+        type="button"
+      >
+        <ChevronRight
+          className={cn(
+            "mt-0.5 size-3.5 shrink-0 text-muted-foreground transition-transform sm:mt-0",
+            expanded && "rotate-90",
+          )}
+        />
+        <span className="grid min-w-0 flex-1 gap-0.5 font-mono text-xs sm:flex sm:items-baseline sm:gap-2">
+          <span
+            className={cn(
+              "truncate font-medium",
+              frame.inApp ? "text-foreground" : "text-muted-foreground",
             )}
-            {hasContext && isExpanded ? (
-              <div className="overflow-x-auto border-t border-border bg-muted/20 font-mono text-[13px] leading-6">
-                {frame.preContext.map((line, lineIndex) => (
-                  <CodeLine
-                    key={`pre-${lineIndex}`}
-                    lineno={frame.lineno - frame.preContext.length + lineIndex}
-                    text={line}
-                  />
-                ))}
-                <CodeLine highlighted lineno={frame.lineno} text={frame.contextLine ?? ""} />
-                {frame.postContext.map((line, lineIndex) => (
-                  <CodeLine
-                    key={`post-${lineIndex}`}
-                    lineno={frame.lineno + 1 + lineIndex}
-                    text={line}
-                  />
-                ))}
-              </div>
-            ) : null}
+          >
+            {frame.function ?? "<anonymous>"}
+          </span>
+          <span className="min-w-0 truncate text-muted-foreground">
+            <span className="text-muted-foreground/70">{directory}</span>
+            <span className={frame.inApp ? "text-foreground/90" : undefined}>{basename}</span>
+            <span className="text-muted-foreground/70">
+              :{frame.lineno}
+              {frame.colno != null ? `:${frame.colno}` : ""}
+            </span>
+          </span>
+        </span>
+        <span className="hidden shrink-0 items-center gap-1 sm:flex">
+          {frame.inApp ? <Badge variant="accent">app</Badge> : null}
+          {badgeLabel ? <Badge variant="muted">{badgeLabel}</Badge> : null}
+          {frame.resolved === false && frame.inApp ? (
+            <Badge title={frame.diagnostic ?? "Symbol resolution unavailable"} variant="warning">
+              no symbols
+            </Badge>
+          ) : null}
+        </span>
+      </button>
+      {expanded ? (
+        frame.contextLine !== null ? (
+          <div className="border-t border-border">
+            <FrameSource frame={frame} />
           </div>
-        );
-      })}
-    </div>
+        ) : (
+          <p className="border-t border-border bg-background/60 px-9 py-3 text-xs text-muted-foreground">
+            {missingSourceMessage(frame)}
+          </p>
+        )
+      ) : null}
+    </li>
+  );
+});
+
+function CollapsedFramesRow({ count, onReveal }: { count: number; onReveal: () => void }) {
+  return (
+    <li className="border-b border-border last:border-b-0">
+      <button
+        className="flex w-full items-center gap-2 bg-muted/20 px-3 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+        onClick={onReveal}
+        type="button"
+      >
+        <Layers className="size-3.5 shrink-0" />
+        {count} library {count === 1 ? "frame" : "frames"} hidden
+        <span className="text-primary-accent">Show</span>
+      </button>
+    </li>
+  );
+}
+
+function StackFrameList({
+  rows,
+  expanded,
+  onToggle,
+  onRevealGroup,
+}: {
+  rows: FrameRow[];
+  expanded: Set<number>;
+  onToggle: (index: number) => void;
+  onRevealGroup: (groupStart: number) => void;
+}) {
+  return (
+    <ol className="min-w-0">
+      {rows.map((row) =>
+        row.kind === "frame" ? (
+          <FrameItem
+            expanded={expanded.has(row.index)}
+            frame={row.frame}
+            index={row.index}
+            key={`frame-${row.index}`}
+            onToggle={onToggle}
+          />
+        ) : (
+          <CollapsedFramesRow
+            count={row.count}
+            key={`group-${row.start}`}
+            onReveal={() => onRevealGroup(row.start)}
+          />
+        ),
+      )}
+    </ol>
   );
 }
 

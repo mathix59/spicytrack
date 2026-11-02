@@ -25,6 +25,9 @@ type IssueNavigation = {
 type EventPagerState = {
   selectedEvent: EventDto | undefined;
   selectedEventId: string | null;
+  isLoadingEvent: boolean;
+  eventError: unknown;
+  retryEvent: () => void;
   totalEvents: number;
   globalEventNumber: number | null;
   canGoNewer: boolean;
@@ -44,8 +47,6 @@ type IssueSidebarState = {
   members: OrganizationMemberDto[];
   memberByUserId: MemberByUserId;
   timelineEntries: TimelineEntry[];
-  issueAssigneeError: string | null;
-  issuePriorityError: string | null;
   workflowError: string | null;
   updateAssignee: (assignedUserId: string) => Promise<void>;
   updatePriority: (priority: string) => Promise<void>;
@@ -58,8 +59,6 @@ type IssueSidebarState = {
 };
 
 type IssueActionsState = {
-  issueStatusError: string | null;
-  autofixError: string | null;
   autofixInFlight: boolean;
   triggerAutofix: () => Promise<void>;
   updateStatus: (status: string, ignoredUntil?: string | null) => Promise<void>;
@@ -74,6 +73,7 @@ type IssuePageData = {
   projectName: string;
   issue: IssueDto | undefined;
   issueDetail: IssueDetailDto | undefined;
+  issueQuery: { isLoading: boolean; error: unknown; refetch: () => void };
   navigation: IssueNavigation;
   events: EventPagerState;
   comments: IssueCommentsState;

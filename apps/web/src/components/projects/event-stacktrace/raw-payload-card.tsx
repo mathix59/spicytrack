@@ -1,19 +1,42 @@
-function RawPayloadCard({
-  rawPayload,
-  summary,
-}: {
-  rawPayload: Record<string, unknown>;
-  summary: string;
-}) {
+import { useMemo } from "react";
+import { Copy } from "lucide-react";
+
+import { CollapsibleSection } from "@/components/common/collapsible-section";
+import { Button } from "@/components/ui/button";
+import { copyToClipboard } from "@/lib/clipboard";
+
+function RawPayloadJson({ rawPayload }: { rawPayload: Record<string, unknown> }) {
+  // Serialized only once the section is opened: payloads can be large.
+  const json = useMemo(() => JSON.stringify(rawPayload, null, 2), [rawPayload]);
   return (
-    <details className="min-w-0 max-w-full rounded-lg border border-border bg-muted/20 p-4">
-      <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
-        {summary}
-      </summary>
-      <pre className="mt-3 max-w-full overflow-x-auto rounded-md bg-muted/30 p-3 text-xs leading-6 text-foreground">
-        {JSON.stringify(rawPayload, null, 2)}
-      </pre>
-    </details>
+    <pre className="max-h-[32rem] max-w-full overflow-auto bg-background/60 p-4 font-mono text-xs leading-5 text-foreground">
+      {json}
+    </pre>
+  );
+}
+
+function RawPayloadCard({ rawPayload }: { rawPayload: Record<string, unknown> }) {
+  return (
+    <CollapsibleSection
+      actions={
+        <Button
+          aria-label="Copy raw payload"
+          onClick={() =>
+            void copyToClipboard(JSON.stringify(rawPayload, null, 2), "Payload copied")
+          }
+          size="icon-sm"
+          title="Copy raw payload"
+          type="button"
+          variant="ghost"
+        >
+          <Copy />
+        </Button>
+      }
+      defaultOpen={false}
+      title="Raw payload"
+    >
+      <RawPayloadJson rawPayload={rawPayload} />
+    </CollapsibleSection>
   );
 }
 

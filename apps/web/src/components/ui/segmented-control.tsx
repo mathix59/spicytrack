@@ -22,7 +22,10 @@ function SegmentedControl<T extends string>({
   return (
     <div
       aria-label={label}
-      className={cn("inline-flex items-center gap-0.5 rounded-md border border-border bg-muted/40 p-0.5", className)}
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-md border border-border bg-muted/40 p-0.5",
+        className,
+      )}
       role="group"
     >
       {options.map((option) => {

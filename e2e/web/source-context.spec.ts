@@ -147,13 +147,11 @@ for (const wrappedBreadcrumbs of [false, true]) {
     await expect(failures).not.toContainText("/edit");
     await expect(failures).not.toContainText("/success");
     await expect(failures).not.toContainText("/future");
-    const requestContext = page
-      .locator("section")
-      .filter({ has: page.getByRole("heading", { name: "HTTP Request", exact: true }) });
+    const requestContext = page.getByRole("region", { name: "HTTP request", exact: true });
     await expect(
       requestContext.getByText("https://example.test/reports/123/edit", { exact: true }),
     ).toBeVisible();
-    const activity = page.getByRole("heading", { name: "Breadcrumbs", exact: true }).locator("..");
+    const activity = page.getByRole("region", { name: "Breadcrumbs", exact: true });
     await expect(activity.getByRole("listitem")).toHaveCount(4);
     await expect(
       activity.getByText("https://api.example.test/reports/123", { exact: true }).first(),
@@ -168,14 +166,15 @@ for (const wrappedBreadcrumbs of [false, true]) {
     await expect(application).toContainText("3:0");
     await expect(application).not.toContainText("999");
     await expect(
-      page.locator("span.whitespace-pre").filter({ hasText: "minified context must not be shown" }),
+      page.locator("code.whitespace-pre").filter({ hasText: "minified context must not be shown" }),
     ).toHaveCount(0);
+    // Library frames are collapsed in the default "App" view until revealed.
+    await expect(page.getByRole("button", { name: /node_modules\/@sentry/ })).toHaveCount(0);
+    await page.getByRole("button", { name: /1 library frame hidden/ }).click();
+    await expect(page.getByRole("button", { name: /node_modules\/@sentry/ })).toBeVisible();
     await expect(page.getByText("library wrapper")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /node_modules\/@sentry/ })).toContainText(
-      "library",
-    );
     await expect(
-      page.locator("span.whitespace-pre").filter({ hasText: "return fetch(url);" }),
+      page.locator("code.whitespace-pre").filter({ hasText: "return fetch(url);" }),
     ).toBeVisible();
     await page.getByRole("button", { name: /frame_ant/ }).click();
     await expect(page.getByText(/No uploaded artifact matches this script/)).toBeVisible();

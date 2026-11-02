@@ -14,7 +14,12 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
 
 function SkeletonRows({ rows = 5, className }: { rows?: number; className?: string }) {
   return (
-    <div aria-busy="true" aria-label="Loading" className={cn("grid gap-2", className)} role="status">
+    <div
+      aria-busy="true"
+      aria-label="Loading"
+      className={cn("grid gap-2", className)}
+      role="status"
+    >
       {Array.from({ length: rows }, (_, index) => (
         <Skeleton className="h-12 w-full" key={index} />
       ))}

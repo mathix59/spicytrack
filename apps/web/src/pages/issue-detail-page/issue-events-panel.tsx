@@ -1,73 +1,105 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { EventMeta } from "@/components/issues/issue-metadata";
+import { QueryError } from "@/components/common/query-error";
 import { EventStacktrace } from "@/components/projects/event-stacktrace";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { renderNullableText } from "@/lib/utils";
+import { Kbd } from "@/components/ui/kbd";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import type { EventPagerState } from "./types";
 import { formatTimelineDate } from "./utils";
 
+function MetaItem({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <span className="flex min-w-0 items-baseline gap-1.5">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={value ? "truncate font-medium text-foreground" : "text-muted-foreground/70"}>
+        {value || "not set"}
+      </span>
+    </span>
+  );
+}
+
 function IssueEventsPanel({ events }: { events: EventPagerState }) {
   if (events.totalEvents === 0) {
-    return <EmptyState title="No events" description="This issue has no stored events." />;
+    return <EmptyState description="This issue has no stored events." title="No events" />;
   }
+
+  const event = events.selectedEvent;
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 px-4 py-2">
-        <p className="text-sm text-muted-foreground">
-          {events.globalEventNumber
-            ? `Event ${events.globalEventNumber} of ${events.totalEvents}`
-            : `${events.totalEvents} events`}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            disabled={!events.canGoNewer}
-            onClick={events.goNewer}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            <ArrowLeft className="size-4" />
-            Newer
-          </Button>
-          <Button
-            disabled={!events.canGoOlder}
-            onClick={events.goOlder}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            Older
-            <ArrowRight className="size-4" />
-          </Button>
+      <div className="grid min-w-0 gap-3 rounded-lg border border-border bg-card px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium">
+            {events.globalEventNumber
+              ? `Event ${events.globalEventNumber} of ${events.totalEvents}`
+              : `${events.totalEvents} events`}
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              aria-keyshortcuts="["
+              disabled={!events.canGoNewer}
+              onClick={events.goNewer}
+              size="sm"
+              title="Newer event ([)"
+              type="button"
+              variant="ghost"
+            >
+              <ChevronLeft />
+              Newer
+              <Kbd className="hidden md:inline-flex">[</Kbd>
+            </Button>
+            <Button
+              aria-keyshortcuts="]"
+              disabled={!events.canGoOlder}
+              onClick={events.goOlder}
+              size="sm"
+              title="Older event (])"
+              type="button"
+              variant="ghost"
+            >
+              <Kbd className="hidden md:inline-flex">]</Kbd>
+              Older
+              <ChevronRight />
+            </Button>
+          </div>
         </div>
+        {event ? (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-border pt-3 text-xs">
+            <span className="flex items-center gap-1">
+              <span className="text-muted-foreground">ID</span>
+              <span className="font-mono font-medium">{event.eventId.slice(0, 8)}</span>
+              <CopyButton
+                className="size-6"
+                label="Copy event ID"
+                successMessage="Event ID copied"
+                value={event.eventId}
+              />
+            </span>
+            <MetaItem label="Time" value={formatTimelineDate(event.timestamp)} />
+            <MetaItem label="Level" value={event.level} />
+            <MetaItem label="Environment" value={event.environmentName} />
+            <MetaItem label="Release" value={event.releaseVersion} />
+          </div>
+        ) : null}
       </div>
 
-      {events.selectedEvent ? (
-        <>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm">
-            <EventMeta label="Event" value={events.selectedEvent.eventId.slice(0, 8)} />
-            <EventMeta label="Time" value={formatTimelineDate(events.selectedEvent.timestamp)} />
-            <EventMeta label="Level" value={events.selectedEvent.level} />
-            <EventMeta
-              label="Environment"
-              value={renderNullableText(events.selectedEvent.environmentName, "not set")}
-            />
-            <EventMeta
-              label="Release"
-              value={renderNullableText(events.selectedEvent.releaseVersion, "not set")}
-            />
-          </div>
-          <EventStacktrace
-            rawPayload={events.selectedEvent.rawPayload}
-            resolvedFrames={events.selectedEvent.resolvedFrames}
-          />
-        </>
+      {event ? (
+        <EventStacktrace rawPayload={event.rawPayload} resolvedFrames={event.resolvedFrames} />
+      ) : events.eventError ? (
+        <QueryError
+          error={events.eventError}
+          onRetry={events.retryEvent}
+          title="Could not load this event"
+        />
       ) : (
-        <EmptyState title="Loading event" description="Fetching event payload..." />
+        <div aria-busy="true" aria-label="Loading event" className="grid gap-3">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
       )}
     </>
   );

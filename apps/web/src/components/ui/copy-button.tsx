@@ -1,20 +1,9 @@
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
-
-async function copyToClipboard(value: string, successMessage = "Copied to clipboard") {
-  try {
-    await navigator.clipboard.writeText(value);
-    toast.success(successMessage);
-    return true;
-  } catch {
-    toast.error("Could not access the clipboard. Copy the value manually.");
-    return false;
-  }
-}
 
 function CopyButton({
   value,
@@ -57,4 +46,4 @@ function CopyButton({
   );
 }
 
-export { CopyButton, copyToClipboard };
+export { CopyButton };
