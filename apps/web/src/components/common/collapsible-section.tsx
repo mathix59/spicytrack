@@ -45,7 +45,7 @@ function CollapsibleSection({
             {title}
           </button>
         </h2>
-        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground/80">{summary}</span>
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{summary}</span>
         {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
       </div>
       {open ? (

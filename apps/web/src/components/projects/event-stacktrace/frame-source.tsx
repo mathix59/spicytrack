@@ -37,7 +37,7 @@ const FrameSource = memo(function FrameSource({ frame }: { frame: StackFrame }) 
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "sticky left-0 w-12 shrink-0 select-none bg-inherit px-3 text-right text-muted-foreground/50",
+                    "sticky left-0 w-12 shrink-0 select-none bg-inherit px-3 text-right text-muted-foreground",
                     highlighted && "text-destructive",
                   )}
                 >

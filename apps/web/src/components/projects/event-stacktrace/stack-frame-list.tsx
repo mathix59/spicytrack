@@ -74,9 +74,9 @@ const FrameItem = memo(function FrameItem({
             {frame.function ?? "<anonymous>"}
           </span>
           <span className="min-w-0 truncate text-muted-foreground">
-            <span className="text-muted-foreground/70">{directory}</span>
-            <span className={frame.inApp ? "text-foreground/90" : undefined}>{basename}</span>
-            <span className="text-muted-foreground/70">
+            <span className="text-muted-foreground">{directory}</span>
+            <span className={frame.inApp ? "text-foreground" : undefined}>{basename}</span>
+            <span className="text-muted-foreground">
               :{frame.lineno}
               {frame.colno != null ? `:${frame.colno}` : ""}
             </span>

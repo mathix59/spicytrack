@@ -15,7 +15,7 @@ function MetaItem({ label, value }: { label: string; value: string | null | unde
   return (
     <span className="flex min-w-0 items-baseline gap-1.5">
       <span className="text-muted-foreground">{label}</span>
-      <span className={value ? "truncate font-medium text-foreground" : "text-muted-foreground/70"}>
+      <span className={value ? "truncate font-medium text-foreground" : "text-muted-foreground"}>
         {value || "not set"}
       </span>
     </span>
