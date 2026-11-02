@@ -70,6 +70,8 @@ type IssuePageData = {
   orgSlug: string;
   projectSlug: string;
   issueId: string;
+  /** Daily event counts over the last 14 days, oldest first. */
+  trend: number[] | undefined;
   projectName: string;
   issue: IssueDto | undefined;
   issueDetail: IssueDetailDto | undefined;

@@ -1,3 +1,4 @@
+import { useIssueTrends } from "@/features/issues/use-issue-trends";
 import { useProjectIssues } from "@/features/issues/use-project-issues";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -9,6 +10,12 @@ type ProjectObservabilityTabProps = { orgSlug: string; projectSlug: string };
 
 function ProjectObservabilityTab({ orgSlug, projectSlug }: ProjectObservabilityTabProps) {
   const issues = useProjectIssues({ orgSlug, projectSlug });
+  const trendByIssueId = useIssueTrends({
+    orgSlug,
+    projectSlug,
+    issueIds: issues.issues.map((issue) => issue.id),
+    period: "24h",
+  });
 
   return (
     <Card>
@@ -72,6 +79,7 @@ function ProjectObservabilityTab({ orgSlug, projectSlug }: ProjectObservabilityT
           issueHref={(issueId) => `/orgs/${orgSlug}/projects/${projectSlug}/issues/${issueId}`}
           issues={issues.issues}
           memberByUserId={issues.memberByUserId}
+          trendByIssueId={trendByIssueId}
           onRetry={issues.retryIssues}
           navigateToIssue={(issueId) =>
             issues.navigate(`/orgs/${orgSlug}/projects/${projectSlug}/issues/${issueId}`)

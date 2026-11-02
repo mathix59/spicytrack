@@ -31,6 +31,7 @@ import {
   useUnmergeIssue,
 } from "@/generated/api";
 import { invalidateQueryKeys } from "@/lib/query-utils";
+import { useIssueTrends } from "@/features/issues/use-issue-trends";
 import { useHotkeys } from "@/lib/use-hotkeys";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -358,10 +359,18 @@ function useIssueDetailPage(): IssuePageData {
     "]": goOlder,
   });
 
+  const trendByIssueId = useIssueTrends({
+    orgSlug,
+    projectSlug,
+    issueIds: issueId ? [issueId] : [],
+    period: "14d",
+  });
+
   return {
     orgSlug,
     projectSlug,
     issueId,
+    trend: trendByIssueId.get(issueId),
     projectName,
     issue,
     issueDetail,

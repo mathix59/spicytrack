@@ -8,6 +8,7 @@ import {
   RotateCcw,
   WandSparkles,
 } from "lucide-react";
+import type * as React from "react";
 import { Link } from "react-router-dom";
 
 import { IssueStateBadge, IssueToneBadge } from "@/components/issues/issue-status-controls";
@@ -21,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
+import { Sparkline } from "@/components/ui/sparkline";
 import { formatRelativeTime } from "@/lib/utils";
 
 import type { IssueActionsState, IssueNavigation } from "./types";
@@ -44,6 +46,7 @@ function IssueDetailHeader({
   firstSeenAt,
   lastSeenAt,
   totalEvents,
+  trend,
   navigation,
   actions,
 }: {
@@ -57,6 +60,8 @@ function IssueDetailHeader({
   firstSeenAt: string;
   lastSeenAt: string;
   totalEvents: number;
+  /** Daily event counts for the last 14 days, oldest first; omitted while loading. */
+  trend?: number[];
   navigation: IssueNavigation;
   actions: IssueActionsState;
 }) {
@@ -65,7 +70,7 @@ function IssueDetailHeader({
   const autofixBusy = actions.autofixInFlight || actions.isTriggeringAutofix;
 
   return (
-    <header className="grid min-w-0 gap-4 border-b border-border pb-5">
+    <header className="grid min-w-0 gap-5 border-b border-border pb-6">
       <div className="flex min-w-0 items-center justify-between gap-3">
         <nav aria-label="Breadcrumb" className="min-w-0 text-sm text-muted-foreground">
           <ol className="flex min-w-0 items-center gap-1.5">
@@ -98,38 +103,46 @@ function IssueDetailHeader({
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-2">
-        <h1
-          className="line-clamp-3 text-xl font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-2xl"
-          title={title}
-        >
-          {title}
-        </h1>
+      <div className="grid min-w-0 gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <IssueToneBadge value={level} />
+          <IssueStateBadge value={status} />
+        </div>
+        <IssueTitle title={title} />
         {culprit ? (
           <p className="truncate font-mono text-sm text-muted-foreground" title={culprit}>
             {culprit}
           </p>
         ) : null}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-          <IssueToneBadge value={level} />
-          <IssueStateBadge value={status} />
-          <span>
-            <span className="font-medium tabular-nums text-foreground">{totalEvents}</span>{" "}
-            {totalEvents === 1 ? "event" : "events"}
-          </span>
-          <span title={formatTimelineDate(lastSeenAt)}>
-            Last seen <span className="text-foreground">{formatRelativeTime(lastSeenAt)}</span>
-          </span>
-          <span title={formatTimelineDate(firstSeenAt)}>
-            First seen <span className="text-foreground">{formatRelativeTime(firstSeenAt)}</span>
-          </span>
-        </div>
       </div>
+
+      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card shadow-xs sm:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.6fr)]">
+        <IssueStat label="Events">
+          <span className="tabular-nums">{totalEvents.toLocaleString()}</span>
+        </IssueStat>
+        <IssueStat label="Last seen" title={formatTimelineDate(lastSeenAt)}>
+          {formatRelativeTime(lastSeenAt)}
+        </IssueStat>
+        <IssueStat label="First seen" title={formatTimelineDate(firstSeenAt)}>
+          {formatRelativeTime(firstSeenAt)}
+        </IssueStat>
+        <IssueStat label="Last 14 days">
+          {trend ? (
+            <Sparkline
+              className="mt-1 h-7"
+              label={`${trend.reduce((sum, count) => sum + count, 0)} events in the last 14 days`}
+              tone={level === "fatal" || level === "error" ? "destructive" : "primary"}
+              values={trend}
+            />
+          ) : (
+            <span aria-hidden="true" className="mt-1 block h-7 animate-pulse rounded bg-muted" />
+          )}
+        </IssueStat>
+      </dl>
 
       <div className="flex flex-wrap items-center gap-2">
         {status === "open" ? (
           <Button
-            className="bg-success text-background hover:bg-success/90"
             disabled={busy}
             onClick={() => void actions.updateStatus("resolved")}
             size="sm"
@@ -202,6 +215,60 @@ function IssueDetailHeader({
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * Exception titles ("TypeError: Cannot read…") read better as a type eyebrow over the message.
+ * The heading's accessible name stays the full title, since the split is only visual.
+ */
+function IssueTitle({ title }: { title: string }) {
+  const match =
+    /^([A-Za-z_$][\w$.]*(?:Error|Exception|Warning|Fault|Panic|Rejection)):\s+([\s\S]+)$/.exec(
+      title,
+    );
+  const type = match && match[1].length <= 80 ? match[1] : null;
+
+  return (
+    <h1 aria-label={title} className="grid min-w-0 gap-1 [overflow-wrap:anywhere]" title={title}>
+      {type && match ? (
+        <>
+          <span aria-hidden="true" className="font-mono text-sm font-medium text-primary-accent">
+            {type}
+          </span>
+          <span
+            aria-hidden="true"
+            className="line-clamp-3 text-2xl font-semibold tracking-[-0.02em] sm:text-3xl"
+          >
+            {match[2]}
+          </span>
+        </>
+      ) : (
+        <span className="line-clamp-3 text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
+          {title}
+        </span>
+      )}
+    </h1>
+  );
+}
+
+function IssueStat({
+  label,
+  title,
+  children,
+}: {
+  label: string;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="grid content-start gap-0.5 border-border px-4 py-3 not-last:border-r max-sm:nth-[2n]:border-r-0 max-sm:nth-[-n+2]:border-b"
+      title={title}
+    >
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-base font-medium text-foreground">{children}</dd>
+    </div>
   );
 }
 

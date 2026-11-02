@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import type { IssueDto, OrganizationMemberDto } from "@/generated/api";
 import { QueryError } from "@/components/common/query-error";
 import { IssueStateBadge } from "@/components/issues/issue-status-controls";
+import { Sparkline } from "@/components/ui/sparkline";
 import { AssigneeAvatar, LevelDot, SortHeader } from "@/components/projects/issue-table-primitives";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -42,6 +43,23 @@ function isInteractiveTarget(event: MouseEvent) {
   return (event.target as HTMLElement).closest("a, button, input, label") !== null;
 }
 
+function IssueTrendCell({ counts, level }: { counts?: number[]; level: string }) {
+  if (!counts) {
+    return <span aria-hidden="true" className="block h-6 rounded bg-muted/60" />;
+  }
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  return (
+    <Sparkline
+      className="h-6"
+      label={`${total} ${total === 1 ? "event" : "events"} in the last 24 hours`}
+      tone={
+        total === 0 ? "muted" : level === "fatal" || level === "error" ? "destructive" : "primary"
+      }
+      values={counts}
+    />
+  );
+}
+
 function IssuesTable({
   issues,
   totalIssues,
@@ -61,6 +79,7 @@ function IssuesTable({
   navigateToIssue,
   toggleIssueSelection,
   memberByUserId,
+  trendByIssueId,
   safePage,
   totalIssuePages,
   setPage,
@@ -83,6 +102,8 @@ function IssuesTable({
   navigateToIssue: (issueId: string) => void;
   toggleIssueSelection: (issueId: string) => void;
   memberByUserId: Map<string, OrganizationMemberDto>;
+  /** Hourly event counts for the last 24 hours, keyed by issue id. */
+  trendByIssueId: Map<string, number[]>;
   safePage: number;
   totalIssuePages: number;
   setPage: React.Dispatch<React.SetStateAction<number>>;
@@ -255,6 +276,7 @@ function IssuesTable({
                   onClick={() => toggleSort("firstSeenAt")}
                 />
               </TableHead>
+              <TableHead className="hidden w-32 xl:table-cell">Last 24h</TableHead>
               <TableHead aria-sort={ariaSort("timesSeen")} className="w-24">
                 <SortHeader
                   active={sortBy === "timesSeen"}
@@ -324,6 +346,9 @@ function IssuesTable({
                   </TableCell>
                   <TableCell className="hidden whitespace-nowrap text-sm text-muted-foreground lg:table-cell">
                     {formatRelativeTime(issue.firstSeenAt)}
+                  </TableCell>
+                  <TableCell className="hidden xl:table-cell">
+                    <IssueTrendCell counts={trendByIssueId.get(issue.id)} level={issue.level} />
                   </TableCell>
                   <TableCell className="text-right text-sm font-medium tabular-nums">
                     {String(issue.timesSeen)}

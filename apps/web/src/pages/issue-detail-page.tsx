@@ -59,6 +59,7 @@ function IssueDetailPage() {
         status={page.issue.status}
         title={page.issue.title}
         totalEvents={page.events.totalEvents}
+        trend={page.trend}
       />
 
       <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
