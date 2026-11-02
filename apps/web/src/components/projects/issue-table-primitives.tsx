@@ -13,6 +13,7 @@ function InboxPresetChip({
 }) {
   return (
     <button
+      aria-pressed={active ?? false}
       className={cn(
         "rounded-md px-2.5 py-1.5 text-sm transition-colors",
         active
@@ -67,18 +68,29 @@ function LevelDot({ value, className }: { value: string; className?: string }) {
           ? "bg-info"
           : "bg-muted-foreground";
   return (
-    <span
-      className={cn("inline-block size-2 shrink-0 rounded-full", color, className)}
-      title={value}
-    />
+    <>
+      <span
+        aria-hidden="true"
+        className={cn("inline-block size-2 shrink-0 rounded-full", color, className)}
+        title={value}
+      />
+      <span className="sr-only">{value} level:</span>
+    </>
   );
+}
+
+function initialsOf(name: string) {
+  const parts = name.split(/[\s@._-]+/).filter(Boolean);
+  return (parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2)).toUpperCase();
 }
 
 function AssigneeAvatar({ name }: { name: string | null }) {
   if (!name) {
     return (
       <span
+        aria-label="Unassigned"
         className="inline-flex size-6 items-center justify-center rounded-full border border-dashed border-border text-[10px] text-muted-foreground"
+        role="img"
         title="Unassigned"
       >
         —
@@ -87,28 +99,14 @@ function AssigneeAvatar({ name }: { name: string | null }) {
   }
   return (
     <span
+      aria-label={`Assigned to ${name}`}
       className="inline-flex size-6 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary"
+      role="img"
       title={name}
     >
-      {name.slice(0, 2).toUpperCase()}
+      {initialsOf(name)}
     </span>
   );
 }
 
-function IssueStateBadge({ value }: { value: string }) {
-  const className =
-    value === "resolved"
-      ? "border-success/30 bg-success/10 text-success"
-      : value === "ignored"
-        ? "border-border bg-muted/30 text-muted-foreground"
-        : "border-primary/30 bg-primary/10 text-primary";
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-medium ${className}`}
-    >
-      {value}
-    </span>
-  );
-}
-
-export { AssigneeAvatar, InboxPresetChip, IssueStateBadge, LevelDot, SortHeader };
+export { AssigneeAvatar, InboxPresetChip, LevelDot, SortHeader };

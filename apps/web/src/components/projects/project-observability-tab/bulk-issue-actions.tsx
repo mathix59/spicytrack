@@ -1,6 +1,7 @@
+import { X } from "lucide-react";
+
 import type { OrganizationMemberDto } from "@/generated/api";
 import { renderNullableText } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 
@@ -13,7 +14,7 @@ function BulkIssueActions({
   setBulkAssigneeValue,
   bulkSetAssignee,
   members,
-  bulkIssueError,
+  clearSelection,
 }: {
   selectedIssueIds: string[];
   isUpdatingStatus: boolean;
@@ -23,15 +24,30 @@ function BulkIssueActions({
   setBulkAssigneeValue: (value: string) => void;
   bulkSetAssignee: (assignedUserId: string) => Promise<void>;
   members: OrganizationMemberDto[];
-  bulkIssueError: string | null;
+  clearSelection: () => void;
 }) {
   if (selectedIssueIds.length === 0) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2">
-      <span className="text-sm text-muted-foreground">{selectedIssueIds.length} selected</span>
+    <div
+      aria-label="Bulk actions"
+      className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-card px-3 py-2 shadow-lg"
+      role="toolbar"
+    >
+      <Button
+        aria-label="Clear selection"
+        onClick={clearSelection}
+        size="icon-sm"
+        type="button"
+        variant="ghost"
+      >
+        <X />
+      </Button>
+      <span className="text-sm font-medium" role="status">
+        {selectedIssueIds.length} selected
+      </span>
       <Button
         disabled={isUpdatingStatus}
         onClick={() => void bulkSetStatus("resolved")}
@@ -59,8 +75,9 @@ function BulkIssueActions({
       >
         Reopen
       </Button>
-      <div className="ml-auto w-44">
+      <div className="w-full sm:ml-auto sm:w-44">
         <Select
+          aria-label="Assign selected issues"
           disabled={isUpdatingAssignee}
           onChange={(event) => {
             setBulkAssigneeValue(event.target.value);
@@ -77,11 +94,6 @@ function BulkIssueActions({
           ))}
         </Select>
       </div>
-      {bulkIssueError ? (
-        <Alert className="w-full" variant="destructive">
-          <AlertDescription>{bulkIssueError}</AlertDescription>
-        </Alert>
-      ) : null}
     </div>
   );
 }

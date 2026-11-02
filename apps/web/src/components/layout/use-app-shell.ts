@@ -30,7 +30,10 @@ function useAppShell({
   };
 
   const displayName = getDisplayName(me);
-  const initials = displayName.slice(0, 2).toUpperCase();
+  const nameParts = displayName.split(/[\s@._-]+/).filter(Boolean);
+  const initials = (
+    nameParts.length > 1 ? `${nameParts[0][0]}${nameParts[1][0]}` : displayName.slice(0, 2)
+  ).toUpperCase();
   const currentOrg = me.memberships.find((membership) => membership.slug === currentOrgSlug);
   const projectsQuery = useListProjects(currentOrgSlug ?? "", {
     query: { enabled: Boolean(currentOrgSlug) },
@@ -39,7 +42,6 @@ function useAppShell({
   const currentProjectSlug = params.projectSlug;
   const currentIssueId = params.issueId;
   const searchTab = new URLSearchParams(location.search).get("tab");
-  const activeProjectTab = searchTab ?? "observability";
   const isOrgPage = location.pathname === `/orgs/${currentOrgSlug}` && !currentProjectSlug;
   const orgTab = searchTab ?? "projects";
 
@@ -52,7 +54,6 @@ function useAppShell({
     projects,
     currentProjectSlug,
     currentIssueId,
-    activeProjectTab,
     isOrgPage,
     orgTab,
   };

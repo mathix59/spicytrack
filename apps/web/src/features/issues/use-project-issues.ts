@@ -1,6 +1,7 @@
-import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   getListIssuesQueryKey,
@@ -19,13 +20,27 @@ import {
 import type { IssueFilterSnapshot, SavedIssueSearch } from "@/features/issues/saved-searches";
 import { getErrorMessage } from "@/lib/utils";
 
+const SEARCH_DEBOUNCE_MS = 250;
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(timeout);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+function pluralizeIssues(count: number) {
+  return `${count} ${count === 1 ? "issue" : "issues"}`;
+}
+
 type ProjectIssuesOptions = { orgSlug: string; projectSlug: string };
 
 function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [bulkIssueError, setBulkIssueError] = useState<string | null>(null);
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
   const [savedSearchName, setSavedSearchName] = useState("");
   const [issueSearch, setIssueSearch] = useState(() => searchParams.get("q") ?? "");
@@ -58,7 +73,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
   const savedSearchesQuery = useListProjectSavedSearches(orgSlug, projectSlug, {
     query: { enabled: true },
   });
-  const deferredIssueSearch = useDeferredValue(issueSearch);
+  const deferredIssueSearch = useDebouncedValue(issueSearch, SEARCH_DEBOUNCE_MS);
   const issuesQuery = useListIssues(
     orgSlug,
     projectSlug,
@@ -149,10 +164,12 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     environmentFilter !== "all",
     releaseFilter !== "all",
     regressedFilter !== "all",
-    sortBy !== "lastSeenAt",
-    sortDir !== "desc",
-    pageSize !== 25,
   ].filter(Boolean).length;
+  const hasActiveFilters =
+    activeSecondaryFilterCount > 0 ||
+    issueSearch.trim().length > 0 ||
+    levelFilter !== "all" ||
+    statusFilter !== "open";
   const totalIssuePages = issuesPage ? Math.max(1, Math.ceil(totalIssues / pageSize)) : page;
   // Missing or retained data is not a response for the requested page yet.
   const safePage =
@@ -295,6 +312,8 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     });
   };
 
+  const clearSelection = () => setSelectedIssueIds([]);
+
   const toggleVisibleIssues = () => {
     const visibleIds = issues.map((issue) => issue.id);
     const allVisibleSelected =
@@ -316,7 +335,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
       return;
     }
 
-    setBulkIssueError(null);
+    const count = selectedIssueIds.length;
     try {
       await bulkUpdateIssueStatusMutation.mutateAsync({
         orgSlug,
@@ -326,8 +345,12 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
           status,
         },
       });
+      const verb = status === "open" ? "reopened" : status;
+      toast.success(`${pluralizeIssues(count)} ${verb}`);
     } catch (caughtError) {
-      setBulkIssueError(getErrorMessage(caughtError));
+      toast.error("Could not update the selected issues", {
+        description: getErrorMessage(caughtError),
+      });
     }
   };
 
@@ -336,7 +359,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
       return;
     }
 
-    setBulkIssueError(null);
+    const count = selectedIssueIds.length;
     try {
       await bulkUpdateIssueAssigneeMutation.mutateAsync({
         orgSlug,
@@ -346,8 +369,16 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
           assignedUserId: assignedUserId.length > 0 ? assignedUserId : null,
         },
       });
+      toast.success(
+        assignedUserId.length > 0
+          ? `${pluralizeIssues(count)} assigned`
+          : `${pluralizeIssues(count)} unassigned`,
+      );
     } catch (caughtError) {
-      setBulkIssueError(getErrorMessage(caughtError));
+      setBulkAssigneeValue("__placeholder__");
+      toast.error("Could not reassign the selected issues", {
+        description: getErrorMessage(caughtError),
+      });
     }
   };
 
@@ -432,11 +463,16 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
   };
 
   const removeSavedSearch = async (searchId: string) => {
-    await deleteSavedSearchMutation.mutateAsync({
-      orgSlug,
-      projectSlug,
-      savedSearchId: searchId,
-    });
+    try {
+      await deleteSavedSearchMutation.mutateAsync({
+        orgSlug,
+        projectSlug,
+        savedSearchId: searchId,
+      });
+      toast.success("Saved view removed");
+    } catch (caughtError) {
+      toast.error("Could not remove the saved view", { description: getErrorMessage(caughtError) });
+    }
   };
 
   const saveCurrentSearch = async () => {
@@ -446,16 +482,21 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
       return;
     }
 
-    await createSavedSearchMutation.mutateAsync({
-      orgSlug,
-      projectSlug,
-      data: {
-        name: trimmedName,
-        filters: currentFilterSnapshot,
-      },
-    });
-    setSavedSearchName("");
-    setSaveSearchOpen(false);
+    try {
+      await createSavedSearchMutation.mutateAsync({
+        orgSlug,
+        projectSlug,
+        data: {
+          name: trimmedName,
+          filters: currentFilterSnapshot,
+        },
+      });
+      toast.success(`Saved view "${trimmedName}" created`);
+      setSavedSearchName("");
+      setSaveSearchOpen(false);
+    } catch (caughtError) {
+      toast.error("Could not save this view", { description: getErrorMessage(caughtError) });
+    }
   };
 
   const clearIssueFilters = () => {
@@ -513,16 +554,20 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     applySavedSearch,
     assignedUserFilter,
     bulkAssigneeValue,
-    bulkIssueError,
     bulkSetAssignee,
     bulkSetStatus,
     bulkUpdateIssueAssigneeMutation,
     bulkUpdateIssueStatusMutation,
     clearIssueFilters,
+    clearSelection,
     currentFilterSnapshot,
     environmentFilter,
+    hasActiveFilters,
+    isFetchingIssues: issuesQuery.isFetching && issuesQuery.isPlaceholderData,
+    isLoadingIssues: issuesQuery.isLoading,
     issueSearch,
     issues,
+    issuesError: issuesQuery.isError && !issuesPage ? issuesQuery.error : null,
     levelFilter,
     memberByUserId,
     members,
@@ -533,6 +578,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     regressedFilter,
     releaseFilter,
     removeSavedSearch,
+    retryIssues: () => void issuesQuery.refetch(),
     safePage,
     saveCurrentSearch,
     savedSearchName,

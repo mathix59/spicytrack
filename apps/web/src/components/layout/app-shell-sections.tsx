@@ -1,21 +1,19 @@
 import {
-  BellRing,
-  Bug,
   Building2,
   Check,
   ChevronsUpDown,
   FolderKanban,
-  GitBranch,
-  KeyRound,
   LayoutGrid,
   LogOut,
-  Plug,
-  ScrollText,
+  Search,
+  Settings,
   Shield,
+  ShieldCheck,
   UserCog,
   Users,
   UsersRound,
 } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { MeResponseDto, ProjectDto } from "@/generated/api";
@@ -30,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { ProjectSectionLink, ShellLink } from "./app-shell-links";
+import { ShellLink } from "./app-shell-links";
 
 function AppShellBrand() {
   return (
@@ -127,13 +125,13 @@ function AppShellOrgNav({
       />
       <ShellLink
         active={isOrgPage && orgTab === "roles"}
-        icon={Shield}
+        icon={ShieldCheck}
         label="Roles"
         to={`/orgs/${currentOrgSlug}?tab=roles`}
       />
       <ShellLink
         active={isOrgPage && orgTab === "settings"}
-        icon={Shield}
+        icon={Settings}
         label="Settings"
         to={`/orgs/${currentOrgSlug}?tab=settings`}
       />
@@ -146,24 +144,46 @@ function AppShellProjectsNav({
   projects,
   currentProjectSlug,
   currentIssueId,
-  activeProjectTab,
 }: {
   currentOrgSlug?: string;
   projects: ProjectDto[];
   currentProjectSlug?: string;
   currentIssueId?: string;
-  activeProjectTab: string;
 }) {
+  const [filter, setFilter] = useState("");
+
   if (!currentOrgSlug || projects.length === 0) {
     return null;
   }
+
+  const normalizedFilter = filter.trim().toLowerCase();
+  const visibleProjects = normalizedFilter
+    ? projects.filter(
+        (project) =>
+          project.slug === currentProjectSlug ||
+          project.name.toLowerCase().includes(normalizedFilter) ||
+          project.slug.includes(normalizedFilter),
+      )
+    : projects;
 
   return (
     <div className="mt-6 grid gap-0.5">
       <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
         Projects
       </p>
-      {projects.map((project) => {
+      {projects.length > 8 ? (
+        <label className="relative mx-1 mb-1 block">
+          <span className="sr-only">Filter projects</span>
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            className="h-8 w-full rounded-md border border-input bg-transparent pr-2 pl-8 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+            onChange={(event) => setFilter(event.target.value)}
+            placeholder="Filter projects"
+            value={filter}
+          />
+        </label>
+      ) : null}
+      {visibleProjects.map((project) => {
         const isCurrent = currentProjectSlug === project.slug;
 
         return (
@@ -171,55 +191,16 @@ function AppShellProjectsNav({
             <Link
               className={cn(
                 "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                isCurrent && !currentIssueId
+                isCurrent
                   ? "bg-accent text-accent-foreground font-medium"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
               )}
+              aria-current={isCurrent ? (currentIssueId ? "location" : "page") : undefined}
               to={`/orgs/${currentOrgSlug}/projects/${project.slug}`}
             >
               <FolderKanban className="size-4 shrink-0" />
               <span className="truncate">{project.name}</span>
             </Link>
-            {isCurrent ? (
-              <div className="ml-4 grid gap-0.5 border-l border-border pl-2 pt-0.5">
-                <ProjectSectionLink
-                  active={Boolean(currentIssueId) || activeProjectTab === "observability"}
-                  icon={Bug}
-                  label="Issues"
-                  to={`/orgs/${currentOrgSlug}/projects/${project.slug}?tab=observability`}
-                />
-                <ProjectSectionLink
-                  active={activeProjectTab === "inventory"}
-                  icon={GitBranch}
-                  label="Releases"
-                  to={`/orgs/${currentOrgSlug}/projects/${project.slug}?tab=inventory`}
-                />
-                <ProjectSectionLink
-                  active={activeProjectTab === "alerting"}
-                  icon={BellRing}
-                  label="Alerts"
-                  to={`/orgs/${currentOrgSlug}/projects/${project.slug}?tab=alerting`}
-                />
-                <ProjectSectionLink
-                  active={activeProjectTab === "keys"}
-                  icon={KeyRound}
-                  label="Keys"
-                  to={`/orgs/${currentOrgSlug}/projects/${project.slug}?tab=keys`}
-                />
-                <ProjectSectionLink
-                  active={activeProjectTab === "integrations"}
-                  icon={Plug}
-                  label="Integrations"
-                  to={`/orgs/${currentOrgSlug}/projects/${project.slug}?tab=integrations`}
-                />
-                <ProjectSectionLink
-                  active={activeProjectTab === "audit"}
-                  icon={ScrollText}
-                  label="Audit"
-                  to={`/orgs/${currentOrgSlug}/projects/${project.slug}?tab=audit`}
-                />
-              </div>
-            ) : null}
           </div>
         );
       })}

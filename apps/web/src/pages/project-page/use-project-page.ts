@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   getGetProjectQueryKey,
@@ -38,7 +39,14 @@ const VALID_TABS: ProjectTab[] = [
   "audit",
 ];
 
-function useProjectPage(): ProjectPageData | null {
+type ProjectPageState = {
+  data: ProjectPageData | null;
+  isLoading: boolean;
+  error: unknown;
+  retry: () => void;
+};
+
+function useProjectPage(): ProjectPageState {
   const { orgSlug = "", projectSlug = "" } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -92,9 +100,10 @@ function useProjectPage(): ProjectPageData | null {
   useEffect(() => {
     const status = (projectQuery.error as { status?: number } | null)?.status;
     if (status === 403 || status === 404) {
-      navigate("/app", { replace: true });
+      toast.error("This project does not exist or you do not have access to it.");
+      navigate(orgSlug ? `/orgs/${orgSlug}` : "/app", { replace: true });
     }
-  }, [navigate, projectQuery.error]);
+  }, [navigate, orgSlug, projectQuery.error]);
 
   useEffect(() => {
     const firstRelease = releases[0]?.version;
@@ -131,39 +140,53 @@ function useProjectPage(): ProjectPageData | null {
         }),
       onSuccess: async (response) => {
         if (response.data.slug !== projectSlug) {
-          window.location.assign(`/orgs/${orgSlug}/projects/${response.data.slug}`);
+          setSettingsOpen(false);
+          toast.success("Project settings saved");
+          navigate(`/orgs/${orgSlug}/projects/${response.data.slug}?tab=${activeTab}`, {
+            replace: true,
+          });
           return;
         }
 
         setSettingsOpen(false);
+        toast.success("Project settings saved");
       },
     });
   };
 
+  const queryState = {
+    isLoading: projectQuery.isLoading,
+    error: projectQuery.error,
+    retry: () => void projectQuery.refetch(),
+  };
+
   if (!project) {
-    return null;
+    return { data: null, ...queryState };
   }
 
   return {
-    orgSlug,
-    projectSlug,
-    activeTab,
-    project,
-    teams,
-    members,
-    environments,
-    releases,
-    selectedReleaseVersion,
-    settingsOpen,
-    projectError,
-    canManageIntegrations,
-    hasRepoConnection,
-    setSettingsOpen,
-    setSelectedReleaseVersion,
-    openIssue: (issueId: string) =>
-      navigate(`/orgs/${orgSlug}/projects/${projectSlug}/issues/${issueId}`),
-    updateProjectSettings,
-    isSavingSettings: updateProjectMutation.isPending,
+    ...queryState,
+    data: {
+      orgSlug,
+      projectSlug,
+      activeTab,
+      project,
+      teams,
+      members,
+      environments,
+      releases,
+      selectedReleaseVersion,
+      settingsOpen,
+      projectError,
+      canManageIntegrations,
+      hasRepoConnection,
+      setSettingsOpen,
+      setSelectedReleaseVersion,
+      openIssue: (issueId: string) =>
+        navigate(`/orgs/${orgSlug}/projects/${projectSlug}/issues/${issueId}`),
+      updateProjectSettings,
+      isSavingSettings: updateProjectMutation.isPending,
+    },
   };
 }
 

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Activity, ArrowRight, LayoutGrid, Plus, RotateCcw } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Activity, ArrowRight, Building2, LayoutGrid, Plus, RotateCcw } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -16,6 +17,7 @@ import { FormDialogActions } from "@/components/common/form-dialog-actions";
 import { runAsyncFormAction } from "@/lib/form-submission";
 import { slugify } from "@/lib/slug";
 import { PageHeader } from "@/components/common/page-header";
+import { QueryError } from "@/components/common/query-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,9 +33,11 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function DashboardPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const organizationsQuery = useListOrganizations();
@@ -59,6 +63,7 @@ function DashboardPage() {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") ?? "");
+    const slug = slugify(name);
 
     await runAsyncFormAction({
       setError,
@@ -66,11 +71,13 @@ function DashboardPage() {
         createOrganizationMutation.mutateAsync({
           data: {
             name,
-            slug: slugify(name),
+            slug,
           },
         }),
       onSuccess: async () => {
         setOpen(false);
+        toast.success(`Organization "${name}" created`);
+        navigate(`/orgs/${slug}`);
       },
     });
   };
@@ -117,10 +124,32 @@ function DashboardPage() {
         }
       />
 
-      {organizations.length === 0 ? (
+      {organizationsQuery.isLoading ? (
+        <div aria-busy="true" aria-label="Loading organizations" className="grid gap-6">
+          {[0, 1].map((index) => (
+            <Card key={index}>
+              <CardContent className="grid gap-4 pt-6">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-72" />
+                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  <Skeleton className="h-14" />
+                  <Skeleton className="h-14" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : organizationsQuery.isError ? (
+        <QueryError
+          error={organizationsQuery.error}
+          onRetry={() => void organizationsQuery.refetch()}
+          title="Could not load your organizations"
+        />
+      ) : organizations.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <EmptyState
+              icon={Building2}
               title="No organizations yet"
               description="Create your first organization, accept an invitation sent to your verified email, or ask the administrator whether secure SSO auto-join is enabled."
             />
@@ -164,15 +193,32 @@ function OrganizationCard({ organization }: { organization: OrganizationListItem
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
+        {overviewQuery.isLoading ? (
+          <div aria-busy="true" aria-label="Loading overview" className="grid gap-3">
+            <Skeleton className="h-5 w-64" />
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              <Skeleton className="h-14" />
+              <Skeleton className="h-14" />
+            </div>
+          </div>
+        ) : null}
+        {overviewQuery.isError ? (
+          <QueryError
+            error={overviewQuery.error}
+            onRetry={() => void overviewQuery.refetch()}
+            title="Could not load this organization's overview"
+          />
+        ) : null}
+
         {overview ? (
           <div className="flex flex-wrap gap-2 text-xs">
             <Badge variant="muted">
-              <Activity className="mr-1 size-3" />
+              <Activity />
               {overview.eventCount24h} events / 24h
             </Badge>
             <Badge variant="muted">{overview.openIssueCount} open</Badge>
-            <Badge variant={overview.regressedIssueCount > 0 ? "accent" : "muted"}>
-              <RotateCcw className="mr-1 size-3" />
+            <Badge variant={overview.regressedIssueCount > 0 ? "warning" : "muted"}>
+              <RotateCcw />
               {overview.regressedIssueCount} regressions
             </Badge>
           </div>
@@ -198,8 +244,16 @@ function OrganizationCard({ organization }: { organization: OrganizationListItem
           </div>
         ) : null}
 
-        {projects.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No projects yet.</p>
+        {!overview ? null : projects.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No projects yet.{" "}
+            <Link
+              className="font-medium text-primary-accent hover:underline"
+              to={`/orgs/${organization.slug}`}
+            >
+              Create one
+            </Link>
+          </p>
         ) : (
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
             {projects.map((project) => (

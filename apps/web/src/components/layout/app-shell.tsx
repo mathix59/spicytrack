@@ -54,7 +54,6 @@ function AppShell({
           orgTab={state.orgTab}
         />
         <AppShellProjectsNav
-          activeProjectTab={state.activeProjectTab}
           currentIssueId={state.currentIssueId}
           currentOrgSlug={currentOrgSlug}
           currentProjectSlug={state.currentProjectSlug}
@@ -74,7 +73,13 @@ function AppShell({
   );
 
   return (
-    <main className="min-h-screen bg-background text-foreground md:flex">
+    <div className="min-h-screen bg-background text-foreground md:flex">
+      <a
+        className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        href="#main-content"
+      >
+        Skip to content
+      </a>
       <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur md:hidden">
         <Button
           aria-label="Open navigation"
@@ -95,7 +100,7 @@ function AppShell({
 
       <Dialog onOpenChange={setMobileNavigationOpen} open={mobileNavigationOpen}>
         <DialogContent
-          className="top-0 left-0 h-dvh w-[min(88vw,20rem)] max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-y-0 border-l-0 p-0 md:hidden"
+          className="top-0 left-0 h-dvh max-h-none w-[min(88vw,20rem)] max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-y-0 border-l-0 p-0 md:hidden"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             mobileNavigationTriggerRef.current?.focus();
@@ -110,10 +115,14 @@ function AppShell({
         {navigation}
       </aside>
 
-      <section className="min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        {children}
-      </section>
-    </main>
+      <main
+        className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8"
+        id="main-content"
+        tabIndex={-1}
+      >
+        <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+      </main>
+    </div>
   );
 }
 
