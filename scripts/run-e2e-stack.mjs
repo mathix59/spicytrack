@@ -5,6 +5,7 @@ const compose = ["compose", "-p", "spicytrack-e2e", "-f", "docker-compose.e2e.ym
 const keepStack = process.env.E2E_KEEP_STACK === "true";
 const skipBuild = process.env.E2E_SKIP_BUILD === "true";
 const sdkMatrixOnly = process.env.E2E_SDK_MATRIX_ONLY === "true";
+const skipSdkMatrix = process.env.E2E_SKIP_SDK_MATRIX === "true" && !sdkMatrixOnly;
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -408,7 +409,7 @@ try {
     dockerCompose("logs", "--no-color");
   } else if (!runIngestLoad()) {
     dockerCompose("logs", "--no-color");
-  } else if (!(await runSdkMatrix())) {
+  } else if (!skipSdkMatrix && !(await runSdkMatrix())) {
     dockerCompose("logs", "--no-color");
     process.exitCode = 1;
   } else if (sdkMatrixOnly) {

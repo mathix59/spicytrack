@@ -1,5 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// E2E_BROWSERS (comma separated) restricts the browser projects; chromium always runs because
+// the other projects depend on it.
+const selectedBrowsers = (process.env.E2E_BROWSERS ?? "")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
+
 export default defineConfig({
   testDir: "./e2e/web",
   fullyParallel: false,
@@ -35,5 +42,8 @@ export default defineConfig({
       grep: /public authentication|primary authenticated|mobile navigation/,
       use: { ...devices["Desktop Safari"] },
     },
-  ],
+  ].filter(
+    (project) =>
+      selectedBrowsers.length === 0 || project.name === "chromium" || selectedBrowsers.includes(project.name),
+  ),
 });
