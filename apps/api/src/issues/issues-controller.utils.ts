@@ -1,10 +1,15 @@
 import { BadRequestException } from "@nestjs/common";
 
+import { isEventTrendPeriod } from "../common/event-trends.utils";
+import type { EventTrendPeriod } from "../common/event-trends.utils";
 import { assertString } from "../common/validators";
 
 type IssuePriority = "low" | "medium" | "high" | "critical";
 type IssueSortBy = "lastSeenAt" | "firstSeenAt" | "timesSeen";
 type IssueSortDir = "asc" | "desc";
+
+const MAX_ISSUE_TREND_IDS = 100;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function parseIssueListQuery(input: {
   page?: string;
@@ -41,6 +46,50 @@ function parseIssueEventPagination(input: { eventPage?: string; eventPageSize?: 
     eventPage: normalizePositiveInt(input.eventPage, 1, "eventPage"),
     eventPageSize: normalizePositiveInt(input.eventPageSize, 20, "eventPageSize", 100),
   };
+}
+
+function parseIssueTrendsQuery(input: { issueIds?: string; period?: string }) {
+  return {
+    issueIds: parseIssueTrendIds(input.issueIds),
+    period: parseIssueTrendPeriod(input.period),
+  };
+}
+
+function parseIssueTrendIds(value: string | undefined) {
+  const issueIds = [
+    ...new Set(
+      (value ?? "")
+        .split(",")
+        .map((entry) => entry.trim().toLowerCase())
+        .filter((entry) => entry.length > 0),
+    ),
+  ];
+
+  if (issueIds.length === 0) {
+    throw new BadRequestException("issueIds must contain at least one issue id");
+  }
+
+  if (issueIds.length > MAX_ISSUE_TREND_IDS) {
+    throw new BadRequestException(`issueIds must contain at most ${MAX_ISSUE_TREND_IDS} issue ids`);
+  }
+
+  if (issueIds.some((issueId) => !UUID_REGEX.test(issueId))) {
+    throw new BadRequestException("issueIds must be a comma-separated list of UUIDs");
+  }
+
+  return issueIds;
+}
+
+function parseIssueTrendPeriod(value: string | undefined): EventTrendPeriod {
+  if (value === undefined || value === "") {
+    return "24h";
+  }
+
+  if (isEventTrendPeriod(value)) {
+    return value;
+  }
+
+  throw new BadRequestException("period must be 24h or 14d");
 }
 
 function parseIssueStatusBody(body: Record<string, unknown>) {
@@ -230,5 +279,7 @@ export {
   parseIssuePriorityBody,
   parseIssueStatusBody,
   parseIssueExternalLinkBody,
+  parseIssueTrendsQuery,
   parseMergeIssueBody,
+  MAX_ISSUE_TREND_IDS,
 };

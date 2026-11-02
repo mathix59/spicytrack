@@ -482,9 +482,23 @@ async function ensureProject(ownerToken, orgSlug, project, teamBySlug) {
   };
 }
 
+const SEED_EVENT_SPREAD_MS = 13 * 24 * 60 * 60 * 1000;
+
+// Spread demo events over the last 14 days (oldest first) so trend charts have shape.
+function seedEventTimestamp(template, index) {
+  if (template.events <= 1) {
+    return new Date().toISOString();
+  }
+
+  const progress = index / (template.events - 1);
+  const offsetMs = Math.round(SEED_EVENT_SPREAD_MS * (1 - progress) ** 2);
+  return new Date(Date.now() - offsetMs).toISOString();
+}
+
 function buildEventBody(project, template, index) {
   const body = {
     event_id: cryptoRandomId(),
+    timestamp: seedEventTimestamp(template, index),
     level: template.level,
     platform: project.platform,
     transaction: template.transaction,

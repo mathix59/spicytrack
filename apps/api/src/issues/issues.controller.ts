@@ -20,6 +20,7 @@ import { ProjectContextGuard } from "../rbac/project-context.guard";
 import { RequirePermissions } from "../rbac/permissions.decorator";
 import { IssuesService } from "./issues.service";
 import { IssueTriageService } from "./issue-triage.service";
+import { IssueTrendsService } from "./issue-trends.service";
 import {
   parseBulkIssueAssigneeBody,
   parseBulkIssuePriorityBody,
@@ -31,6 +32,7 @@ import {
   parseIssuePriorityBody,
   parseIssueStatusBody,
   parseIssueExternalLinkBody,
+  parseIssueTrendsQuery,
   parseMergeIssueBody,
 } from "./issues-controller.utils";
 import {
@@ -48,6 +50,7 @@ import {
   IssueDto,
   IssueStatusUpdateBodyDto,
   IssueTriageDto,
+  IssueTrendsDto,
   IssueExternalLinkBodyDto,
   MergeIssueBodyDto,
   PaginatedIssuesDto,
@@ -63,6 +66,7 @@ export class IssuesController {
   constructor(
     private readonly issuesService: IssuesService,
     private readonly issueTriageService: IssueTriageService,
+    private readonly issueTrendsService: IssueTrendsService,
   ) {}
 
   @Get("issues")
@@ -113,6 +117,31 @@ export class IssuesController {
     });
 
     return this.issuesService.listByProject({
+      projectId: project.id,
+      ...query,
+    });
+  }
+
+  @Get("issues/trends")
+  @ApiOperation({ operationId: "getProjectIssueTrends" })
+  @ApiQuery({
+    name: "issueIds",
+    required: true,
+    type: String,
+    description: "Comma-separated issue ids (max 100)",
+  })
+  @ApiQuery({ name: "period", required: false, enum: ["24h", "14d"] })
+  @ApiOkResponse({ type: IssueTrendsDto })
+  @RequirePermissions("project.issues.read")
+  @UseGuards(PermissionGuard)
+  async trends(
+    @CurrentProject() project: ProjectRecord,
+    @Query("issueIds") issueIds?: string,
+    @Query("period") period?: string,
+  ) {
+    const query = parseIssueTrendsQuery({ issueIds, period });
+
+    return this.issueTrendsService.getTrends({
       projectId: project.id,
       ...query,
     });

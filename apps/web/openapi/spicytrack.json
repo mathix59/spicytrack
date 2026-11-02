@@ -2006,6 +2006,71 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/trends": {
+      "get": {
+        "operationId": "getProjectIssueTrends",
+        "parameters": [
+          {
+            "name": "issueIds",
+            "required": true,
+            "in": "query",
+            "description": "Comma-separated issue ids (max 100)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "24h",
+                "14d"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueTrendsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
     "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}": {
       "get": {
         "operationId": "getIssue",
@@ -6246,6 +6311,57 @@
           "pageSize"
         ]
       },
+      "IssueTrendItemDto": {
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string"
+          },
+          "counts": {
+            "description": "Event counts per bucket, oldest first",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "issueId",
+          "counts"
+        ]
+      },
+      "IssueTrendsDto": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "24h",
+              "14d"
+            ]
+          },
+          "bucketSeconds": {
+            "type": "number",
+            "description": "Bucket width in seconds"
+          },
+          "start": {
+            "type": "string",
+            "description": "ISO start of the first (oldest) bucket, UTC aligned"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueTrendItemDto"
+            }
+          }
+        },
+        "required": [
+          "period",
+          "bucketSeconds",
+          "start",
+          "items"
+        ]
+      },
       "ResolvedFrameDto": {
         "type": "object",
         "properties": {
@@ -7521,6 +7637,13 @@
           "lastEventAt": {
             "type": "string",
             "nullable": true
+          },
+          "eventTrend14d": {
+            "description": "Event counts for the last 14 UTC days, oldest first",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
           }
         },
         "required": [
@@ -7538,7 +7661,8 @@
           "eventCount24h",
           "newIssueCount24h",
           "resolvedIssueCount24h",
-          "activeAlertCount"
+          "activeAlertCount",
+          "eventTrend14d"
         ]
       },
       "OrganizationOverviewDto": {
@@ -7571,6 +7695,13 @@
           "resolvedIssueCount24h": {
             "type": "number"
           },
+          "eventTrend14d": {
+            "description": "Event counts for the last 14 UTC days, oldest first",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
           "topRegressions": {
             "type": "array",
             "items": {
@@ -7594,6 +7725,7 @@
           "eventCount24h",
           "newIssueCount24h",
           "resolvedIssueCount24h",
+          "eventTrend14d",
           "topRegressions",
           "projects"
         ]

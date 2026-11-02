@@ -1,6 +1,13 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 
+import {
+  buildZeroFilledCounts,
+  eventTrendBucketIndexSql,
+  resolveEventTrendWindow,
+  sumEventTrends,
+} from "../common/event-trends.utils";
+import type { EventTrendBucketRow, EventTrendWindow } from "../common/event-trends.utils";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import {
@@ -35,6 +42,7 @@ type OrganizationOverviewProject = {
   activeAlertCount: number;
   lastIssueSeenAt: string | null;
   lastEventAt: string | Date | null;
+  eventTrend14d: number[];
 };
 
 type OrganizationOverview = {
@@ -47,6 +55,7 @@ type OrganizationOverview = {
   eventCount24h: number;
   newIssueCount24h: number;
   resolvedIssueCount24h: number;
+  eventTrend14d: number[];
   topRegressions: Array<{
     id: string;
     projectSlug: string;
@@ -80,6 +89,7 @@ export class OrganizationsOverviewService {
       projects,
       accessibleProjects,
       projectStats.topRegressionRows,
+      projectStats.trendWindow,
     );
   }
 
@@ -116,6 +126,7 @@ export class OrganizationsOverviewService {
       eventCount24h: 0,
       newIssueCount24h: 0,
       resolvedIssueCount24h: 0,
+      eventTrend14d: buildZeroFilledCounts(resolveEventTrendWindow("14d"), []),
       topRegressions: [],
       projects: [],
     };
@@ -123,6 +134,7 @@ export class OrganizationsOverviewService {
 
   private async loadProjectStats(projects: OverviewProject[]) {
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const trendWindow = resolveEventTrendWindow("14d");
     const projectIds = projects.map((project) => project.id);
     const [
       keyRows,
@@ -134,6 +146,7 @@ export class OrganizationsOverviewService {
       resolvedIssueRows,
       alertRows,
       topRegressionRows,
+      eventTrendRows,
     ] = await Promise.all([
       this.db
         .select({
@@ -228,6 +241,21 @@ export class OrganizationsOverviewService {
         )
         .orderBy(desc(issues.timesSeen), desc(issues.lastSeenAt))
         .limit(5),
+      this.db
+        .select({
+          projectId: events.projectId,
+          bucket: eventTrendBucketIndexSql(events.timestamp, trendWindow),
+          count: sql<number>`count(*)::int`,
+        })
+        .from(events)
+        .where(
+          and(
+            inArray(events.projectId, projectIds),
+            gte(events.timestamp, trendWindow.start),
+            lt(events.timestamp, trendWindow.end),
+          ),
+        )
+        .groupBy(events.projectId, sql`2`),
     ]);
 
     return {
@@ -265,7 +293,28 @@ export class OrganizationsOverviewService {
         alertRows.map((row) => [row.projectId, row.activeAlertCount]),
       ),
       topRegressionRows,
+      trendWindow,
+      eventTrendByProjectId: this.groupEventTrendRows(trendWindow, eventTrendRows),
     };
+  }
+
+  private groupEventTrendRows(
+    trendWindow: EventTrendWindow,
+    rows: Array<EventTrendBucketRow & { projectId: string }>,
+  ) {
+    const rowsByProjectId = new Map<string, EventTrendBucketRow[]>();
+    for (const row of rows) {
+      const projectRows = rowsByProjectId.get(row.projectId) ?? [];
+      projectRows.push(row);
+      rowsByProjectId.set(row.projectId, projectRows);
+    }
+
+    return new Map(
+      [...rowsByProjectId].map(([projectId, projectRows]) => [
+        projectId,
+        buildZeroFilledCounts(trendWindow, projectRows),
+      ]),
+    );
   }
 
   private buildProjectOverview(
@@ -295,6 +344,9 @@ export class OrganizationsOverviewService {
         activeAlertCount: projectStats.activeAlertCountByProjectId.get(project.id) ?? 0,
         lastIssueSeenAt: issueStats?.lastIssueSeenAt ?? null,
         lastEventAt: eventStats?.lastEventAt ?? project.lastEventAt ?? null,
+        eventTrend14d:
+          projectStats.eventTrendByProjectId.get(project.id) ??
+          buildZeroFilledCounts(projectStats.trendWindow, []),
       };
     });
   }
@@ -310,6 +362,7 @@ export class OrganizationsOverviewService {
       timesSeen: number;
       lastSeenAt: Date;
     }>,
+    trendWindow: EventTrendWindow,
   ): OrganizationOverview {
     return {
       ...counts,
@@ -330,6 +383,10 @@ export class OrganizationsOverviewService {
       resolvedIssueCount24h: projects.reduce(
         (total, project) => total + project.resolvedIssueCount24h,
         0,
+      ),
+      eventTrend14d: sumEventTrends(
+        trendWindow.bucketCount,
+        projects.map((project) => project.eventTrend14d),
       ),
       topRegressions: topRegressionRows.flatMap((issue) => {
         const project = accessibleProjects.find((candidate) => candidate.id === issue.projectId);

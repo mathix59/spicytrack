@@ -541,6 +541,8 @@ export const events = pgTable(
   },
   (table) => ({
     eventExternalIdx: uniqueIndex("events_project_event_id_idx").on(table.projectId, table.eventId),
+    issueTimestampIdx: index("events_issue_timestamp_idx").on(table.issueId, table.timestamp),
+    projectTimestampIdx: index("events_project_timestamp_idx").on(table.projectId, table.timestamp),
   }),
 );
 

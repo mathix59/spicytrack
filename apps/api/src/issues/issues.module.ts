@@ -9,6 +9,7 @@ import { IssuesController } from "./issues.controller";
 import { IssuesHistoryService } from "./issues-history.service";
 import { IssuesService } from "./issues.service";
 import { IssueTriageService } from "./issue-triage.service";
+import { IssueTrendsService } from "./issue-trends.service";
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { IssueTriageService } from "./issue-triage.service";
     forwardRef(() => AutofixModule),
   ],
   controllers: [IssuesController],
-  providers: [IssuesService, IssuesHistoryService, IssueTriageService],
+  providers: [IssuesService, IssuesHistoryService, IssueTriageService, IssueTrendsService],
   exports: [IssuesService],
 })
 export class IssuesModule {}

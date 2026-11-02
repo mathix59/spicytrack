@@ -353,6 +353,29 @@ export interface PaginatedIssuesDto {
   pageSize: number;
 }
 
+export interface IssueTrendItemDto {
+  issueId: string;
+  /** Event counts per bucket, oldest first */
+  counts: number[];
+}
+
+export type IssueTrendsDtoPeriod = typeof IssueTrendsDtoPeriod[keyof typeof IssueTrendsDtoPeriod];
+
+
+export const IssueTrendsDtoPeriod = {
+  '24h': '24h',
+  '14d': '14d',
+} as const;
+
+export interface IssueTrendsDto {
+  period: IssueTrendsDtoPeriod;
+  /** Bucket width in seconds */
+  bucketSeconds: number;
+  /** ISO start of the first (oldest) bucket, UTC aligned */
+  start: string;
+  items: IssueTrendItemDto[];
+}
+
 export type ResolvedFrameDtoResolution = typeof ResolvedFrameDtoResolution[keyof typeof ResolvedFrameDtoResolution];
 
 
@@ -1042,6 +1065,8 @@ export interface OrganizationOverviewProjectDto {
   lastIssueSeenAt?: string | null;
   /** @nullable */
   lastEventAt?: string | null;
+  /** Event counts for the last 14 UTC days, oldest first */
+  eventTrend14d: number[];
 }
 
 export interface OrganizationOverviewDto {
@@ -1054,6 +1079,8 @@ export interface OrganizationOverviewDto {
   eventCount24h: number;
   newIssueCount24h: number;
   resolvedIssueCount24h: number;
+  /** Event counts for the last 14 UTC days, oldest first */
+  eventTrend14d: number[];
   topRegressions: OrganizationOverviewRegressionDto[];
   projects: OrganizationOverviewProjectDto[];
 }
@@ -1180,47 +1207,59 @@ export interface AddTeamMemberBodyDto {
 }
 
 export type InstanceAdminControllerUsersParams = {
-search: string;
-page: string;
-pageSize: string;
+  search: string;
+  page: string;
+  pageSize: string;
 };
 
 export type UploadReleaseArtifactParams = {
-/**
- * Public build path to preserve when multipart strips directory names
- */
-artifactName?: string;
+  /** Public build path to preserve when multipart strips directory names */
+  artifactName?: string;
 };
 
 export type UploadReleaseArtifactBody = {
-  file?: Blob;
+  file?: Blob | File;
 };
 
 export type ListIssuesParams = {
-page?: number;
-pageSize?: number;
-q?: string;
-level?: string;
-priority?: string;
-status?: string;
-assignedUserId?: string;
-isRegressed?: boolean;
-environment?: string;
-release?: string;
-sortBy?: string;
-sortDir?: string;
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  level?: string;
+  priority?: string;
+  status?: string;
+  assignedUserId?: string;
+  isRegressed?: boolean;
+  environment?: string;
+  release?: string;
+  sortBy?: string;
+  sortDir?: string;
 };
 
+export type GetProjectIssueTrendsParams = {
+  /** Comma-separated issue ids (max 100) */
+  issueIds: string;
+  period?: GetProjectIssueTrendsPeriod;
+};
+
+export type GetProjectIssueTrendsPeriod = typeof GetProjectIssueTrendsPeriod[keyof typeof GetProjectIssueTrendsPeriod];
+
+
+export const GetProjectIssueTrendsPeriod = {
+  '24h': '24h',
+  '14d': '14d',
+} as const;
+
 export type GetIssueParams = {
-eventPage?: number;
-eventPageSize?: number;
+  eventPage?: number;
+  eventPageSize?: number;
 };
 
 export type GetOrganizationJobQueueOverviewParams = {
-limit?: string;
-projectId?: string;
-type?: string;
-status?: string;
+  limit?: string;
+  projectId?: string;
+  type?: string;
+  status?: string;
 };
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -1382,11 +1421,25 @@ export const createProjectAlert = async (orgSlug: string,
     projectSlug: string,
     createAlertRuleBodyDto: CreateAlertRuleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createProjectAlertResponse> => {
 
-  return orvalFetch<createProjectAlertResponse>(getCreateProjectAlertUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createProjectAlertResponse>(getCreateProjectAlertUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createAlertRuleBodyDto)
   }
 );}
@@ -1395,11 +1448,13 @@ export const createProjectAlert = async (orgSlug: string,
 
 
 
-export const getCreateProjectAlertMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectAlert>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createProjectAlert>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>}, TContext> => {
+export const getCreateProjectAlertMutationKey = () => ['createProjectAlert'] as const;
 
-const mutationKey = ['createProjectAlert'];
+export const getCreateProjectAlertMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectAlert>>, TError,CreateProjectAlertMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProjectAlert>>, TError,CreateProjectAlertMutationVariables, TContext> => {
+
+const mutationKey = getCreateProjectAlertMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1409,7 +1464,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectAlert>>, {orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectAlert>>, CreateProjectAlertMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  createProjectAlert(orgSlug,projectSlug,data,requestOptions)
@@ -1425,13 +1480,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateProjectAlertMutationResult = NonNullable<Awaited<ReturnType<typeof createProjectAlert>>>
     export type CreateProjectAlertMutationBody = BodyType<CreateAlertRuleBodyDto>
     export type CreateProjectAlertMutationError = ErrorType<unknown>
+    export type CreateProjectAlertMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>}
 
     export const useCreateProjectAlert = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectAlert>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectAlert>>, TError,CreateProjectAlertMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createProjectAlert>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<CreateAlertRuleBodyDto>},
+        CreateProjectAlertMutationVariables,
         TContext
       > => {
       return useMutation(getCreateProjectAlertMutationOptions(options), queryClient);
@@ -1464,11 +1520,25 @@ export const updateProjectAlert = async (orgSlug: string,
     alertRuleId: string,
     updateAlertRuleBodyDto: UpdateAlertRuleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateProjectAlertResponse> => {
 
-  return orvalFetch<updateProjectAlertResponse>(getUpdateProjectAlertUrl(orgSlug,projectSlug,alertRuleId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateProjectAlertResponse>(getUpdateProjectAlertUrl(orgSlug,projectSlug,alertRuleId),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateAlertRuleBodyDto)
   }
 );}
@@ -1477,11 +1547,13 @@ export const updateProjectAlert = async (orgSlug: string,
 
 
 
-export const getUpdateProjectAlertMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>}, TContext> => {
+export const getUpdateProjectAlertMutationKey = () => ['updateProjectAlert'] as const;
 
-const mutationKey = ['updateProjectAlert'];
+export const getUpdateProjectAlertMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlert>>, TError,UpdateProjectAlertMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlert>>, TError,UpdateProjectAlertMutationVariables, TContext> => {
+
+const mutationKey = getUpdateProjectAlertMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1491,7 +1563,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProjectAlert>>, {orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProjectAlert>>, UpdateProjectAlertMutationVariables> = (props) => {
           const {orgSlug,projectSlug,alertRuleId,data} = props ?? {};
 
           return  updateProjectAlert(orgSlug,projectSlug,alertRuleId,data,requestOptions)
@@ -1507,13 +1579,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateProjectAlertMutationResult = NonNullable<Awaited<ReturnType<typeof updateProjectAlert>>>
     export type UpdateProjectAlertMutationBody = BodyType<UpdateAlertRuleBodyDto>
     export type UpdateProjectAlertMutationError = ErrorType<unknown>
+    export type UpdateProjectAlertMutationVariables = {orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>}
 
     export const useUpdateProjectAlert = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlert>>, TError,UpdateProjectAlertMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateProjectAlert>>,
         TError,
-        {orgSlug: string;projectSlug: string;alertRuleId: string;data: BodyType<UpdateAlertRuleBodyDto>},
+        UpdateProjectAlertMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateProjectAlertMutationOptions(options), queryClient);
@@ -1558,11 +1631,13 @@ export const deleteProjectAlert = async (orgSlug: string,
 
 
 
-export const getDeleteProjectAlertMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext> => {
+export const getDeleteProjectAlertMutationKey = () => ['deleteProjectAlert'] as const;
 
-const mutationKey = ['deleteProjectAlert'];
+export const getDeleteProjectAlertMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectAlert>>, TError,DeleteProjectAlertMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteProjectAlert>>, TError,DeleteProjectAlertMutationVariables, TContext> => {
+
+const mutationKey = getDeleteProjectAlertMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1572,7 +1647,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProjectAlert>>, {orgSlug: string;projectSlug: string;alertRuleId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProjectAlert>>, DeleteProjectAlertMutationVariables> = (props) => {
           const {orgSlug,projectSlug,alertRuleId} = props ?? {};
 
           return  deleteProjectAlert(orgSlug,projectSlug,alertRuleId,requestOptions)
@@ -1588,13 +1663,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteProjectAlertMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProjectAlert>>>
 
     export type DeleteProjectAlertMutationError = ErrorType<unknown>
+    export type DeleteProjectAlertMutationVariables = {orgSlug: string;projectSlug: string;alertRuleId: string}
 
     export const useDeleteProjectAlert = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectAlert>>, TError,DeleteProjectAlertMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteProjectAlert>>,
         TError,
-        {orgSlug: string;projectSlug: string;alertRuleId: string},
+        DeleteProjectAlertMutationVariables,
         TContext
       > => {
       return useMutation(getDeleteProjectAlertMutationOptions(options), queryClient);
@@ -1639,11 +1715,13 @@ export const testProjectAlert = async (orgSlug: string,
 
 
 
-export const getTestProjectAlertMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof testProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext> => {
+export const getTestProjectAlertMutationKey = () => ['testProjectAlert'] as const;
 
-const mutationKey = ['testProjectAlert'];
+export const getTestProjectAlertMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testProjectAlert>>, TError,TestProjectAlertMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testProjectAlert>>, TError,TestProjectAlertMutationVariables, TContext> => {
+
+const mutationKey = getTestProjectAlertMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1653,7 +1731,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testProjectAlert>>, {orgSlug: string;projectSlug: string;alertRuleId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testProjectAlert>>, TestProjectAlertMutationVariables> = (props) => {
           const {orgSlug,projectSlug,alertRuleId} = props ?? {};
 
           return  testProjectAlert(orgSlug,projectSlug,alertRuleId,requestOptions)
@@ -1669,13 +1747,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type TestProjectAlertMutationResult = NonNullable<Awaited<ReturnType<typeof testProjectAlert>>>
 
     export type TestProjectAlertMutationError = ErrorType<unknown>
+    export type TestProjectAlertMutationVariables = {orgSlug: string;projectSlug: string;alertRuleId: string}
 
     export const useTestProjectAlert = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testProjectAlert>>, TError,{orgSlug: string;projectSlug: string;alertRuleId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testProjectAlert>>, TError,TestProjectAlertMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof testProjectAlert>>,
         TError,
-        {orgSlug: string;projectSlug: string;alertRuleId: string},
+        TestProjectAlertMutationVariables,
         TContext
       > => {
       return useMutation(getTestProjectAlertMutationOptions(options), queryClient);
@@ -1926,11 +2005,25 @@ export const getCreateProjectUrl = (orgSlug: string,) => {
 export const createProject = async (orgSlug: string,
     createProjectBodyDto: CreateProjectBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createProjectResponse> => {
 
-  return orvalFetch<createProjectResponse>(getCreateProjectUrl(orgSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createProjectResponse>(getCreateProjectUrl(orgSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createProjectBodyDto)
   }
 );}
@@ -1939,11 +2032,13 @@ export const createProject = async (orgSlug: string,
 
 
 
-export const getCreateProjectMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProject>>, TError,{orgSlug: string;data: BodyType<CreateProjectBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createProject>>, TError,{orgSlug: string;data: BodyType<CreateProjectBodyDto>}, TContext> => {
+export const getCreateProjectMutationKey = () => ['createProject'] as const;
 
-const mutationKey = ['createProject'];
+export const getCreateProjectMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProject>>, TError,CreateProjectMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProject>>, TError,CreateProjectMutationVariables, TContext> => {
+
+const mutationKey = getCreateProjectMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1953,7 +2048,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProject>>, {orgSlug: string;data: BodyType<CreateProjectBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProject>>, CreateProjectMutationVariables> = (props) => {
           const {orgSlug,data} = props ?? {};
 
           return  createProject(orgSlug,data,requestOptions)
@@ -1969,13 +2064,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateProjectMutationResult = NonNullable<Awaited<ReturnType<typeof createProject>>>
     export type CreateProjectMutationBody = BodyType<CreateProjectBodyDto>
     export type CreateProjectMutationError = ErrorType<unknown>
+    export type CreateProjectMutationVariables = {orgSlug: string;data: BodyType<CreateProjectBodyDto>}
 
     export const useCreateProject = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProject>>, TError,{orgSlug: string;data: BodyType<CreateProjectBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProject>>, TError,CreateProjectMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createProject>>,
         TError,
-        {orgSlug: string;data: BodyType<CreateProjectBodyDto>},
+        CreateProjectMutationVariables,
         TContext
       > => {
       return useMutation(getCreateProjectMutationOptions(options), queryClient);
@@ -2121,11 +2217,25 @@ export const updateProject = async (orgSlug: string,
     projectSlug: string,
     updateProjectBodyDto: UpdateProjectBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateProjectResponse> => {
 
-  return orvalFetch<updateProjectResponse>(getUpdateProjectUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateProjectResponse>(getUpdateProjectUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateProjectBodyDto)
   }
 );}
@@ -2134,11 +2244,13 @@ export const updateProject = async (orgSlug: string,
 
 
 
-export const getUpdateProjectMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProject>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateProject>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>}, TContext> => {
+export const getUpdateProjectMutationKey = () => ['updateProject'] as const;
 
-const mutationKey = ['updateProject'];
+export const getUpdateProjectMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProject>>, TError,UpdateProjectMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateProject>>, TError,UpdateProjectMutationVariables, TContext> => {
+
+const mutationKey = getUpdateProjectMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2148,7 +2260,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProject>>, {orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProject>>, UpdateProjectMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  updateProject(orgSlug,projectSlug,data,requestOptions)
@@ -2164,13 +2276,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateProjectMutationResult = NonNullable<Awaited<ReturnType<typeof updateProject>>>
     export type UpdateProjectMutationBody = BodyType<UpdateProjectBodyDto>
     export type UpdateProjectMutationError = ErrorType<unknown>
+    export type UpdateProjectMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>}
 
     export const useUpdateProject = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProject>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProject>>, TError,UpdateProjectMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateProject>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<UpdateProjectBodyDto>},
+        UpdateProjectMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateProjectMutationOptions(options), queryClient);
@@ -2316,11 +2429,25 @@ export const createProjectKey = async (orgSlug: string,
     projectSlug: string,
     createProjectKeyBodyDto: CreateProjectKeyBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createProjectKeyResponse> => {
 
-  return orvalFetch<createProjectKeyResponse>(getCreateProjectKeyUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createProjectKeyResponse>(getCreateProjectKeyUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createProjectKeyBodyDto)
   }
 );}
@@ -2329,11 +2456,13 @@ export const createProjectKey = async (orgSlug: string,
 
 
 
-export const getCreateProjectKeyMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectKey>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createProjectKey>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>}, TContext> => {
+export const getCreateProjectKeyMutationKey = () => ['createProjectKey'] as const;
 
-const mutationKey = ['createProjectKey'];
+export const getCreateProjectKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectKey>>, TError,CreateProjectKeyMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProjectKey>>, TError,CreateProjectKeyMutationVariables, TContext> => {
+
+const mutationKey = getCreateProjectKeyMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2343,7 +2472,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectKey>>, {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectKey>>, CreateProjectKeyMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  createProjectKey(orgSlug,projectSlug,data,requestOptions)
@@ -2359,13 +2488,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateProjectKeyMutationResult = NonNullable<Awaited<ReturnType<typeof createProjectKey>>>
     export type CreateProjectKeyMutationBody = BodyType<CreateProjectKeyBodyDto>
     export type CreateProjectKeyMutationError = ErrorType<unknown>
+    export type CreateProjectKeyMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>}
 
     export const useCreateProjectKey = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectKey>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectKey>>, TError,CreateProjectKeyMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createProjectKey>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectKeyBodyDto>},
+        CreateProjectKeyMutationVariables,
         TContext
       > => {
       return useMutation(getCreateProjectKeyMutationOptions(options), queryClient);
@@ -2511,11 +2641,25 @@ export const createProjectSavedSearch = async (orgSlug: string,
     projectSlug: string,
     createProjectSavedSearchBodyDto: CreateProjectSavedSearchBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createProjectSavedSearchResponse> => {
 
-  return orvalFetch<createProjectSavedSearchResponse>(getCreateProjectSavedSearchUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createProjectSavedSearchResponse>(getCreateProjectSavedSearchUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createProjectSavedSearchBodyDto)
   }
 );}
@@ -2524,11 +2668,13 @@ export const createProjectSavedSearch = async (orgSlug: string,
 
 
 
-export const getCreateProjectSavedSearchMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>}, TContext> => {
+export const getCreateProjectSavedSearchMutationKey = () => ['createProjectSavedSearch'] as const;
 
-const mutationKey = ['createProjectSavedSearch'];
+export const getCreateProjectSavedSearchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectSavedSearch>>, TError,CreateProjectSavedSearchMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProjectSavedSearch>>, TError,CreateProjectSavedSearchMutationVariables, TContext> => {
+
+const mutationKey = getCreateProjectSavedSearchMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2538,7 +2684,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectSavedSearch>>, {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectSavedSearch>>, CreateProjectSavedSearchMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  createProjectSavedSearch(orgSlug,projectSlug,data,requestOptions)
@@ -2554,13 +2700,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateProjectSavedSearchMutationResult = NonNullable<Awaited<ReturnType<typeof createProjectSavedSearch>>>
     export type CreateProjectSavedSearchMutationBody = BodyType<CreateProjectSavedSearchBodyDto>
     export type CreateProjectSavedSearchMutationError = ErrorType<unknown>
+    export type CreateProjectSavedSearchMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>}
 
     export const useCreateProjectSavedSearch = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectSavedSearch>>, TError,CreateProjectSavedSearchMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createProjectSavedSearch>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<CreateProjectSavedSearchBodyDto>},
+        CreateProjectSavedSearchMutationVariables,
         TContext
       > => {
       return useMutation(getCreateProjectSavedSearchMutationOptions(options), queryClient);
@@ -2605,11 +2752,13 @@ export const deleteProjectSavedSearch = async (orgSlug: string,
 
 
 
-export const getDeleteProjectSavedSearchMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;savedSearchId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;savedSearchId: string}, TContext> => {
+export const getDeleteProjectSavedSearchMutationKey = () => ['deleteProjectSavedSearch'] as const;
 
-const mutationKey = ['deleteProjectSavedSearch'];
+export const getDeleteProjectSavedSearchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, TError,DeleteProjectSavedSearchMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, TError,DeleteProjectSavedSearchMutationVariables, TContext> => {
+
+const mutationKey = getDeleteProjectSavedSearchMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2619,7 +2768,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, {orgSlug: string;projectSlug: string;savedSearchId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, DeleteProjectSavedSearchMutationVariables> = (props) => {
           const {orgSlug,projectSlug,savedSearchId} = props ?? {};
 
           return  deleteProjectSavedSearch(orgSlug,projectSlug,savedSearchId,requestOptions)
@@ -2635,13 +2784,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteProjectSavedSearchMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProjectSavedSearch>>>
 
     export type DeleteProjectSavedSearchMutationError = ErrorType<unknown>
+    export type DeleteProjectSavedSearchMutationVariables = {orgSlug: string;projectSlug: string;savedSearchId: string}
 
     export const useDeleteProjectSavedSearch = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, TError,{orgSlug: string;projectSlug: string;savedSearchId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectSavedSearch>>, TError,DeleteProjectSavedSearchMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteProjectSavedSearch>>,
         TError,
-        {orgSlug: string;projectSlug: string;savedSearchId: string},
+        DeleteProjectSavedSearchMutationVariables,
         TContext
       > => {
       return useMutation(getDeleteProjectSavedSearchMutationOptions(options), queryClient);
@@ -3039,11 +3189,13 @@ export const upsertProjectRelease = async (orgSlug: string,
 
 
 
-export const getUpsertProjectReleaseMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string}, TContext> => {
+export const getUpsertProjectReleaseMutationKey = () => ['upsertProjectRelease'] as const;
 
-const mutationKey = ['upsertProjectRelease'];
+export const getUpsertProjectReleaseMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,UpsertProjectReleaseMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,UpsertProjectReleaseMutationVariables, TContext> => {
+
+const mutationKey = getUpsertProjectReleaseMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -3053,7 +3205,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertProjectRelease>>, {orgSlug: string;projectSlug: string;releaseVersion: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertProjectRelease>>, UpsertProjectReleaseMutationVariables> = (props) => {
           const {orgSlug,projectSlug,releaseVersion} = props ?? {};
 
           return  upsertProjectRelease(orgSlug,projectSlug,releaseVersion,requestOptions)
@@ -3069,13 +3221,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpsertProjectReleaseMutationResult = NonNullable<Awaited<ReturnType<typeof upsertProjectRelease>>>
 
     export type UpsertProjectReleaseMutationError = ErrorType<unknown>
+    export type UpsertProjectReleaseMutationVariables = {orgSlug: string;projectSlug: string;releaseVersion: string}
 
     export const useUpsertProjectRelease = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,UpsertProjectReleaseMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof upsertProjectRelease>>,
         TError,
-        {orgSlug: string;projectSlug: string;releaseVersion: string},
+        UpsertProjectReleaseMutationVariables,
         TContext
       > => {
       return useMutation(getUpsertProjectReleaseMutationOptions(options), queryClient);
@@ -3108,11 +3261,25 @@ export const updateProjectKey = async (orgSlug: string,
     keyId: string,
     updateProjectKeyBodyDto: UpdateProjectKeyBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateProjectKeyResponse> => {
 
-  return orvalFetch<updateProjectKeyResponse>(getUpdateProjectKeyUrl(orgSlug,projectSlug,keyId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateProjectKeyResponse>(getUpdateProjectKeyUrl(orgSlug,projectSlug,keyId),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateProjectKeyBodyDto)
   }
 );}
@@ -3121,11 +3288,13 @@ export const updateProjectKey = async (orgSlug: string,
 
 
 
-export const getUpdateProjectKeyMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>}, TContext> => {
+export const getUpdateProjectKeyMutationKey = () => ['updateProjectKey'] as const;
 
-const mutationKey = ['updateProjectKey'];
+export const getUpdateProjectKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectKey>>, TError,UpdateProjectKeyMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateProjectKey>>, TError,UpdateProjectKeyMutationVariables, TContext> => {
+
+const mutationKey = getUpdateProjectKeyMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -3135,7 +3304,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProjectKey>>, {orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProjectKey>>, UpdateProjectKeyMutationVariables> = (props) => {
           const {orgSlug,projectSlug,keyId,data} = props ?? {};
 
           return  updateProjectKey(orgSlug,projectSlug,keyId,data,requestOptions)
@@ -3151,13 +3320,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateProjectKeyMutationResult = NonNullable<Awaited<ReturnType<typeof updateProjectKey>>>
     export type UpdateProjectKeyMutationBody = BodyType<UpdateProjectKeyBodyDto>
     export type UpdateProjectKeyMutationError = ErrorType<unknown>
+    export type UpdateProjectKeyMutationVariables = {orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>}
 
     export const useUpdateProjectKey = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectKey>>, TError,UpdateProjectKeyMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateProjectKey>>,
         TError,
-        {orgSlug: string;projectSlug: string;keyId: string;data: BodyType<UpdateProjectKeyBodyDto>},
+        UpdateProjectKeyMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateProjectKeyMutationOptions(options), queryClient);
@@ -3202,11 +3372,13 @@ export const rotateProjectKey = async (orgSlug: string,
 
 
 
-export const getRotateProjectKeyMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof rotateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string}, TContext> => {
+export const getRotateProjectKeyMutationKey = () => ['rotateProjectKey'] as const;
 
-const mutationKey = ['rotateProjectKey'];
+export const getRotateProjectKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateProjectKey>>, TError,RotateProjectKeyMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rotateProjectKey>>, TError,RotateProjectKeyMutationVariables, TContext> => {
+
+const mutationKey = getRotateProjectKeyMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -3216,7 +3388,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rotateProjectKey>>, {orgSlug: string;projectSlug: string;keyId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rotateProjectKey>>, RotateProjectKeyMutationVariables> = (props) => {
           const {orgSlug,projectSlug,keyId} = props ?? {};
 
           return  rotateProjectKey(orgSlug,projectSlug,keyId,requestOptions)
@@ -3232,13 +3404,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RotateProjectKeyMutationResult = NonNullable<Awaited<ReturnType<typeof rotateProjectKey>>>
 
     export type RotateProjectKeyMutationError = ErrorType<unknown>
+    export type RotateProjectKeyMutationVariables = {orgSlug: string;projectSlug: string;keyId: string}
 
     export const useRotateProjectKey = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateProjectKey>>, TError,{orgSlug: string;projectSlug: string;keyId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateProjectKey>>, TError,RotateProjectKeyMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof rotateProjectKey>>,
         TError,
-        {orgSlug: string;projectSlug: string;keyId: string},
+        RotateProjectKeyMutationVariables,
         TContext
       > => {
       return useMutation(getRotateProjectKeyMutationOptions(options), queryClient);
@@ -3501,11 +3674,13 @@ export const instanceAdminControllerUpdate = async ( options?: Parameters<typeof
 
 
 
+export const getInstanceAdminControllerUpdateMutationKey = () => ['instanceAdminControllerUpdate'] as const;
+
 export const getInstanceAdminControllerUpdateMutationOptions = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdate>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdate>>, TError,void, TContext> => {
 
-const mutationKey = ['instanceAdminControllerUpdate'];
+const mutationKey = getInstanceAdminControllerUpdateMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -3531,6 +3706,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type InstanceAdminControllerUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerUpdate>>>
 
     export type InstanceAdminControllerUpdateMutationError = ErrorType<unknown>
+
 
     export const useInstanceAdminControllerUpdate = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdate>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
@@ -3578,11 +3754,13 @@ export const instanceAdminControllerTestSmtp = async ( options?: Parameters<type
 
 
 
+export const getInstanceAdminControllerTestSmtpMutationKey = () => ['instanceAdminControllerTestSmtp'] as const;
+
 export const getInstanceAdminControllerTestSmtpMutationOptions = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>, TError,void, TContext> => {
 
-const mutationKey = ['instanceAdminControllerTestSmtp'];
+const mutationKey = getInstanceAdminControllerTestSmtpMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -3608,6 +3786,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type InstanceAdminControllerTestSmtpMutationResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>>
 
     export type InstanceAdminControllerTestSmtpMutationError = ErrorType<unknown>
+
 
     export const useInstanceAdminControllerTestSmtp = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerTestSmtp>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
@@ -3876,11 +4055,13 @@ export const instanceAdminControllerDeleteUser = async (userId: string, options?
 
 
 
-export const getInstanceAdminControllerDeleteUserMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, TError,{userId: string}, TContext> => {
+export const getInstanceAdminControllerDeleteUserMutationKey = () => ['instanceAdminControllerDeleteUser'] as const;
 
-const mutationKey = ['instanceAdminControllerDeleteUser'];
+export const getInstanceAdminControllerDeleteUserMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, TError,InstanceAdminControllerDeleteUserMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, TError,InstanceAdminControllerDeleteUserMutationVariables, TContext> => {
+
+const mutationKey = getInstanceAdminControllerDeleteUserMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -3890,7 +4071,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, {userId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, InstanceAdminControllerDeleteUserMutationVariables> = (props) => {
           const {userId} = props ?? {};
 
           return  instanceAdminControllerDeleteUser(userId,requestOptions)
@@ -3906,13 +4087,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type InstanceAdminControllerDeleteUserMutationResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>>
 
     export type InstanceAdminControllerDeleteUserMutationError = ErrorType<unknown>
+    export type InstanceAdminControllerDeleteUserMutationVariables = {userId: string}
 
     export const useInstanceAdminControllerDeleteUser = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>, TError,InstanceAdminControllerDeleteUserMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof instanceAdminControllerDeleteUser>>,
         TError,
-        {userId: string},
+        InstanceAdminControllerDeleteUserMutationVariables,
         TContext
       > => {
       return useMutation(getInstanceAdminControllerDeleteUserMutationOptions(options), queryClient);
@@ -3953,11 +4135,13 @@ export const instanceAdminControllerUpdateUser = async (userId: string, options?
 
 
 
-export const getInstanceAdminControllerUpdateUserMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, TError,{userId: string}, TContext> => {
+export const getInstanceAdminControllerUpdateUserMutationKey = () => ['instanceAdminControllerUpdateUser'] as const;
 
-const mutationKey = ['instanceAdminControllerUpdateUser'];
+export const getInstanceAdminControllerUpdateUserMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, TError,InstanceAdminControllerUpdateUserMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, TError,InstanceAdminControllerUpdateUserMutationVariables, TContext> => {
+
+const mutationKey = getInstanceAdminControllerUpdateUserMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -3967,7 +4151,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, {userId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, InstanceAdminControllerUpdateUserMutationVariables> = (props) => {
           const {userId} = props ?? {};
 
           return  instanceAdminControllerUpdateUser(userId,requestOptions)
@@ -3983,13 +4167,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type InstanceAdminControllerUpdateUserMutationResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>>
 
     export type InstanceAdminControllerUpdateUserMutationError = ErrorType<unknown>
+    export type InstanceAdminControllerUpdateUserMutationVariables = {userId: string}
 
     export const useInstanceAdminControllerUpdateUser = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>, TError,InstanceAdminControllerUpdateUserMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof instanceAdminControllerUpdateUser>>,
         TError,
-        {userId: string},
+        InstanceAdminControllerUpdateUserMutationVariables,
         TContext
       > => {
       return useMutation(getInstanceAdminControllerUpdateUserMutationOptions(options), queryClient);
@@ -4048,11 +4233,13 @@ if(uploadReleaseArtifactBody.file !== undefined) {
 
 
 
-export const getUploadReleaseArtifactMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams}, TContext> => {
+export const getUploadReleaseArtifactMutationKey = () => ['uploadReleaseArtifact'] as const;
 
-const mutationKey = ['uploadReleaseArtifact'];
+export const getUploadReleaseArtifactMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,UploadReleaseArtifactMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,UploadReleaseArtifactMutationVariables, TContext> => {
+
+const mutationKey = getUploadReleaseArtifactMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -4062,7 +4249,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadReleaseArtifact>>, {orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadReleaseArtifact>>, UploadReleaseArtifactMutationVariables> = (props) => {
           const {orgSlug,projectSlug,releaseVersion,data,params} = props ?? {};
 
           return  uploadReleaseArtifact(orgSlug,projectSlug,releaseVersion,data,params,requestOptions)
@@ -4078,13 +4265,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UploadReleaseArtifactMutationResult = NonNullable<Awaited<ReturnType<typeof uploadReleaseArtifact>>>
     export type UploadReleaseArtifactMutationBody = BodyType<UploadReleaseArtifactBody>
     export type UploadReleaseArtifactMutationError = ErrorType<unknown>
+    export type UploadReleaseArtifactMutationVariables = {orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams}
 
     export const useUploadReleaseArtifact = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadReleaseArtifact>>, TError,UploadReleaseArtifactMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof uploadReleaseArtifact>>,
         TError,
-        {orgSlug: string;projectSlug: string;releaseVersion: string;data: BodyType<UploadReleaseArtifactBody>;params?: UploadReleaseArtifactParams},
+        UploadReleaseArtifactMutationVariables,
         TContext
       > => {
       return useMutation(getUploadReleaseArtifactMutationOptions(options), queryClient);
@@ -4254,11 +4442,13 @@ export const deleteReleaseArtifact = async (orgSlug: string,
 
 
 
-export const getDeleteReleaseArtifactMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string}, TContext> => {
+export const getDeleteReleaseArtifactMutationKey = () => ['deleteReleaseArtifact'] as const;
 
-const mutationKey = ['deleteReleaseArtifact'];
+export const getDeleteReleaseArtifactMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReleaseArtifact>>, TError,DeleteReleaseArtifactMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteReleaseArtifact>>, TError,DeleteReleaseArtifactMutationVariables, TContext> => {
+
+const mutationKey = getDeleteReleaseArtifactMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -4268,7 +4458,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteReleaseArtifact>>, {orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteReleaseArtifact>>, DeleteReleaseArtifactMutationVariables> = (props) => {
           const {orgSlug,projectSlug,releaseVersion,artifactId} = props ?? {};
 
           return  deleteReleaseArtifact(orgSlug,projectSlug,releaseVersion,artifactId,requestOptions)
@@ -4284,13 +4474,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteReleaseArtifactMutationResult = NonNullable<Awaited<ReturnType<typeof deleteReleaseArtifact>>>
 
     export type DeleteReleaseArtifactMutationError = ErrorType<unknown>
+    export type DeleteReleaseArtifactMutationVariables = {orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string}
 
     export const useDeleteReleaseArtifact = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReleaseArtifact>>, TError,{orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReleaseArtifact>>, TError,DeleteReleaseArtifactMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteReleaseArtifact>>,
         TError,
-        {orgSlug: string;projectSlug: string;releaseVersion: string;artifactId: string},
+        DeleteReleaseArtifactMutationVariables,
         TContext
       > => {
       return useMutation(getDeleteReleaseArtifactMutationOptions(options), queryClient);
@@ -5174,11 +5365,25 @@ export const getCreatePersonalAccessTokenUrl = () => {
 
 export const createPersonalAccessToken = async (createPersonalAccessTokenBodyDto: CreatePersonalAccessTokenBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createPersonalAccessTokenResponse> => {
 
-  return orvalFetch<createPersonalAccessTokenResponse>(getCreatePersonalAccessTokenUrl(),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createPersonalAccessTokenResponse>(getCreatePersonalAccessTokenUrl(),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createPersonalAccessTokenBodyDto)
   }
 );}
@@ -5187,11 +5392,13 @@ export const createPersonalAccessToken = async (createPersonalAccessTokenBodyDto
 
 
 
-export const getCreatePersonalAccessTokenMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalAccessToken>>, TError,{data: BodyType<CreatePersonalAccessTokenBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createPersonalAccessToken>>, TError,{data: BodyType<CreatePersonalAccessTokenBodyDto>}, TContext> => {
+export const getCreatePersonalAccessTokenMutationKey = () => ['createPersonalAccessToken'] as const;
 
-const mutationKey = ['createPersonalAccessToken'];
+export const getCreatePersonalAccessTokenMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalAccessToken>>, TError,CreatePersonalAccessTokenMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPersonalAccessToken>>, TError,CreatePersonalAccessTokenMutationVariables, TContext> => {
+
+const mutationKey = getCreatePersonalAccessTokenMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -5201,7 +5408,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPersonalAccessToken>>, {data: BodyType<CreatePersonalAccessTokenBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPersonalAccessToken>>, CreatePersonalAccessTokenMutationVariables> = (props) => {
           const {data} = props ?? {};
 
           return  createPersonalAccessToken(data,requestOptions)
@@ -5217,13 +5424,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreatePersonalAccessTokenMutationResult = NonNullable<Awaited<ReturnType<typeof createPersonalAccessToken>>>
     export type CreatePersonalAccessTokenMutationBody = BodyType<CreatePersonalAccessTokenBodyDto>
     export type CreatePersonalAccessTokenMutationError = ErrorType<unknown>
+    export type CreatePersonalAccessTokenMutationVariables = {data: BodyType<CreatePersonalAccessTokenBodyDto>}
 
     export const useCreatePersonalAccessToken = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalAccessToken>>, TError,{data: BodyType<CreatePersonalAccessTokenBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalAccessToken>>, TError,CreatePersonalAccessTokenMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createPersonalAccessToken>>,
         TError,
-        {data: BodyType<CreatePersonalAccessTokenBodyDto>},
+        CreatePersonalAccessTokenMutationVariables,
         TContext
       > => {
       return useMutation(getCreatePersonalAccessTokenMutationOptions(options), queryClient);
@@ -5264,11 +5472,13 @@ export const revokePersonalAccessToken = async (tokenId: string, options?: Param
 
 
 
-export const getRevokePersonalAccessTokenMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokePersonalAccessToken>>, TError,{tokenId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof revokePersonalAccessToken>>, TError,{tokenId: string}, TContext> => {
+export const getRevokePersonalAccessTokenMutationKey = () => ['revokePersonalAccessToken'] as const;
 
-const mutationKey = ['revokePersonalAccessToken'];
+export const getRevokePersonalAccessTokenMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokePersonalAccessToken>>, TError,RevokePersonalAccessTokenMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokePersonalAccessToken>>, TError,RevokePersonalAccessTokenMutationVariables, TContext> => {
+
+const mutationKey = getRevokePersonalAccessTokenMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -5278,7 +5488,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokePersonalAccessToken>>, {tokenId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokePersonalAccessToken>>, RevokePersonalAccessTokenMutationVariables> = (props) => {
           const {tokenId} = props ?? {};
 
           return  revokePersonalAccessToken(tokenId,requestOptions)
@@ -5294,13 +5504,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RevokePersonalAccessTokenMutationResult = NonNullable<Awaited<ReturnType<typeof revokePersonalAccessToken>>>
 
     export type RevokePersonalAccessTokenMutationError = ErrorType<unknown>
+    export type RevokePersonalAccessTokenMutationVariables = {tokenId: string}
 
     export const useRevokePersonalAccessToken = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokePersonalAccessToken>>, TError,{tokenId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokePersonalAccessToken>>, TError,RevokePersonalAccessTokenMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof revokePersonalAccessToken>>,
         TError,
-        {tokenId: string},
+        RevokePersonalAccessTokenMutationVariables,
         TContext
       > => {
       return useMutation(getRevokePersonalAccessTokenMutationOptions(options), queryClient);
@@ -5448,11 +5659,13 @@ export const updateOrganizationMcpSettings = async (orgSlug: string, options?: P
 
 
 
-export const getUpdateOrganizationMcpSettingsMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, TError,{orgSlug: string}, TContext> => {
+export const getUpdateOrganizationMcpSettingsMutationKey = () => ['updateOrganizationMcpSettings'] as const;
 
-const mutationKey = ['updateOrganizationMcpSettings'];
+export const getUpdateOrganizationMcpSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, TError,UpdateOrganizationMcpSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, TError,UpdateOrganizationMcpSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationMcpSettingsMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -5462,7 +5675,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, {orgSlug: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, UpdateOrganizationMcpSettingsMutationVariables> = (props) => {
           const {orgSlug} = props ?? {};
 
           return  updateOrganizationMcpSettings(orgSlug,requestOptions)
@@ -5478,13 +5691,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateOrganizationMcpSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>>
 
     export type UpdateOrganizationMcpSettingsMutationError = ErrorType<unknown>
+    export type UpdateOrganizationMcpSettingsMutationVariables = {orgSlug: string}
 
     export const useUpdateOrganizationMcpSettings = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMcpSettings>>, TError,UpdateOrganizationMcpSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateOrganizationMcpSettings>>,
         TError,
-        {orgSlug: string},
+        UpdateOrganizationMcpSettingsMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateOrganizationMcpSettingsMutationOptions(options), queryClient);
@@ -5525,11 +5739,13 @@ export const createOrganizationMcpCredential = async (orgSlug: string, options?:
 
 
 
-export const getCreateOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, TError,{orgSlug: string}, TContext> => {
+export const getCreateOrganizationMcpCredentialMutationKey = () => ['createOrganizationMcpCredential'] as const;
 
-const mutationKey = ['createOrganizationMcpCredential'];
+export const getCreateOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, TError,CreateOrganizationMcpCredentialMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, TError,CreateOrganizationMcpCredentialMutationVariables, TContext> => {
+
+const mutationKey = getCreateOrganizationMcpCredentialMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -5539,7 +5755,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, {orgSlug: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, CreateOrganizationMcpCredentialMutationVariables> = (props) => {
           const {orgSlug} = props ?? {};
 
           return  createOrganizationMcpCredential(orgSlug,requestOptions)
@@ -5555,13 +5771,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateOrganizationMcpCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationMcpCredential>>>
 
     export type CreateOrganizationMcpCredentialMutationError = ErrorType<unknown>
+    export type CreateOrganizationMcpCredentialMutationVariables = {orgSlug: string}
 
     export const useCreateOrganizationMcpCredential = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationMcpCredential>>, TError,CreateOrganizationMcpCredentialMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createOrganizationMcpCredential>>,
         TError,
-        {orgSlug: string},
+        CreateOrganizationMcpCredentialMutationVariables,
         TContext
       > => {
       return useMutation(getCreateOrganizationMcpCredentialMutationOptions(options), queryClient);
@@ -5604,11 +5821,13 @@ export const verifyOrganizationMcpCredential = async (orgSlug: string,
 
 
 
-export const getVerifyOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext> => {
+export const getVerifyOrganizationMcpCredentialMutationKey = () => ['verifyOrganizationMcpCredential'] as const;
 
-const mutationKey = ['verifyOrganizationMcpCredential'];
+export const getVerifyOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, TError,VerifyOrganizationMcpCredentialMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, TError,VerifyOrganizationMcpCredentialMutationVariables, TContext> => {
+
+const mutationKey = getVerifyOrganizationMcpCredentialMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -5618,7 +5837,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, {orgSlug: string;credentialId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, VerifyOrganizationMcpCredentialMutationVariables> = (props) => {
           const {orgSlug,credentialId} = props ?? {};
 
           return  verifyOrganizationMcpCredential(orgSlug,credentialId,requestOptions)
@@ -5634,13 +5853,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type VerifyOrganizationMcpCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>>
 
     export type VerifyOrganizationMcpCredentialMutationError = ErrorType<unknown>
+    export type VerifyOrganizationMcpCredentialMutationVariables = {orgSlug: string;credentialId: string}
 
     export const useVerifyOrganizationMcpCredential = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>, TError,VerifyOrganizationMcpCredentialMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof verifyOrganizationMcpCredential>>,
         TError,
-        {orgSlug: string;credentialId: string},
+        VerifyOrganizationMcpCredentialMutationVariables,
         TContext
       > => {
       return useMutation(getVerifyOrganizationMcpCredentialMutationOptions(options), queryClient);
@@ -5683,11 +5903,13 @@ export const revokeOrganizationMcpCredential = async (orgSlug: string,
 
 
 
-export const getRevokeOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext> => {
+export const getRevokeOrganizationMcpCredentialMutationKey = () => ['revokeOrganizationMcpCredential'] as const;
 
-const mutationKey = ['revokeOrganizationMcpCredential'];
+export const getRevokeOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, TError,RevokeOrganizationMcpCredentialMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, TError,RevokeOrganizationMcpCredentialMutationVariables, TContext> => {
+
+const mutationKey = getRevokeOrganizationMcpCredentialMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -5697,7 +5919,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, {orgSlug: string;credentialId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, RevokeOrganizationMcpCredentialMutationVariables> = (props) => {
           const {orgSlug,credentialId} = props ?? {};
 
           return  revokeOrganizationMcpCredential(orgSlug,credentialId,requestOptions)
@@ -5713,13 +5935,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RevokeOrganizationMcpCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>>
 
     export type RevokeOrganizationMcpCredentialMutationError = ErrorType<unknown>
+    export type RevokeOrganizationMcpCredentialMutationVariables = {orgSlug: string;credentialId: string}
 
     export const useRevokeOrganizationMcpCredential = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>, TError,RevokeOrganizationMcpCredentialMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof revokeOrganizationMcpCredential>>,
         TError,
-        {orgSlug: string;credentialId: string},
+        RevokeOrganizationMcpCredentialMutationVariables,
         TContext
       > => {
       return useMutation(getRevokeOrganizationMcpCredentialMutationOptions(options), queryClient);
@@ -5762,11 +5985,13 @@ export const rotateOrganizationMcpCredential = async (orgSlug: string,
 
 
 
-export const getRotateOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext> => {
+export const getRotateOrganizationMcpCredentialMutationKey = () => ['rotateOrganizationMcpCredential'] as const;
 
-const mutationKey = ['rotateOrganizationMcpCredential'];
+export const getRotateOrganizationMcpCredentialMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, TError,RotateOrganizationMcpCredentialMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, TError,RotateOrganizationMcpCredentialMutationVariables, TContext> => {
+
+const mutationKey = getRotateOrganizationMcpCredentialMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -5776,7 +6001,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, {orgSlug: string;credentialId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, RotateOrganizationMcpCredentialMutationVariables> = (props) => {
           const {orgSlug,credentialId} = props ?? {};
 
           return  rotateOrganizationMcpCredential(orgSlug,credentialId,requestOptions)
@@ -5792,13 +6017,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RotateOrganizationMcpCredentialMutationResult = NonNullable<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>>
 
     export type RotateOrganizationMcpCredentialMutationError = ErrorType<unknown>
+    export type RotateOrganizationMcpCredentialMutationVariables = {orgSlug: string;credentialId: string}
 
     export const useRotateOrganizationMcpCredential = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, TError,{orgSlug: string;credentialId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>, TError,RotateOrganizationMcpCredentialMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof rotateOrganizationMcpCredential>>,
         TError,
-        {orgSlug: string;credentialId: string},
+        RotateOrganizationMcpCredentialMutationVariables,
         TContext
       > => {
       return useMutation(getRotateOrganizationMcpCredentialMutationOptions(options), queryClient);
@@ -5922,6 +6148,136 @@ export function useListIssues<TData = Awaited<ReturnType<typeof listIssues>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getListIssuesQueryOptions(orgSlug,projectSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type getProjectIssueTrendsResponse200 = {
+  data: IssueTrendsDto
+  status: 200
+}
+
+export type getProjectIssueTrendsResponseSuccess = (getProjectIssueTrendsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getProjectIssueTrendsResponse = (getProjectIssueTrendsResponseSuccess)
+
+export const getGetProjectIssueTrendsUrl = (orgSlug: string,
+    projectSlug: string,
+    params: GetProjectIssueTrendsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/issues/trends?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/issues/trends`
+}
+
+export const getProjectIssueTrends = async (orgSlug: string,
+    projectSlug: string,
+    params: GetProjectIssueTrendsParams, options?: Parameters<typeof orvalFetch>[1]): Promise<getProjectIssueTrendsResponse> => {
+
+  return orvalFetch<getProjectIssueTrendsResponse>(getGetProjectIssueTrendsUrl(orgSlug,projectSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectIssueTrendsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectIssueTrendsParams,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/trends`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProjectIssueTrendsQueryOptions = <TData = Awaited<ReturnType<typeof getProjectIssueTrends>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    params: GetProjectIssueTrendsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectIssueTrends>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectIssueTrendsQueryKey(orgSlug,projectSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectIssueTrends>>> = ({ signal }) => getProjectIssueTrends(orgSlug,projectSlug,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectIssueTrends>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectIssueTrendsQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectIssueTrends>>>
+export type GetProjectIssueTrendsQueryError = ErrorType<unknown>
+
+
+export function useGetProjectIssueTrends<TData = Awaited<ReturnType<typeof getProjectIssueTrends>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params: GetProjectIssueTrendsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectIssueTrends>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectIssueTrends>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectIssueTrends>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectIssueTrends<TData = Awaited<ReturnType<typeof getProjectIssueTrends>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params: GetProjectIssueTrendsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectIssueTrends>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectIssueTrends>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectIssueTrends>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectIssueTrends<TData = Awaited<ReturnType<typeof getProjectIssueTrends>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params: GetProjectIssueTrendsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectIssueTrends>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetProjectIssueTrends<TData = Awaited<ReturnType<typeof getProjectIssueTrends>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params: GetProjectIssueTrendsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectIssueTrends>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProjectIssueTrendsQueryOptions(orgSlug,projectSlug,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -6111,11 +6467,13 @@ export const generateIssueTriage = async (orgSlug: string,
 
 
 
-export const getGenerateIssueTriageMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateIssueTriage>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof generateIssueTriage>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext> => {
+export const getGenerateIssueTriageMutationKey = () => ['generateIssueTriage'] as const;
 
-const mutationKey = ['generateIssueTriage'];
+export const getGenerateIssueTriageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateIssueTriage>>, TError,GenerateIssueTriageMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateIssueTriage>>, TError,GenerateIssueTriageMutationVariables, TContext> => {
+
+const mutationKey = getGenerateIssueTriageMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -6125,7 +6483,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateIssueTriage>>, {orgSlug: string;projectSlug: string;issueId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateIssueTriage>>, GenerateIssueTriageMutationVariables> = (props) => {
           const {orgSlug,projectSlug,issueId} = props ?? {};
 
           return  generateIssueTriage(orgSlug,projectSlug,issueId,requestOptions)
@@ -6141,13 +6499,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type GenerateIssueTriageMutationResult = NonNullable<Awaited<ReturnType<typeof generateIssueTriage>>>
 
     export type GenerateIssueTriageMutationError = ErrorType<unknown>
+    export type GenerateIssueTriageMutationVariables = {orgSlug: string;projectSlug: string;issueId: string}
 
     export const useGenerateIssueTriage = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateIssueTriage>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateIssueTriage>>, TError,GenerateIssueTriageMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof generateIssueTriage>>,
         TError,
-        {orgSlug: string;projectSlug: string;issueId: string},
+        GenerateIssueTriageMutationVariables,
         TContext
       > => {
       return useMutation(getGenerateIssueTriageMutationOptions(options), queryClient);
@@ -6426,11 +6785,25 @@ export const updateIssueStatus = async (orgSlug: string,
     issueId: string,
     issueStatusUpdateBodyDto: IssueStatusUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateIssueStatusResponse> => {
 
-  return orvalFetch<updateIssueStatusResponse>(getUpdateIssueStatusUrl(orgSlug,projectSlug,issueId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateIssueStatusResponse>(getUpdateIssueStatusUrl(orgSlug,projectSlug,issueId),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(issueStatusUpdateBodyDto)
   }
 );}
@@ -6439,11 +6812,13 @@ export const updateIssueStatus = async (orgSlug: string,
 
 
 
-export const getUpdateIssueStatusMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>}, TContext> => {
+export const getUpdateIssueStatusMutationKey = () => ['updateIssueStatus'] as const;
 
-const mutationKey = ['updateIssueStatus'];
+export const getUpdateIssueStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueStatus>>, TError,UpdateIssueStatusMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateIssueStatus>>, TError,UpdateIssueStatusMutationVariables, TContext> => {
+
+const mutationKey = getUpdateIssueStatusMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -6453,7 +6828,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssueStatus>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssueStatus>>, UpdateIssueStatusMutationVariables> = (props) => {
           const {orgSlug,projectSlug,issueId,data} = props ?? {};
 
           return  updateIssueStatus(orgSlug,projectSlug,issueId,data,requestOptions)
@@ -6469,13 +6844,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateIssueStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateIssueStatus>>>
     export type UpdateIssueStatusMutationBody = BodyType<IssueStatusUpdateBodyDto>
     export type UpdateIssueStatusMutationError = ErrorType<unknown>
+    export type UpdateIssueStatusMutationVariables = {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>}
 
     export const useUpdateIssueStatus = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueStatus>>, TError,UpdateIssueStatusMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateIssueStatus>>,
         TError,
-        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueStatusUpdateBodyDto>},
+        UpdateIssueStatusMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateIssueStatusMutationOptions(options), queryClient);
@@ -6508,11 +6884,25 @@ export const updateIssueAssignee = async (orgSlug: string,
     issueId: string,
     issueAssigneeUpdateBodyDto: IssueAssigneeUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateIssueAssigneeResponse> => {
 
-  return orvalFetch<updateIssueAssigneeResponse>(getUpdateIssueAssigneeUrl(orgSlug,projectSlug,issueId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateIssueAssigneeResponse>(getUpdateIssueAssigneeUrl(orgSlug,projectSlug,issueId),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(issueAssigneeUpdateBodyDto)
   }
 );}
@@ -6521,11 +6911,13 @@ export const updateIssueAssignee = async (orgSlug: string,
 
 
 
-export const getUpdateIssueAssigneeMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>}, TContext> => {
+export const getUpdateIssueAssigneeMutationKey = () => ['updateIssueAssignee'] as const;
 
-const mutationKey = ['updateIssueAssignee'];
+export const getUpdateIssueAssigneeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueAssignee>>, TError,UpdateIssueAssigneeMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateIssueAssignee>>, TError,UpdateIssueAssigneeMutationVariables, TContext> => {
+
+const mutationKey = getUpdateIssueAssigneeMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -6535,7 +6927,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssueAssignee>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssueAssignee>>, UpdateIssueAssigneeMutationVariables> = (props) => {
           const {orgSlug,projectSlug,issueId,data} = props ?? {};
 
           return  updateIssueAssignee(orgSlug,projectSlug,issueId,data,requestOptions)
@@ -6551,13 +6943,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateIssueAssigneeMutationResult = NonNullable<Awaited<ReturnType<typeof updateIssueAssignee>>>
     export type UpdateIssueAssigneeMutationBody = BodyType<IssueAssigneeUpdateBodyDto>
     export type UpdateIssueAssigneeMutationError = ErrorType<unknown>
+    export type UpdateIssueAssigneeMutationVariables = {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>}
 
     export const useUpdateIssueAssignee = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueAssignee>>, TError,UpdateIssueAssigneeMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateIssueAssignee>>,
         TError,
-        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueAssigneeUpdateBodyDto>},
+        UpdateIssueAssigneeMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateIssueAssigneeMutationOptions(options), queryClient);
@@ -6590,11 +6983,25 @@ export const updateIssuePriority = async (orgSlug: string,
     issueId: string,
     issuePriorityUpdateBodyDto: IssuePriorityUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateIssuePriorityResponse> => {
 
-  return orvalFetch<updateIssuePriorityResponse>(getUpdateIssuePriorityUrl(orgSlug,projectSlug,issueId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateIssuePriorityResponse>(getUpdateIssuePriorityUrl(orgSlug,projectSlug,issueId),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(issuePriorityUpdateBodyDto)
   }
 );}
@@ -6603,11 +7010,13 @@ export const updateIssuePriority = async (orgSlug: string,
 
 
 
-export const getUpdateIssuePriorityMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>}, TContext> => {
+export const getUpdateIssuePriorityMutationKey = () => ['updateIssuePriority'] as const;
 
-const mutationKey = ['updateIssuePriority'];
+export const getUpdateIssuePriorityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssuePriority>>, TError,UpdateIssuePriorityMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateIssuePriority>>, TError,UpdateIssuePriorityMutationVariables, TContext> => {
+
+const mutationKey = getUpdateIssuePriorityMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -6617,7 +7026,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssuePriority>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssuePriority>>, UpdateIssuePriorityMutationVariables> = (props) => {
           const {orgSlug,projectSlug,issueId,data} = props ?? {};
 
           return  updateIssuePriority(orgSlug,projectSlug,issueId,data,requestOptions)
@@ -6633,13 +7042,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateIssuePriorityMutationResult = NonNullable<Awaited<ReturnType<typeof updateIssuePriority>>>
     export type UpdateIssuePriorityMutationBody = BodyType<IssuePriorityUpdateBodyDto>
     export type UpdateIssuePriorityMutationError = ErrorType<unknown>
+    export type UpdateIssuePriorityMutationVariables = {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>}
 
     export const useUpdateIssuePriority = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssuePriority>>, TError,UpdateIssuePriorityMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateIssuePriority>>,
         TError,
-        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssuePriorityUpdateBodyDto>},
+        UpdateIssuePriorityMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateIssuePriorityMutationOptions(options), queryClient);
@@ -6672,11 +7082,25 @@ export const updateIssueExternalLink = async (orgSlug: string,
     issueId: string,
     issueExternalLinkBodyDto: IssueExternalLinkBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateIssueExternalLinkResponse> => {
 
-  return orvalFetch<updateIssueExternalLinkResponse>(getUpdateIssueExternalLinkUrl(orgSlug,projectSlug,issueId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateIssueExternalLinkResponse>(getUpdateIssueExternalLinkUrl(orgSlug,projectSlug,issueId),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(issueExternalLinkBodyDto)
   }
 );}
@@ -6685,11 +7109,13 @@ export const updateIssueExternalLink = async (orgSlug: string,
 
 
 
-export const getUpdateIssueExternalLinkMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueExternalLink>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateIssueExternalLink>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>}, TContext> => {
+export const getUpdateIssueExternalLinkMutationKey = () => ['updateIssueExternalLink'] as const;
 
-const mutationKey = ['updateIssueExternalLink'];
+export const getUpdateIssueExternalLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueExternalLink>>, TError,UpdateIssueExternalLinkMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateIssueExternalLink>>, TError,UpdateIssueExternalLinkMutationVariables, TContext> => {
+
+const mutationKey = getUpdateIssueExternalLinkMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -6699,7 +7125,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssueExternalLink>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIssueExternalLink>>, UpdateIssueExternalLinkMutationVariables> = (props) => {
           const {orgSlug,projectSlug,issueId,data} = props ?? {};
 
           return  updateIssueExternalLink(orgSlug,projectSlug,issueId,data,requestOptions)
@@ -6715,13 +7141,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateIssueExternalLinkMutationResult = NonNullable<Awaited<ReturnType<typeof updateIssueExternalLink>>>
     export type UpdateIssueExternalLinkMutationBody = BodyType<IssueExternalLinkBodyDto>
     export type UpdateIssueExternalLinkMutationError = ErrorType<unknown>
+    export type UpdateIssueExternalLinkMutationVariables = {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>}
 
     export const useUpdateIssueExternalLink = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueExternalLink>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIssueExternalLink>>, TError,UpdateIssueExternalLinkMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateIssueExternalLink>>,
         TError,
-        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<IssueExternalLinkBodyDto>},
+        UpdateIssueExternalLinkMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateIssueExternalLinkMutationOptions(options), queryClient);
@@ -6754,11 +7181,25 @@ export const mergeIssue = async (orgSlug: string,
     issueId: string,
     mergeIssueBodyDto: MergeIssueBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<mergeIssueResponse> => {
 
-  return orvalFetch<mergeIssueResponse>(getMergeIssueUrl(orgSlug,projectSlug,issueId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<mergeIssueResponse>(getMergeIssueUrl(orgSlug,projectSlug,issueId),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(mergeIssueBodyDto)
   }
 );}
@@ -6767,11 +7208,13 @@ export const mergeIssue = async (orgSlug: string,
 
 
 
-export const getMergeIssueMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof mergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof mergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>}, TContext> => {
+export const getMergeIssueMutationKey = () => ['mergeIssue'] as const;
 
-const mutationKey = ['mergeIssue'];
+export const getMergeIssueMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof mergeIssue>>, TError,MergeIssueMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof mergeIssue>>, TError,MergeIssueMutationVariables, TContext> => {
+
+const mutationKey = getMergeIssueMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -6781,7 +7224,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof mergeIssue>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof mergeIssue>>, MergeIssueMutationVariables> = (props) => {
           const {orgSlug,projectSlug,issueId,data} = props ?? {};
 
           return  mergeIssue(orgSlug,projectSlug,issueId,data,requestOptions)
@@ -6797,13 +7240,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type MergeIssueMutationResult = NonNullable<Awaited<ReturnType<typeof mergeIssue>>>
     export type MergeIssueMutationBody = BodyType<MergeIssueBodyDto>
     export type MergeIssueMutationError = ErrorType<unknown>
+    export type MergeIssueMutationVariables = {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>}
 
     export const useMergeIssue = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof mergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof mergeIssue>>, TError,MergeIssueMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof mergeIssue>>,
         TError,
-        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<MergeIssueBodyDto>},
+        MergeIssueMutationVariables,
         TContext
       > => {
       return useMutation(getMergeIssueMutationOptions(options), queryClient);
@@ -6848,11 +7292,13 @@ export const unmergeIssue = async (orgSlug: string,
 
 
 
-export const getUnmergeIssueMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof unmergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext> => {
+export const getUnmergeIssueMutationKey = () => ['unmergeIssue'] as const;
 
-const mutationKey = ['unmergeIssue'];
+export const getUnmergeIssueMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmergeIssue>>, TError,UnmergeIssueMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unmergeIssue>>, TError,UnmergeIssueMutationVariables, TContext> => {
+
+const mutationKey = getUnmergeIssueMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -6862,7 +7308,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unmergeIssue>>, {orgSlug: string;projectSlug: string;issueId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unmergeIssue>>, UnmergeIssueMutationVariables> = (props) => {
           const {orgSlug,projectSlug,issueId} = props ?? {};
 
           return  unmergeIssue(orgSlug,projectSlug,issueId,requestOptions)
@@ -6878,13 +7324,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UnmergeIssueMutationResult = NonNullable<Awaited<ReturnType<typeof unmergeIssue>>>
 
     export type UnmergeIssueMutationError = ErrorType<unknown>
+    export type UnmergeIssueMutationVariables = {orgSlug: string;projectSlug: string;issueId: string}
 
     export const useUnmergeIssue = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmergeIssue>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmergeIssue>>, TError,UnmergeIssueMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof unmergeIssue>>,
         TError,
-        {orgSlug: string;projectSlug: string;issueId: string},
+        UnmergeIssueMutationVariables,
         TContext
       > => {
       return useMutation(getUnmergeIssueMutationOptions(options), queryClient);
@@ -6915,11 +7362,25 @@ export const bulkUpdateIssueStatus = async (orgSlug: string,
     projectSlug: string,
     bulkIssueStatusUpdateBodyDto: BulkIssueStatusUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<bulkUpdateIssueStatusResponse> => {
 
-  return orvalFetch<bulkUpdateIssueStatusResponse>(getBulkUpdateIssueStatusUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<bulkUpdateIssueStatusResponse>(getBulkUpdateIssueStatusUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(bulkIssueStatusUpdateBodyDto)
   }
 );}
@@ -6928,11 +7389,13 @@ export const bulkUpdateIssueStatus = async (orgSlug: string,
 
 
 
-export const getBulkUpdateIssueStatusMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>}, TContext> => {
+export const getBulkUpdateIssueStatusMutationKey = () => ['bulkUpdateIssueStatus'] as const;
 
-const mutationKey = ['bulkUpdateIssueStatus'];
+export const getBulkUpdateIssueStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, TError,BulkUpdateIssueStatusMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, TError,BulkUpdateIssueStatusMutationVariables, TContext> => {
+
+const mutationKey = getBulkUpdateIssueStatusMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -6942,7 +7405,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, BulkUpdateIssueStatusMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  bulkUpdateIssueStatus(orgSlug,projectSlug,data,requestOptions)
@@ -6958,13 +7421,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type BulkUpdateIssueStatusMutationResult = NonNullable<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>>
     export type BulkUpdateIssueStatusMutationBody = BodyType<BulkIssueStatusUpdateBodyDto>
     export type BulkUpdateIssueStatusMutationError = ErrorType<unknown>
+    export type BulkUpdateIssueStatusMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>}
 
     export const useBulkUpdateIssueStatus = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueStatus>>, TError,BulkUpdateIssueStatusMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof bulkUpdateIssueStatus>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueStatusUpdateBodyDto>},
+        BulkUpdateIssueStatusMutationVariables,
         TContext
       > => {
       return useMutation(getBulkUpdateIssueStatusMutationOptions(options), queryClient);
@@ -6995,11 +7459,25 @@ export const bulkUpdateIssuePriority = async (orgSlug: string,
     projectSlug: string,
     bulkIssuePriorityUpdateBodyDto: BulkIssuePriorityUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<bulkUpdateIssuePriorityResponse> => {
 
-  return orvalFetch<bulkUpdateIssuePriorityResponse>(getBulkUpdateIssuePriorityUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<bulkUpdateIssuePriorityResponse>(getBulkUpdateIssuePriorityUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(bulkIssuePriorityUpdateBodyDto)
   }
 );}
@@ -7008,11 +7486,13 @@ export const bulkUpdateIssuePriority = async (orgSlug: string,
 
 
 
-export const getBulkUpdateIssuePriorityMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>}, TContext> => {
+export const getBulkUpdateIssuePriorityMutationKey = () => ['bulkUpdateIssuePriority'] as const;
 
-const mutationKey = ['bulkUpdateIssuePriority'];
+export const getBulkUpdateIssuePriorityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, TError,BulkUpdateIssuePriorityMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, TError,BulkUpdateIssuePriorityMutationVariables, TContext> => {
+
+const mutationKey = getBulkUpdateIssuePriorityMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -7022,7 +7502,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, {orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, BulkUpdateIssuePriorityMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  bulkUpdateIssuePriority(orgSlug,projectSlug,data,requestOptions)
@@ -7038,13 +7518,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type BulkUpdateIssuePriorityMutationResult = NonNullable<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>>
     export type BulkUpdateIssuePriorityMutationBody = BodyType<BulkIssuePriorityUpdateBodyDto>
     export type BulkUpdateIssuePriorityMutationError = ErrorType<unknown>
+    export type BulkUpdateIssuePriorityMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>}
 
     export const useBulkUpdateIssuePriority = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssuePriority>>, TError,BulkUpdateIssuePriorityMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof bulkUpdateIssuePriority>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<BulkIssuePriorityUpdateBodyDto>},
+        BulkUpdateIssuePriorityMutationVariables,
         TContext
       > => {
       return useMutation(getBulkUpdateIssuePriorityMutationOptions(options), queryClient);
@@ -7075,11 +7556,25 @@ export const bulkUpdateIssueAssignee = async (orgSlug: string,
     projectSlug: string,
     bulkIssueAssigneeUpdateBodyDto: BulkIssueAssigneeUpdateBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<bulkUpdateIssueAssigneeResponse> => {
 
-  return orvalFetch<bulkUpdateIssueAssigneeResponse>(getBulkUpdateIssueAssigneeUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<bulkUpdateIssueAssigneeResponse>(getBulkUpdateIssueAssigneeUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(bulkIssueAssigneeUpdateBodyDto)
   }
 );}
@@ -7088,11 +7583,13 @@ export const bulkUpdateIssueAssignee = async (orgSlug: string,
 
 
 
-export const getBulkUpdateIssueAssigneeMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>}, TContext> => {
+export const getBulkUpdateIssueAssigneeMutationKey = () => ['bulkUpdateIssueAssignee'] as const;
 
-const mutationKey = ['bulkUpdateIssueAssignee'];
+export const getBulkUpdateIssueAssigneeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, TError,BulkUpdateIssueAssigneeMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, TError,BulkUpdateIssueAssigneeMutationVariables, TContext> => {
+
+const mutationKey = getBulkUpdateIssueAssigneeMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -7102,7 +7599,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, BulkUpdateIssueAssigneeMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  bulkUpdateIssueAssignee(orgSlug,projectSlug,data,requestOptions)
@@ -7118,13 +7615,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type BulkUpdateIssueAssigneeMutationResult = NonNullable<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>>
     export type BulkUpdateIssueAssigneeMutationBody = BodyType<BulkIssueAssigneeUpdateBodyDto>
     export type BulkUpdateIssueAssigneeMutationError = ErrorType<unknown>
+    export type BulkUpdateIssueAssigneeMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>}
 
     export const useBulkUpdateIssueAssignee = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>, TError,BulkUpdateIssueAssigneeMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof bulkUpdateIssueAssignee>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<BulkIssueAssigneeUpdateBodyDto>},
+        BulkUpdateIssueAssigneeMutationVariables,
         TContext
       > => {
       return useMutation(getBulkUpdateIssueAssigneeMutationOptions(options), queryClient);
@@ -7280,11 +7778,25 @@ export const createIssueComment = async (orgSlug: string,
     issueId: string,
     createIssueCommentBodyDto: CreateIssueCommentBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createIssueCommentResponse> => {
 
-  return orvalFetch<createIssueCommentResponse>(getCreateIssueCommentUrl(orgSlug,projectSlug,issueId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createIssueCommentResponse>(getCreateIssueCommentUrl(orgSlug,projectSlug,issueId),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createIssueCommentBodyDto)
   }
 );}
@@ -7293,11 +7805,13 @@ export const createIssueComment = async (orgSlug: string,
 
 
 
-export const getCreateIssueCommentMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIssueComment>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createIssueComment>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>}, TContext> => {
+export const getCreateIssueCommentMutationKey = () => ['createIssueComment'] as const;
 
-const mutationKey = ['createIssueComment'];
+export const getCreateIssueCommentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIssueComment>>, TError,CreateIssueCommentMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createIssueComment>>, TError,CreateIssueCommentMutationVariables, TContext> => {
+
+const mutationKey = getCreateIssueCommentMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -7307,7 +7821,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createIssueComment>>, {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createIssueComment>>, CreateIssueCommentMutationVariables> = (props) => {
           const {orgSlug,projectSlug,issueId,data} = props ?? {};
 
           return  createIssueComment(orgSlug,projectSlug,issueId,data,requestOptions)
@@ -7323,13 +7837,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateIssueCommentMutationResult = NonNullable<Awaited<ReturnType<typeof createIssueComment>>>
     export type CreateIssueCommentMutationBody = BodyType<CreateIssueCommentBodyDto>
     export type CreateIssueCommentMutationError = ErrorType<unknown>
+    export type CreateIssueCommentMutationVariables = {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>}
 
     export const useCreateIssueComment = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIssueComment>>, TError,{orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIssueComment>>, TError,CreateIssueCommentMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createIssueComment>>,
         TError,
-        {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueCommentBodyDto>},
+        CreateIssueCommentMutationVariables,
         TContext
       > => {
       return useMutation(getCreateIssueCommentMutationOptions(options), queryClient);
@@ -7598,11 +8113,25 @@ export const updateAutofixConfig = async (orgSlug: string,
     projectSlug: string,
     updateAutofixConfigBodyDto: UpdateAutofixConfigBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateAutofixConfigResponse> => {
 
-  return orvalFetch<updateAutofixConfigResponse>(getUpdateAutofixConfigUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateAutofixConfigResponse>(getUpdateAutofixConfigUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateAutofixConfigBodyDto)
   }
 );}
@@ -7611,11 +8140,13 @@ export const updateAutofixConfig = async (orgSlug: string,
 
 
 
-export const getUpdateAutofixConfigMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAutofixConfig>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateAutofixConfig>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>}, TContext> => {
+export const getUpdateAutofixConfigMutationKey = () => ['updateAutofixConfig'] as const;
 
-const mutationKey = ['updateAutofixConfig'];
+export const getUpdateAutofixConfigMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAutofixConfig>>, TError,UpdateAutofixConfigMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAutofixConfig>>, TError,UpdateAutofixConfigMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAutofixConfigMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -7625,7 +8156,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAutofixConfig>>, {orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAutofixConfig>>, UpdateAutofixConfigMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  updateAutofixConfig(orgSlug,projectSlug,data,requestOptions)
@@ -7641,13 +8172,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateAutofixConfigMutationResult = NonNullable<Awaited<ReturnType<typeof updateAutofixConfig>>>
     export type UpdateAutofixConfigMutationBody = BodyType<UpdateAutofixConfigBodyDto>
     export type UpdateAutofixConfigMutationError = ErrorType<unknown>
+    export type UpdateAutofixConfigMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>}
 
     export const useUpdateAutofixConfig = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAutofixConfig>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAutofixConfig>>, TError,UpdateAutofixConfigMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateAutofixConfig>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<UpdateAutofixConfigBodyDto>},
+        UpdateAutofixConfigMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateAutofixConfigMutationOptions(options), queryClient);
@@ -7692,11 +8224,13 @@ export const triggerAutofix = async (orgSlug: string,
 
 
 
-export const getTriggerAutofixMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerAutofix>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof triggerAutofix>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext> => {
+export const getTriggerAutofixMutationKey = () => ['triggerAutofix'] as const;
 
-const mutationKey = ['triggerAutofix'];
+export const getTriggerAutofixMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerAutofix>>, TError,TriggerAutofixMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof triggerAutofix>>, TError,TriggerAutofixMutationVariables, TContext> => {
+
+const mutationKey = getTriggerAutofixMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -7706,7 +8240,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof triggerAutofix>>, {orgSlug: string;projectSlug: string;issueId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof triggerAutofix>>, TriggerAutofixMutationVariables> = (props) => {
           const {orgSlug,projectSlug,issueId} = props ?? {};
 
           return  triggerAutofix(orgSlug,projectSlug,issueId,requestOptions)
@@ -7722,13 +8256,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type TriggerAutofixMutationResult = NonNullable<Awaited<ReturnType<typeof triggerAutofix>>>
 
     export type TriggerAutofixMutationError = ErrorType<unknown>
+    export type TriggerAutofixMutationVariables = {orgSlug: string;projectSlug: string;issueId: string}
 
     export const useTriggerAutofix = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerAutofix>>, TError,{orgSlug: string;projectSlug: string;issueId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerAutofix>>, TError,TriggerAutofixMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof triggerAutofix>>,
         TError,
-        {orgSlug: string;projectSlug: string;issueId: string},
+        TriggerAutofixMutationVariables,
         TContext
       > => {
       return useMutation(getTriggerAutofixMutationOptions(options), queryClient);
@@ -8007,11 +8542,25 @@ export const reviewAutofixRun = async (orgSlug: string,
     runId: string,
     reviewAutofixBodyDto: ReviewAutofixBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<reviewAutofixRunResponse> => {
 
-  return orvalFetch<reviewAutofixRunResponse>(getReviewAutofixRunUrl(orgSlug,projectSlug,runId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<reviewAutofixRunResponse>(getReviewAutofixRunUrl(orgSlug,projectSlug,runId),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(reviewAutofixBodyDto)
   }
 );}
@@ -8020,11 +8569,13 @@ export const reviewAutofixRun = async (orgSlug: string,
 
 
 
-export const getReviewAutofixRunMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAutofixRun>>, TError,{orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof reviewAutofixRun>>, TError,{orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>}, TContext> => {
+export const getReviewAutofixRunMutationKey = () => ['reviewAutofixRun'] as const;
 
-const mutationKey = ['reviewAutofixRun'];
+export const getReviewAutofixRunMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAutofixRun>>, TError,ReviewAutofixRunMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewAutofixRun>>, TError,ReviewAutofixRunMutationVariables, TContext> => {
+
+const mutationKey = getReviewAutofixRunMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -8034,7 +8585,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewAutofixRun>>, {orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewAutofixRun>>, ReviewAutofixRunMutationVariables> = (props) => {
           const {orgSlug,projectSlug,runId,data} = props ?? {};
 
           return  reviewAutofixRun(orgSlug,projectSlug,runId,data,requestOptions)
@@ -8050,13 +8601,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ReviewAutofixRunMutationResult = NonNullable<Awaited<ReturnType<typeof reviewAutofixRun>>>
     export type ReviewAutofixRunMutationBody = BodyType<ReviewAutofixBodyDto>
     export type ReviewAutofixRunMutationError = ErrorType<unknown>
+    export type ReviewAutofixRunMutationVariables = {orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>}
 
     export const useReviewAutofixRun = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAutofixRun>>, TError,{orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAutofixRun>>, TError,ReviewAutofixRunMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof reviewAutofixRun>>,
         TError,
-        {orgSlug: string;projectSlug: string;runId: string;data: BodyType<ReviewAutofixBodyDto>},
+        ReviewAutofixRunMutationVariables,
         TContext
       > => {
       return useMutation(getReviewAutofixRunMutationOptions(options), queryClient);
@@ -8192,11 +8744,25 @@ export const getUpdateOrganizationAiSettingsUrl = (orgSlug: string,) => {
 export const updateOrganizationAiSettings = async (orgSlug: string,
     updateOrganizationAiSettingsBodyDto: UpdateOrganizationAiSettingsBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationAiSettingsResponse> => {
 
-  return orvalFetch<updateOrganizationAiSettingsResponse>(getUpdateOrganizationAiSettingsUrl(orgSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateOrganizationAiSettingsResponse>(getUpdateOrganizationAiSettingsUrl(orgSlug),
   {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateOrganizationAiSettingsBodyDto)
   }
 );}
@@ -8205,11 +8771,13 @@ export const updateOrganizationAiSettings = async (orgSlug: string,
 
 
 
-export const getUpdateOrganizationAiSettingsMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>}, TContext> => {
+export const getUpdateOrganizationAiSettingsMutationKey = () => ['updateOrganizationAiSettings'] as const;
 
-const mutationKey = ['updateOrganizationAiSettings'];
+export const getUpdateOrganizationAiSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, TError,UpdateOrganizationAiSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, TError,UpdateOrganizationAiSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationAiSettingsMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -8219,7 +8787,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, {orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, UpdateOrganizationAiSettingsMutationVariables> = (props) => {
           const {orgSlug,data} = props ?? {};
 
           return  updateOrganizationAiSettings(orgSlug,data,requestOptions)
@@ -8235,13 +8803,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateOrganizationAiSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationAiSettings>>>
     export type UpdateOrganizationAiSettingsMutationBody = BodyType<UpdateOrganizationAiSettingsBodyDto>
     export type UpdateOrganizationAiSettingsMutationError = ErrorType<unknown>
+    export type UpdateOrganizationAiSettingsMutationVariables = {orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>}
 
     export const useUpdateOrganizationAiSettings = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationAiSettings>>, TError,UpdateOrganizationAiSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateOrganizationAiSettings>>,
         TError,
-        {orgSlug: string;data: BodyType<UpdateOrganizationAiSettingsBodyDto>},
+        UpdateOrganizationAiSettingsMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateOrganizationAiSettingsMutationOptions(options), queryClient);
@@ -8496,11 +9065,13 @@ export const replaceOrganizationAiPricingOverrides = async (orgSlug: string, opt
 
 
 
-export const getReplaceOrganizationAiPricingOverridesMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, TError,{orgSlug: string}, TContext> => {
+export const getReplaceOrganizationAiPricingOverridesMutationKey = () => ['replaceOrganizationAiPricingOverrides'] as const;
 
-const mutationKey = ['replaceOrganizationAiPricingOverrides'];
+export const getReplaceOrganizationAiPricingOverridesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, TError,ReplaceOrganizationAiPricingOverridesMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, TError,ReplaceOrganizationAiPricingOverridesMutationVariables, TContext> => {
+
+const mutationKey = getReplaceOrganizationAiPricingOverridesMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -8510,7 +9081,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, {orgSlug: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, ReplaceOrganizationAiPricingOverridesMutationVariables> = (props) => {
           const {orgSlug} = props ?? {};
 
           return  replaceOrganizationAiPricingOverrides(orgSlug,requestOptions)
@@ -8526,13 +9097,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ReplaceOrganizationAiPricingOverridesMutationResult = NonNullable<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>>
 
     export type ReplaceOrganizationAiPricingOverridesMutationError = ErrorType<unknown>
+    export type ReplaceOrganizationAiPricingOverridesMutationVariables = {orgSlug: string}
 
     export const useReplaceOrganizationAiPricingOverrides = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>, TError,ReplaceOrganizationAiPricingOverridesMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof replaceOrganizationAiPricingOverrides>>,
         TError,
-        {orgSlug: string},
+        ReplaceOrganizationAiPricingOverridesMutationVariables,
         TContext
       > => {
       return useMutation(getReplaceOrganizationAiPricingOverridesMutationOptions(options), queryClient);
@@ -8678,11 +9250,25 @@ export const upsertRepoConnection = async (orgSlug: string,
     projectSlug: string,
     upsertRepoConnectionBodyDto: UpsertRepoConnectionBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<upsertRepoConnectionResponse> => {
 
-  return orvalFetch<upsertRepoConnectionResponse>(getUpsertRepoConnectionUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<upsertRepoConnectionResponse>(getUpsertRepoConnectionUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(upsertRepoConnectionBodyDto)
   }
 );}
@@ -8691,11 +9277,13 @@ export const upsertRepoConnection = async (orgSlug: string,
 
 
 
-export const getUpsertRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}, TContext> => {
+export const getUpsertRepoConnectionMutationKey = () => ['upsertRepoConnection'] as const;
 
-const mutationKey = ['upsertRepoConnection'];
+export const getUpsertRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,UpsertRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,UpsertRepoConnectionMutationVariables, TContext> => {
+
+const mutationKey = getUpsertRepoConnectionMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -8705,7 +9293,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertRepoConnection>>, {orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertRepoConnection>>, UpsertRepoConnectionMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  upsertRepoConnection(orgSlug,projectSlug,data,requestOptions)
@@ -8721,13 +9309,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpsertRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof upsertRepoConnection>>>
     export type UpsertRepoConnectionMutationBody = BodyType<UpsertRepoConnectionBodyDto>
     export type UpsertRepoConnectionMutationError = ErrorType<unknown>
+    export type UpsertRepoConnectionMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}
 
     export const useUpsertRepoConnection = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,UpsertRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof upsertRepoConnection>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>},
+        UpsertRepoConnectionMutationVariables,
         TContext
       > => {
       return useMutation(getUpsertRepoConnectionMutationOptions(options), queryClient);
@@ -8770,11 +9359,13 @@ export const deleteRepoConnection = async (orgSlug: string,
 
 
 
-export const getDeleteRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,{orgSlug: string;projectSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,{orgSlug: string;projectSlug: string}, TContext> => {
+export const getDeleteRepoConnectionMutationKey = () => ['deleteRepoConnection'] as const;
 
-const mutationKey = ['deleteRepoConnection'];
+export const getDeleteRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,DeleteRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,DeleteRepoConnectionMutationVariables, TContext> => {
+
+const mutationKey = getDeleteRepoConnectionMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -8784,7 +9375,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRepoConnection>>, {orgSlug: string;projectSlug: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRepoConnection>>, DeleteRepoConnectionMutationVariables> = (props) => {
           const {orgSlug,projectSlug} = props ?? {};
 
           return  deleteRepoConnection(orgSlug,projectSlug,requestOptions)
@@ -8800,13 +9391,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRepoConnection>>>
 
     export type DeleteRepoConnectionMutationError = ErrorType<unknown>
+    export type DeleteRepoConnectionMutationVariables = {orgSlug: string;projectSlug: string}
 
     export const useDeleteRepoConnection = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,{orgSlug: string;projectSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,DeleteRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteRepoConnection>>,
         TError,
-        {orgSlug: string;projectSlug: string},
+        DeleteRepoConnectionMutationVariables,
         TContext
       > => {
       return useMutation(getDeleteRepoConnectionMutationOptions(options), queryClient);
@@ -8837,11 +9429,25 @@ export const testRepoConnection = async (orgSlug: string,
     projectSlug: string,
     testRepoConnectionBodyDto: TestRepoConnectionBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<testRepoConnectionResponse> => {
 
-  return orvalFetch<testRepoConnectionResponse>(getTestRepoConnectionUrl(orgSlug,projectSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<testRepoConnectionResponse>(getTestRepoConnectionUrl(orgSlug,projectSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(testRepoConnectionBodyDto)
   }
 );}
@@ -8850,11 +9456,13 @@ export const testRepoConnection = async (orgSlug: string,
 
 
 
-export const getTestRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}, TContext> => {
+export const getTestRepoConnectionMutationKey = () => ['testRepoConnection'] as const;
 
-const mutationKey = ['testRepoConnection'];
+export const getTestRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,TestRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,TestRepoConnectionMutationVariables, TContext> => {
+
+const mutationKey = getTestRepoConnectionMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -8864,7 +9472,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testRepoConnection>>, {orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testRepoConnection>>, TestRepoConnectionMutationVariables> = (props) => {
           const {orgSlug,projectSlug,data} = props ?? {};
 
           return  testRepoConnection(orgSlug,projectSlug,data,requestOptions)
@@ -8880,13 +9488,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type TestRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof testRepoConnection>>>
     export type TestRepoConnectionMutationBody = BodyType<TestRepoConnectionBodyDto>
     export type TestRepoConnectionMutationError = ErrorType<unknown>
+    export type TestRepoConnectionMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}
 
     export const useTestRepoConnection = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,{orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,TestRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof testRepoConnection>>,
         TError,
-        {orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>},
+        TestRepoConnectionMutationVariables,
         TContext
       > => {
       return useMutation(getTestRepoConnectionMutationOptions(options), queryClient);
@@ -9022,11 +9631,25 @@ export const getUpdateOrganizationGithubAppSettingsUrl = (orgSlug: string,) => {
 export const updateOrganizationGithubAppSettings = async (orgSlug: string,
     updateOrganizationGithubAppSettingsBodyDto: UpdateOrganizationGithubAppSettingsBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationGithubAppSettingsResponse> => {
 
-  return orvalFetch<updateOrganizationGithubAppSettingsResponse>(getUpdateOrganizationGithubAppSettingsUrl(orgSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateOrganizationGithubAppSettingsResponse>(getUpdateOrganizationGithubAppSettingsUrl(orgSlug),
   {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateOrganizationGithubAppSettingsBodyDto)
   }
 );}
@@ -9035,11 +9658,13 @@ export const updateOrganizationGithubAppSettings = async (orgSlug: string,
 
 
 
-export const getUpdateOrganizationGithubAppSettingsMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}, TContext> => {
+export const getUpdateOrganizationGithubAppSettingsMutationKey = () => ['updateOrganizationGithubAppSettings'] as const;
 
-const mutationKey = ['updateOrganizationGithubAppSettings'];
+export const getUpdateOrganizationGithubAppSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,UpdateOrganizationGithubAppSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,UpdateOrganizationGithubAppSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationGithubAppSettingsMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -9049,7 +9674,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, {orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, UpdateOrganizationGithubAppSettingsMutationVariables> = (props) => {
           const {orgSlug,data} = props ?? {};
 
           return  updateOrganizationGithubAppSettings(orgSlug,data,requestOptions)
@@ -9065,13 +9690,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateOrganizationGithubAppSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>>
     export type UpdateOrganizationGithubAppSettingsMutationBody = BodyType<UpdateOrganizationGithubAppSettingsBodyDto>
     export type UpdateOrganizationGithubAppSettingsMutationError = ErrorType<unknown>
+    export type UpdateOrganizationGithubAppSettingsMutationVariables = {orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}
 
     export const useUpdateOrganizationGithubAppSettings = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,{orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,UpdateOrganizationGithubAppSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>,
         TError,
-        {orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>},
+        UpdateOrganizationGithubAppSettingsMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateOrganizationGithubAppSettingsMutationOptions(options), queryClient);
@@ -9207,11 +9833,25 @@ export const getCreateOrganizationGithubAppManifestUrl = (orgSlug: string,) => {
 export const createOrganizationGithubAppManifest = async (orgSlug: string,
     createGithubAppManifestBodyDto: CreateGithubAppManifestBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationGithubAppManifestResponse> => {
 
-  return orvalFetch<createOrganizationGithubAppManifestResponse>(getCreateOrganizationGithubAppManifestUrl(orgSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createOrganizationGithubAppManifestResponse>(getCreateOrganizationGithubAppManifestUrl(orgSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createGithubAppManifestBodyDto)
   }
 );}
@@ -9220,11 +9860,13 @@ export const createOrganizationGithubAppManifest = async (orgSlug: string,
 
 
 
-export const getCreateOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}, TContext> => {
+export const getCreateOrganizationGithubAppManifestMutationKey = () => ['createOrganizationGithubAppManifest'] as const;
 
-const mutationKey = ['createOrganizationGithubAppManifest'];
+export const getCreateOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,CreateOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,CreateOrganizationGithubAppManifestMutationVariables, TContext> => {
+
+const mutationKey = getCreateOrganizationGithubAppManifestMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -9234,7 +9876,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, {orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, CreateOrganizationGithubAppManifestMutationVariables> = (props) => {
           const {orgSlug,data} = props ?? {};
 
           return  createOrganizationGithubAppManifest(orgSlug,data,requestOptions)
@@ -9250,13 +9892,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateOrganizationGithubAppManifestMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>>
     export type CreateOrganizationGithubAppManifestMutationBody = BodyType<CreateGithubAppManifestBodyDto>
     export type CreateOrganizationGithubAppManifestMutationError = ErrorType<unknown>
+    export type CreateOrganizationGithubAppManifestMutationVariables = {orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}
 
     export const useCreateOrganizationGithubAppManifest = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,CreateOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>,
         TError,
-        {orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>},
+        CreateOrganizationGithubAppManifestMutationVariables,
         TContext
       > => {
       return useMutation(getCreateOrganizationGithubAppManifestMutationOptions(options), queryClient);
@@ -9285,11 +9928,25 @@ export const getCompleteOrganizationGithubAppManifestUrl = (orgSlug: string,) =>
 export const completeOrganizationGithubAppManifest = async (orgSlug: string,
     completeGithubAppManifestBodyDto: CompleteGithubAppManifestBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<completeOrganizationGithubAppManifestResponse> => {
 
-  return orvalFetch<completeOrganizationGithubAppManifestResponse>(getCompleteOrganizationGithubAppManifestUrl(orgSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<completeOrganizationGithubAppManifestResponse>(getCompleteOrganizationGithubAppManifestUrl(orgSlug),
   {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(completeGithubAppManifestBodyDto)
   }
 );}
@@ -9298,11 +9955,13 @@ export const completeOrganizationGithubAppManifest = async (orgSlug: string,
 
 
 
-export const getCompleteOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}, TContext> => {
+export const getCompleteOrganizationGithubAppManifestMutationKey = () => ['completeOrganizationGithubAppManifest'] as const;
 
-const mutationKey = ['completeOrganizationGithubAppManifest'];
+export const getCompleteOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,CompleteOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,CompleteOrganizationGithubAppManifestMutationVariables, TContext> => {
+
+const mutationKey = getCompleteOrganizationGithubAppManifestMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -9312,7 +9971,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, {orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, CompleteOrganizationGithubAppManifestMutationVariables> = (props) => {
           const {orgSlug,data} = props ?? {};
 
           return  completeOrganizationGithubAppManifest(orgSlug,data,requestOptions)
@@ -9328,13 +9987,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CompleteOrganizationGithubAppManifestMutationResult = NonNullable<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>>
     export type CompleteOrganizationGithubAppManifestMutationBody = BodyType<CompleteGithubAppManifestBodyDto>
     export type CompleteOrganizationGithubAppManifestMutationError = ErrorType<unknown>
+    export type CompleteOrganizationGithubAppManifestMutationVariables = {orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}
 
     export const useCompleteOrganizationGithubAppManifest = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,CompleteOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>,
         TError,
-        {orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>},
+        CompleteOrganizationGithubAppManifestMutationVariables,
         TContext
       > => {
       return useMutation(getCompleteOrganizationGithubAppManifestMutationOptions(options), queryClient);
@@ -9482,11 +10142,13 @@ export const syncOrganizationGithubRepositories = async (orgSlug: string, option
 
 
 
-export const getSyncOrganizationGithubRepositoriesMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,{orgSlug: string}, TContext> => {
+export const getSyncOrganizationGithubRepositoriesMutationKey = () => ['syncOrganizationGithubRepositories'] as const;
 
-const mutationKey = ['syncOrganizationGithubRepositories'];
+export const getSyncOrganizationGithubRepositoriesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,SyncOrganizationGithubRepositoriesMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,SyncOrganizationGithubRepositoriesMutationVariables, TContext> => {
+
+const mutationKey = getSyncOrganizationGithubRepositoriesMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -9496,7 +10158,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, {orgSlug: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, SyncOrganizationGithubRepositoriesMutationVariables> = (props) => {
           const {orgSlug} = props ?? {};
 
           return  syncOrganizationGithubRepositories(orgSlug,requestOptions)
@@ -9512,13 +10174,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SyncOrganizationGithubRepositoriesMutationResult = NonNullable<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>>
 
     export type SyncOrganizationGithubRepositoriesMutationError = ErrorType<unknown>
+    export type SyncOrganizationGithubRepositoriesMutationVariables = {orgSlug: string}
 
     export const useSyncOrganizationGithubRepositories = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,SyncOrganizationGithubRepositoriesMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>,
         TError,
-        {orgSlug: string},
+        SyncOrganizationGithubRepositoriesMutationVariables,
         TContext
       > => {
       return useMutation(getSyncOrganizationGithubRepositoriesMutationOptions(options), queryClient);
@@ -9547,11 +10210,25 @@ export const getCompleteOrganizationGithubAppInstallationUrl = (orgSlug: string,
 export const completeOrganizationGithubAppInstallation = async (orgSlug: string,
     completeGithubAppInstallationBodyDto: CompleteGithubAppInstallationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<completeOrganizationGithubAppInstallationResponse> => {
 
-  return orvalFetch<completeOrganizationGithubAppInstallationResponse>(getCompleteOrganizationGithubAppInstallationUrl(orgSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<completeOrganizationGithubAppInstallationResponse>(getCompleteOrganizationGithubAppInstallationUrl(orgSlug),
   {
     ...options,
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(completeGithubAppInstallationBodyDto)
   }
 );}
@@ -9560,11 +10237,13 @@ export const completeOrganizationGithubAppInstallation = async (orgSlug: string,
 
 
 
-export const getCompleteOrganizationGithubAppInstallationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}, TContext> => {
+export const getCompleteOrganizationGithubAppInstallationMutationKey = () => ['completeOrganizationGithubAppInstallation'] as const;
 
-const mutationKey = ['completeOrganizationGithubAppInstallation'];
+export const getCompleteOrganizationGithubAppInstallationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,CompleteOrganizationGithubAppInstallationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,CompleteOrganizationGithubAppInstallationMutationVariables, TContext> => {
+
+const mutationKey = getCompleteOrganizationGithubAppInstallationMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -9574,7 +10253,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, {orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, CompleteOrganizationGithubAppInstallationMutationVariables> = (props) => {
           const {orgSlug,data} = props ?? {};
 
           return  completeOrganizationGithubAppInstallation(orgSlug,data,requestOptions)
@@ -9590,13 +10269,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CompleteOrganizationGithubAppInstallationMutationResult = NonNullable<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>>
     export type CompleteOrganizationGithubAppInstallationMutationBody = BodyType<CompleteGithubAppInstallationBodyDto>
     export type CompleteOrganizationGithubAppInstallationMutationError = ErrorType<unknown>
+    export type CompleteOrganizationGithubAppInstallationMutationVariables = {orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}
 
     export const useCompleteOrganizationGithubAppInstallation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,{orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,CompleteOrganizationGithubAppInstallationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>,
         TError,
-        {orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>},
+        CompleteOrganizationGithubAppInstallationMutationVariables,
         TContext
       > => {
       return useMutation(getCompleteOrganizationGithubAppInstallationMutationOptions(options), queryClient);
@@ -9731,11 +10411,25 @@ export const getCreateOrganizationUrl = () => {
 
 export const createOrganization = async (createOrganizationBodyDto: CreateOrganizationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationResponse> => {
 
-  return orvalFetch<createOrganizationResponse>(getCreateOrganizationUrl(),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createOrganizationResponse>(getCreateOrganizationUrl(),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createOrganizationBodyDto)
   }
 );}
@@ -9744,11 +10438,13 @@ export const createOrganization = async (createOrganizationBodyDto: CreateOrgani
 
 
 
-export const getCreateOrganizationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,{data: BodyType<CreateOrganizationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,{data: BodyType<CreateOrganizationBodyDto>}, TContext> => {
+export const getCreateOrganizationMutationKey = () => ['createOrganization'] as const;
 
-const mutationKey = ['createOrganization'];
+export const getCreateOrganizationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,CreateOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,CreateOrganizationMutationVariables, TContext> => {
+
+const mutationKey = getCreateOrganizationMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -9758,7 +10454,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganization>>, {data: BodyType<CreateOrganizationBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganization>>, CreateOrganizationMutationVariables> = (props) => {
           const {data} = props ?? {};
 
           return  createOrganization(data,requestOptions)
@@ -9774,13 +10470,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateOrganizationMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganization>>>
     export type CreateOrganizationMutationBody = BodyType<CreateOrganizationBodyDto>
     export type CreateOrganizationMutationError = ErrorType<unknown>
+    export type CreateOrganizationMutationVariables = {data: BodyType<CreateOrganizationBodyDto>}
 
     export const useCreateOrganization = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,{data: BodyType<CreateOrganizationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,CreateOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createOrganization>>,
         TError,
-        {data: BodyType<CreateOrganizationBodyDto>},
+        CreateOrganizationMutationVariables,
         TContext
       > => {
       return useMutation(getCreateOrganizationMutationOptions(options), queryClient);
@@ -9928,11 +10625,13 @@ export const deleteOrganization = async (orgSlug: string, options?: Parameters<t
 
 
 
-export const getDeleteOrganizationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganization>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteOrganization>>, TError,{orgSlug: string}, TContext> => {
+export const getDeleteOrganizationMutationKey = () => ['deleteOrganization'] as const;
 
-const mutationKey = ['deleteOrganization'];
+export const getDeleteOrganizationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganization>>, TError,DeleteOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteOrganization>>, TError,DeleteOrganizationMutationVariables, TContext> => {
+
+const mutationKey = getDeleteOrganizationMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -9942,7 +10641,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOrganization>>, {orgSlug: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOrganization>>, DeleteOrganizationMutationVariables> = (props) => {
           const {orgSlug} = props ?? {};
 
           return  deleteOrganization(orgSlug,requestOptions)
@@ -9958,13 +10657,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteOrganizationMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOrganization>>>
 
     export type DeleteOrganizationMutationError = ErrorType<unknown>
+    export type DeleteOrganizationMutationVariables = {orgSlug: string}
 
     export const useDeleteOrganization = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganization>>, TError,{orgSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganization>>, TError,DeleteOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteOrganization>>,
         TError,
-        {orgSlug: string},
+        DeleteOrganizationMutationVariables,
         TContext
       > => {
       return useMutation(getDeleteOrganizationMutationOptions(options), queryClient);
@@ -10207,11 +10907,25 @@ export const getCreateOrganizationRoleUrl = (orgSlug: string,) => {
 export const createOrganizationRole = async (orgSlug: string,
     createOrganizationRoleBodyDto: CreateOrganizationRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationRoleResponse> => {
 
-  return orvalFetch<createOrganizationRoleResponse>(getCreateOrganizationRoleUrl(orgSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createOrganizationRoleResponse>(getCreateOrganizationRoleUrl(orgSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createOrganizationRoleBodyDto)
   }
 );}
@@ -10220,11 +10934,13 @@ export const createOrganizationRole = async (orgSlug: string,
 
 
 
-export const getCreateOrganizationRoleMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationRole>>, TError,{orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationRole>>, TError,{orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>}, TContext> => {
+export const getCreateOrganizationRoleMutationKey = () => ['createOrganizationRole'] as const;
 
-const mutationKey = ['createOrganizationRole'];
+export const getCreateOrganizationRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationRole>>, TError,CreateOrganizationRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationRole>>, TError,CreateOrganizationRoleMutationVariables, TContext> => {
+
+const mutationKey = getCreateOrganizationRoleMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -10234,7 +10950,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationRole>>, {orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationRole>>, CreateOrganizationRoleMutationVariables> = (props) => {
           const {orgSlug,data} = props ?? {};
 
           return  createOrganizationRole(orgSlug,data,requestOptions)
@@ -10250,13 +10966,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateOrganizationRoleMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationRole>>>
     export type CreateOrganizationRoleMutationBody = BodyType<CreateOrganizationRoleBodyDto>
     export type CreateOrganizationRoleMutationError = ErrorType<unknown>
+    export type CreateOrganizationRoleMutationVariables = {orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>}
 
     export const useCreateOrganizationRole = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationRole>>, TError,{orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationRole>>, TError,CreateOrganizationRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createOrganizationRole>>,
         TError,
-        {orgSlug: string;data: BodyType<CreateOrganizationRoleBodyDto>},
+        CreateOrganizationRoleMutationVariables,
         TContext
       > => {
       return useMutation(getCreateOrganizationRoleMutationOptions(options), queryClient);
@@ -10287,11 +11004,25 @@ export const updateOrganizationRole = async (orgSlug: string,
     roleKey: string,
     updateOrganizationRoleBodyDto: UpdateOrganizationRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationRoleResponse> => {
 
-  return orvalFetch<updateOrganizationRoleResponse>(getUpdateOrganizationRoleUrl(orgSlug,roleKey),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateOrganizationRoleResponse>(getUpdateOrganizationRoleUrl(orgSlug,roleKey),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateOrganizationRoleBodyDto)
   }
 );}
@@ -10300,11 +11031,13 @@ export const updateOrganizationRole = async (orgSlug: string,
 
 
 
-export const getUpdateOrganizationRoleMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationRole>>, TError,{orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationRole>>, TError,{orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>}, TContext> => {
+export const getUpdateOrganizationRoleMutationKey = () => ['updateOrganizationRole'] as const;
 
-const mutationKey = ['updateOrganizationRole'];
+export const getUpdateOrganizationRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationRole>>, TError,UpdateOrganizationRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationRole>>, TError,UpdateOrganizationRoleMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationRoleMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -10314,7 +11047,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationRole>>, {orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationRole>>, UpdateOrganizationRoleMutationVariables> = (props) => {
           const {orgSlug,roleKey,data} = props ?? {};
 
           return  updateOrganizationRole(orgSlug,roleKey,data,requestOptions)
@@ -10330,13 +11063,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateOrganizationRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationRole>>>
     export type UpdateOrganizationRoleMutationBody = BodyType<UpdateOrganizationRoleBodyDto>
     export type UpdateOrganizationRoleMutationError = ErrorType<unknown>
+    export type UpdateOrganizationRoleMutationVariables = {orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>}
 
     export const useUpdateOrganizationRole = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationRole>>, TError,{orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationRole>>, TError,UpdateOrganizationRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateOrganizationRole>>,
         TError,
-        {orgSlug: string;roleKey: string;data: BodyType<UpdateOrganizationRoleBodyDto>},
+        UpdateOrganizationRoleMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateOrganizationRoleMutationOptions(options), queryClient);
@@ -10379,11 +11113,13 @@ export const deleteOrganizationRole = async (orgSlug: string,
 
 
 
-export const getDeleteOrganizationRoleMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationRole>>, TError,{orgSlug: string;roleKey: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationRole>>, TError,{orgSlug: string;roleKey: string}, TContext> => {
+export const getDeleteOrganizationRoleMutationKey = () => ['deleteOrganizationRole'] as const;
 
-const mutationKey = ['deleteOrganizationRole'];
+export const getDeleteOrganizationRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationRole>>, TError,DeleteOrganizationRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationRole>>, TError,DeleteOrganizationRoleMutationVariables, TContext> => {
+
+const mutationKey = getDeleteOrganizationRoleMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -10393,7 +11129,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOrganizationRole>>, {orgSlug: string;roleKey: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOrganizationRole>>, DeleteOrganizationRoleMutationVariables> = (props) => {
           const {orgSlug,roleKey} = props ?? {};
 
           return  deleteOrganizationRole(orgSlug,roleKey,requestOptions)
@@ -10409,13 +11145,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteOrganizationRoleMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOrganizationRole>>>
 
     export type DeleteOrganizationRoleMutationError = ErrorType<unknown>
+    export type DeleteOrganizationRoleMutationVariables = {orgSlug: string;roleKey: string}
 
     export const useDeleteOrganizationRole = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationRole>>, TError,{orgSlug: string;roleKey: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationRole>>, TError,DeleteOrganizationRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteOrganizationRole>>,
         TError,
-        {orgSlug: string;roleKey: string},
+        DeleteOrganizationRoleMutationVariables,
         TContext
       > => {
       return useMutation(getDeleteOrganizationRoleMutationOptions(options), queryClient);
@@ -10687,11 +11424,13 @@ export const requeueOrganizationJob = async (orgSlug: string,
 
 
 
-export const getRequeueOrganizationJobMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requeueOrganizationJob>>, TError,{orgSlug: string;jobId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof requeueOrganizationJob>>, TError,{orgSlug: string;jobId: string}, TContext> => {
+export const getRequeueOrganizationJobMutationKey = () => ['requeueOrganizationJob'] as const;
 
-const mutationKey = ['requeueOrganizationJob'];
+export const getRequeueOrganizationJobMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requeueOrganizationJob>>, TError,RequeueOrganizationJobMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requeueOrganizationJob>>, TError,RequeueOrganizationJobMutationVariables, TContext> => {
+
+const mutationKey = getRequeueOrganizationJobMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -10701,7 +11440,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requeueOrganizationJob>>, {orgSlug: string;jobId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requeueOrganizationJob>>, RequeueOrganizationJobMutationVariables> = (props) => {
           const {orgSlug,jobId} = props ?? {};
 
           return  requeueOrganizationJob(orgSlug,jobId,requestOptions)
@@ -10717,13 +11456,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RequeueOrganizationJobMutationResult = NonNullable<Awaited<ReturnType<typeof requeueOrganizationJob>>>
 
     export type RequeueOrganizationJobMutationError = ErrorType<unknown>
+    export type RequeueOrganizationJobMutationVariables = {orgSlug: string;jobId: string}
 
     export const useRequeueOrganizationJob = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requeueOrganizationJob>>, TError,{orgSlug: string;jobId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requeueOrganizationJob>>, TError,RequeueOrganizationJobMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof requeueOrganizationJob>>,
         TError,
-        {orgSlug: string;jobId: string},
+        RequeueOrganizationJobMutationVariables,
         TContext
       > => {
       return useMutation(getRequeueOrganizationJobMutationOptions(options), queryClient);
@@ -10752,11 +11492,25 @@ export const getCreateOrganizationInvitationUrl = (orgSlug: string,) => {
 export const createOrganizationInvitation = async (orgSlug: string,
     createInvitationBodyDto: CreateInvitationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationInvitationResponse> => {
 
-  return orvalFetch<createOrganizationInvitationResponse>(getCreateOrganizationInvitationUrl(orgSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createOrganizationInvitationResponse>(getCreateOrganizationInvitationUrl(orgSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createInvitationBodyDto)
   }
 );}
@@ -10765,11 +11519,13 @@ export const createOrganizationInvitation = async (orgSlug: string,
 
 
 
-export const getCreateOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationInvitation>>, TError,{orgSlug: string;data: BodyType<CreateInvitationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationInvitation>>, TError,{orgSlug: string;data: BodyType<CreateInvitationBodyDto>}, TContext> => {
+export const getCreateOrganizationInvitationMutationKey = () => ['createOrganizationInvitation'] as const;
 
-const mutationKey = ['createOrganizationInvitation'];
+export const getCreateOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationInvitation>>, TError,CreateOrganizationInvitationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationInvitation>>, TError,CreateOrganizationInvitationMutationVariables, TContext> => {
+
+const mutationKey = getCreateOrganizationInvitationMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -10779,7 +11535,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationInvitation>>, {orgSlug: string;data: BodyType<CreateInvitationBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationInvitation>>, CreateOrganizationInvitationMutationVariables> = (props) => {
           const {orgSlug,data} = props ?? {};
 
           return  createOrganizationInvitation(orgSlug,data,requestOptions)
@@ -10795,13 +11551,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationInvitation>>>
     export type CreateOrganizationInvitationMutationBody = BodyType<CreateInvitationBodyDto>
     export type CreateOrganizationInvitationMutationError = ErrorType<unknown>
+    export type CreateOrganizationInvitationMutationVariables = {orgSlug: string;data: BodyType<CreateInvitationBodyDto>}
 
     export const useCreateOrganizationInvitation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationInvitation>>, TError,{orgSlug: string;data: BodyType<CreateInvitationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationInvitation>>, TError,CreateOrganizationInvitationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createOrganizationInvitation>>,
         TError,
-        {orgSlug: string;data: BodyType<CreateInvitationBodyDto>},
+        CreateOrganizationInvitationMutationVariables,
         TContext
       > => {
       return useMutation(getCreateOrganizationInvitationMutationOptions(options), queryClient);
@@ -10951,11 +11708,13 @@ export const resendOrganizationInvitation = async (orgSlug: string,
 
 
 
-export const getResendOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext> => {
+export const getResendOrganizationInvitationMutationKey = () => ['resendOrganizationInvitation'] as const;
 
-const mutationKey = ['resendOrganizationInvitation'];
+export const getResendOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,ResendOrganizationInvitationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,ResendOrganizationInvitationMutationVariables, TContext> => {
+
+const mutationKey = getResendOrganizationInvitationMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -10965,7 +11724,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendOrganizationInvitation>>, {orgSlug: string;invitationId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendOrganizationInvitation>>, ResendOrganizationInvitationMutationVariables> = (props) => {
           const {orgSlug,invitationId} = props ?? {};
 
           return  resendOrganizationInvitation(orgSlug,invitationId,requestOptions)
@@ -10981,13 +11740,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ResendOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof resendOrganizationInvitation>>>
 
     export type ResendOrganizationInvitationMutationError = ErrorType<unknown>
+    export type ResendOrganizationInvitationMutationVariables = {orgSlug: string;invitationId: string}
 
     export const useResendOrganizationInvitation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrganizationInvitation>>, TError,ResendOrganizationInvitationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof resendOrganizationInvitation>>,
         TError,
-        {orgSlug: string;invitationId: string},
+        ResendOrganizationInvitationMutationVariables,
         TContext
       > => {
       return useMutation(getResendOrganizationInvitationMutationOptions(options), queryClient);
@@ -11030,11 +11790,13 @@ export const revokeOrganizationInvitation = async (orgSlug: string,
 
 
 
-export const getRevokeOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext> => {
+export const getRevokeOrganizationInvitationMutationKey = () => ['revokeOrganizationInvitation'] as const;
 
-const mutationKey = ['revokeOrganizationInvitation'];
+export const getRevokeOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, TError,RevokeOrganizationInvitationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, TError,RevokeOrganizationInvitationMutationVariables, TContext> => {
+
+const mutationKey = getRevokeOrganizationInvitationMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -11044,7 +11806,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, {orgSlug: string;invitationId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, RevokeOrganizationInvitationMutationVariables> = (props) => {
           const {orgSlug,invitationId} = props ?? {};
 
           return  revokeOrganizationInvitation(orgSlug,invitationId,requestOptions)
@@ -11060,13 +11822,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RevokeOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof revokeOrganizationInvitation>>>
 
     export type RevokeOrganizationInvitationMutationError = ErrorType<unknown>
+    export type RevokeOrganizationInvitationMutationVariables = {orgSlug: string;invitationId: string}
 
     export const useRevokeOrganizationInvitation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, TError,{orgSlug: string;invitationId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOrganizationInvitation>>, TError,RevokeOrganizationInvitationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof revokeOrganizationInvitation>>,
         TError,
-        {orgSlug: string;invitationId: string},
+        RevokeOrganizationInvitationMutationVariables,
         TContext
       > => {
       return useMutation(getRevokeOrganizationInvitationMutationOptions(options), queryClient);
@@ -11094,11 +11857,25 @@ export const getAcceptOrganizationInvitationUrl = () => {
 
 export const acceptOrganizationInvitation = async (acceptInvitationBodyDto: AcceptInvitationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<acceptOrganizationInvitationResponse> => {
 
-  return orvalFetch<acceptOrganizationInvitationResponse>(getAcceptOrganizationInvitationUrl(),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<acceptOrganizationInvitationResponse>(getAcceptOrganizationInvitationUrl(),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(acceptInvitationBodyDto)
   }
 );}
@@ -11107,11 +11884,13 @@ export const acceptOrganizationInvitation = async (acceptInvitationBodyDto: Acce
 
 
 
-export const getAcceptOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,{data: BodyType<AcceptInvitationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,{data: BodyType<AcceptInvitationBodyDto>}, TContext> => {
+export const getAcceptOrganizationInvitationMutationKey = () => ['acceptOrganizationInvitation'] as const;
 
-const mutationKey = ['acceptOrganizationInvitation'];
+export const getAcceptOrganizationInvitationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,AcceptOrganizationInvitationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,AcceptOrganizationInvitationMutationVariables, TContext> => {
+
+const mutationKey = getAcceptOrganizationInvitationMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -11121,7 +11900,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, {data: BodyType<AcceptInvitationBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, AcceptOrganizationInvitationMutationVariables> = (props) => {
           const {data} = props ?? {};
 
           return  acceptOrganizationInvitation(data,requestOptions)
@@ -11137,13 +11916,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type AcceptOrganizationInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof acceptOrganizationInvitation>>>
     export type AcceptOrganizationInvitationMutationBody = BodyType<AcceptInvitationBodyDto>
     export type AcceptOrganizationInvitationMutationError = ErrorType<unknown>
+    export type AcceptOrganizationInvitationMutationVariables = {data: BodyType<AcceptInvitationBodyDto>}
 
     export const useAcceptOrganizationInvitation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,{data: BodyType<AcceptInvitationBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptOrganizationInvitation>>, TError,AcceptOrganizationInvitationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof acceptOrganizationInvitation>>,
         TError,
-        {data: BodyType<AcceptInvitationBodyDto>},
+        AcceptOrganizationInvitationMutationVariables,
         TContext
       > => {
       return useMutation(getAcceptOrganizationInvitationMutationOptions(options), queryClient);
@@ -11174,11 +11954,25 @@ export const updateOrganizationMemberRole = async (orgSlug: string,
     memberId: string,
     updateMemberRoleBodyDto: UpdateMemberRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationMemberRoleResponse> => {
 
-  return orvalFetch<updateOrganizationMemberRoleResponse>(getUpdateOrganizationMemberRoleUrl(orgSlug,memberId),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateOrganizationMemberRoleResponse>(getUpdateOrganizationMemberRoleUrl(orgSlug,memberId),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateMemberRoleBodyDto)
   }
 );}
@@ -11187,11 +11981,13 @@ export const updateOrganizationMemberRole = async (orgSlug: string,
 
 
 
-export const getUpdateOrganizationMemberRoleMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, TError,{orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, TError,{orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>}, TContext> => {
+export const getUpdateOrganizationMemberRoleMutationKey = () => ['updateOrganizationMemberRole'] as const;
 
-const mutationKey = ['updateOrganizationMemberRole'];
+export const getUpdateOrganizationMemberRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, TError,UpdateOrganizationMemberRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, TError,UpdateOrganizationMemberRoleMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationMemberRoleMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -11201,7 +11997,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, {orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, UpdateOrganizationMemberRoleMutationVariables> = (props) => {
           const {orgSlug,memberId,data} = props ?? {};
 
           return  updateOrganizationMemberRole(orgSlug,memberId,data,requestOptions)
@@ -11217,13 +12013,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateOrganizationMemberRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationMemberRole>>>
     export type UpdateOrganizationMemberRoleMutationBody = BodyType<UpdateMemberRoleBodyDto>
     export type UpdateOrganizationMemberRoleMutationError = ErrorType<unknown>
+    export type UpdateOrganizationMemberRoleMutationVariables = {orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>}
 
     export const useUpdateOrganizationMemberRole = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, TError,{orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationMemberRole>>, TError,UpdateOrganizationMemberRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateOrganizationMemberRole>>,
         TError,
-        {orgSlug: string;memberId: string;data: BodyType<UpdateMemberRoleBodyDto>},
+        UpdateOrganizationMemberRoleMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateOrganizationMemberRoleMutationOptions(options), queryClient);
@@ -11266,11 +12063,13 @@ export const removeOrganizationMember = async (orgSlug: string,
 
 
 
-export const getRemoveOrganizationMemberMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeOrganizationMember>>, TError,{orgSlug: string;memberId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof removeOrganizationMember>>, TError,{orgSlug: string;memberId: string}, TContext> => {
+export const getRemoveOrganizationMemberMutationKey = () => ['removeOrganizationMember'] as const;
 
-const mutationKey = ['removeOrganizationMember'];
+export const getRemoveOrganizationMemberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeOrganizationMember>>, TError,RemoveOrganizationMemberMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeOrganizationMember>>, TError,RemoveOrganizationMemberMutationVariables, TContext> => {
+
+const mutationKey = getRemoveOrganizationMemberMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -11280,7 +12079,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeOrganizationMember>>, {orgSlug: string;memberId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeOrganizationMember>>, RemoveOrganizationMemberMutationVariables> = (props) => {
           const {orgSlug,memberId} = props ?? {};
 
           return  removeOrganizationMember(orgSlug,memberId,requestOptions)
@@ -11296,13 +12095,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RemoveOrganizationMemberMutationResult = NonNullable<Awaited<ReturnType<typeof removeOrganizationMember>>>
 
     export type RemoveOrganizationMemberMutationError = ErrorType<unknown>
+    export type RemoveOrganizationMemberMutationVariables = {orgSlug: string;memberId: string}
 
     export const useRemoveOrganizationMember = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeOrganizationMember>>, TError,{orgSlug: string;memberId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeOrganizationMember>>, TError,RemoveOrganizationMemberMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof removeOrganizationMember>>,
         TError,
-        {orgSlug: string;memberId: string},
+        RemoveOrganizationMemberMutationVariables,
         TContext
       > => {
       return useMutation(getRemoveOrganizationMemberMutationOptions(options), queryClient);
@@ -11438,11 +12238,25 @@ export const getCreateTeamUrl = (orgSlug: string,) => {
 export const createTeam = async (orgSlug: string,
     createTeamBodyDto: CreateTeamBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createTeamResponse> => {
 
-  return orvalFetch<createTeamResponse>(getCreateTeamUrl(orgSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createTeamResponse>(getCreateTeamUrl(orgSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createTeamBodyDto)
   }
 );}
@@ -11451,11 +12265,13 @@ export const createTeam = async (orgSlug: string,
 
 
 
-export const getCreateTeamMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,{orgSlug: string;data: BodyType<CreateTeamBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,{orgSlug: string;data: BodyType<CreateTeamBodyDto>}, TContext> => {
+export const getCreateTeamMutationKey = () => ['createTeam'] as const;
 
-const mutationKey = ['createTeam'];
+export const getCreateTeamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,CreateTeamMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,CreateTeamMutationVariables, TContext> => {
+
+const mutationKey = getCreateTeamMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -11465,7 +12281,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTeam>>, {orgSlug: string;data: BodyType<CreateTeamBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTeam>>, CreateTeamMutationVariables> = (props) => {
           const {orgSlug,data} = props ?? {};
 
           return  createTeam(orgSlug,data,requestOptions)
@@ -11481,13 +12297,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof createTeam>>>
     export type CreateTeamMutationBody = BodyType<CreateTeamBodyDto>
     export type CreateTeamMutationError = ErrorType<unknown>
+    export type CreateTeamMutationVariables = {orgSlug: string;data: BodyType<CreateTeamBodyDto>}
 
     export const useCreateTeam = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,{orgSlug: string;data: BodyType<CreateTeamBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,CreateTeamMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createTeam>>,
         TError,
-        {orgSlug: string;data: BodyType<CreateTeamBodyDto>},
+        CreateTeamMutationVariables,
         TContext
       > => {
       return useMutation(getCreateTeamMutationOptions(options), queryClient);
@@ -11518,11 +12335,25 @@ export const updateTeam = async (orgSlug: string,
     teamSlug: string,
     updateTeamBodyDto: UpdateTeamBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateTeamResponse> => {
 
-  return orvalFetch<updateTeamResponse>(getUpdateTeamUrl(orgSlug,teamSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateTeamResponse>(getUpdateTeamUrl(orgSlug,teamSlug),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateTeamBodyDto)
   }
 );}
@@ -11531,11 +12362,13 @@ export const updateTeam = async (orgSlug: string,
 
 
 
-export const getUpdateTeamMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>}, TContext> => {
+export const getUpdateTeamMutationKey = () => ['updateTeam'] as const;
 
-const mutationKey = ['updateTeam'];
+export const getUpdateTeamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,UpdateTeamMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,UpdateTeamMutationVariables, TContext> => {
+
+const mutationKey = getUpdateTeamMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -11545,7 +12378,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTeam>>, {orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTeam>>, UpdateTeamMutationVariables> = (props) => {
           const {orgSlug,teamSlug,data} = props ?? {};
 
           return  updateTeam(orgSlug,teamSlug,data,requestOptions)
@@ -11561,13 +12394,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof updateTeam>>>
     export type UpdateTeamMutationBody = BodyType<UpdateTeamBodyDto>
     export type UpdateTeamMutationError = ErrorType<unknown>
+    export type UpdateTeamMutationVariables = {orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>}
 
     export const useUpdateTeam = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,UpdateTeamMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateTeam>>,
         TError,
-        {orgSlug: string;teamSlug: string;data: BodyType<UpdateTeamBodyDto>},
+        UpdateTeamMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateTeamMutationOptions(options), queryClient);
@@ -11610,11 +12444,13 @@ export const deleteTeam = async (orgSlug: string,
 
 
 
-export const getDeleteTeamMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,{orgSlug: string;teamSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,{orgSlug: string;teamSlug: string}, TContext> => {
+export const getDeleteTeamMutationKey = () => ['deleteTeam'] as const;
 
-const mutationKey = ['deleteTeam'];
+export const getDeleteTeamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,DeleteTeamMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,DeleteTeamMutationVariables, TContext> => {
+
+const mutationKey = getDeleteTeamMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -11624,7 +12460,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTeam>>, {orgSlug: string;teamSlug: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTeam>>, DeleteTeamMutationVariables> = (props) => {
           const {orgSlug,teamSlug} = props ?? {};
 
           return  deleteTeam(orgSlug,teamSlug,requestOptions)
@@ -11640,13 +12476,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteTeamMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTeam>>>
 
     export type DeleteTeamMutationError = ErrorType<unknown>
+    export type DeleteTeamMutationVariables = {orgSlug: string;teamSlug: string}
 
     export const useDeleteTeam = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,{orgSlug: string;teamSlug: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,DeleteTeamMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteTeam>>,
         TError,
-        {orgSlug: string;teamSlug: string},
+        DeleteTeamMutationVariables,
         TContext
       > => {
       return useMutation(getDeleteTeamMutationOptions(options), queryClient);
@@ -11792,11 +12629,25 @@ export const addTeamMember = async (orgSlug: string,
     teamSlug: string,
     addTeamMemberBodyDto: AddTeamMemberBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<addTeamMemberResponse> => {
 
-  return orvalFetch<addTeamMemberResponse>(getAddTeamMemberUrl(orgSlug,teamSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<addTeamMemberResponse>(getAddTeamMemberUrl(orgSlug,teamSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(addTeamMemberBodyDto)
   }
 );}
@@ -11805,11 +12656,13 @@ export const addTeamMember = async (orgSlug: string,
 
 
 
-export const getAddTeamMemberMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTeamMember>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof addTeamMember>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>}, TContext> => {
+export const getAddTeamMemberMutationKey = () => ['addTeamMember'] as const;
 
-const mutationKey = ['addTeamMember'];
+export const getAddTeamMemberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTeamMember>>, TError,AddTeamMemberMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addTeamMember>>, TError,AddTeamMemberMutationVariables, TContext> => {
+
+const mutationKey = getAddTeamMemberMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -11819,7 +12672,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addTeamMember>>, {orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addTeamMember>>, AddTeamMemberMutationVariables> = (props) => {
           const {orgSlug,teamSlug,data} = props ?? {};
 
           return  addTeamMember(orgSlug,teamSlug,data,requestOptions)
@@ -11835,13 +12688,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type AddTeamMemberMutationResult = NonNullable<Awaited<ReturnType<typeof addTeamMember>>>
     export type AddTeamMemberMutationBody = BodyType<AddTeamMemberBodyDto>
     export type AddTeamMemberMutationError = ErrorType<unknown>
+    export type AddTeamMemberMutationVariables = {orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>}
 
     export const useAddTeamMember = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTeamMember>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTeamMember>>, TError,AddTeamMemberMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof addTeamMember>>,
         TError,
-        {orgSlug: string;teamSlug: string;data: BodyType<AddTeamMemberBodyDto>},
+        AddTeamMemberMutationVariables,
         TContext
       > => {
       return useMutation(getAddTeamMemberMutationOptions(options), queryClient);
@@ -11987,11 +12841,25 @@ export const createTeamRole = async (orgSlug: string,
     teamSlug: string,
     createTeamRoleBodyDto: CreateTeamRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createTeamRoleResponse> => {
 
-  return orvalFetch<createTeamRoleResponse>(getCreateTeamRoleUrl(orgSlug,teamSlug),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createTeamRoleResponse>(getCreateTeamRoleUrl(orgSlug,teamSlug),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(createTeamRoleBodyDto)
   }
 );}
@@ -12000,11 +12868,13 @@ export const createTeamRole = async (orgSlug: string,
 
 
 
-export const getCreateTeamRoleMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeamRole>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createTeamRole>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>}, TContext> => {
+export const getCreateTeamRoleMutationKey = () => ['createTeamRole'] as const;
 
-const mutationKey = ['createTeamRole'];
+export const getCreateTeamRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeamRole>>, TError,CreateTeamRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTeamRole>>, TError,CreateTeamRoleMutationVariables, TContext> => {
+
+const mutationKey = getCreateTeamRoleMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -12014,7 +12884,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTeamRole>>, {orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTeamRole>>, CreateTeamRoleMutationVariables> = (props) => {
           const {orgSlug,teamSlug,data} = props ?? {};
 
           return  createTeamRole(orgSlug,teamSlug,data,requestOptions)
@@ -12030,13 +12900,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateTeamRoleMutationResult = NonNullable<Awaited<ReturnType<typeof createTeamRole>>>
     export type CreateTeamRoleMutationBody = BodyType<CreateTeamRoleBodyDto>
     export type CreateTeamRoleMutationError = ErrorType<unknown>
+    export type CreateTeamRoleMutationVariables = {orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>}
 
     export const useCreateTeamRole = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeamRole>>, TError,{orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTeamRole>>, TError,CreateTeamRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createTeamRole>>,
         TError,
-        {orgSlug: string;teamSlug: string;data: BodyType<CreateTeamRoleBodyDto>},
+        CreateTeamRoleMutationVariables,
         TContext
       > => {
       return useMutation(getCreateTeamRoleMutationOptions(options), queryClient);
@@ -12081,11 +12952,13 @@ export const deleteTeamRole = async (orgSlug: string,
 
 
 
-export const getDeleteTeamRoleMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string}, TContext> => {
+export const getDeleteTeamRoleMutationKey = () => ['deleteTeamRole'] as const;
 
-const mutationKey = ['deleteTeamRole'];
+export const getDeleteTeamRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeamRole>>, TError,DeleteTeamRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteTeamRole>>, TError,DeleteTeamRoleMutationVariables, TContext> => {
+
+const mutationKey = getDeleteTeamRoleMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -12095,7 +12968,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTeamRole>>, {orgSlug: string;teamSlug: string;roleKey: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTeamRole>>, DeleteTeamRoleMutationVariables> = (props) => {
           const {orgSlug,teamSlug,roleKey} = props ?? {};
 
           return  deleteTeamRole(orgSlug,teamSlug,roleKey,requestOptions)
@@ -12111,13 +12984,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteTeamRoleMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTeamRole>>>
 
     export type DeleteTeamRoleMutationError = ErrorType<unknown>
+    export type DeleteTeamRoleMutationVariables = {orgSlug: string;teamSlug: string;roleKey: string}
 
     export const useDeleteTeamRole = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTeamRole>>, TError,DeleteTeamRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteTeamRole>>,
         TError,
-        {orgSlug: string;teamSlug: string;roleKey: string},
+        DeleteTeamRoleMutationVariables,
         TContext
       > => {
       return useMutation(getDeleteTeamRoleMutationOptions(options), queryClient);
@@ -12150,11 +13024,25 @@ export const updateTeamRole = async (orgSlug: string,
     roleKey: string,
     updateTeamRoleBodyDto: UpdateTeamRoleBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateTeamRoleResponse> => {
 
-  return orvalFetch<updateTeamRoleResponse>(getUpdateTeamRoleUrl(orgSlug,teamSlug,roleKey),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateTeamRoleResponse>(getUpdateTeamRoleUrl(orgSlug,teamSlug,roleKey),
   {
     ...options,
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateTeamRoleBodyDto)
   }
 );}
@@ -12163,11 +13051,13 @@ export const updateTeamRole = async (orgSlug: string,
 
 
 
-export const getUpdateTeamRoleMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>}, TContext> => {
+export const getUpdateTeamRoleMutationKey = () => ['updateTeamRole'] as const;
 
-const mutationKey = ['updateTeamRole'];
+export const getUpdateTeamRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeamRole>>, TError,UpdateTeamRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTeamRole>>, TError,UpdateTeamRoleMutationVariables, TContext> => {
+
+const mutationKey = getUpdateTeamRoleMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -12177,7 +13067,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTeamRole>>, {orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTeamRole>>, UpdateTeamRoleMutationVariables> = (props) => {
           const {orgSlug,teamSlug,roleKey,data} = props ?? {};
 
           return  updateTeamRole(orgSlug,teamSlug,roleKey,data,requestOptions)
@@ -12193,13 +13083,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateTeamRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateTeamRole>>>
     export type UpdateTeamRoleMutationBody = BodyType<UpdateTeamRoleBodyDto>
     export type UpdateTeamRoleMutationError = ErrorType<unknown>
+    export type UpdateTeamRoleMutationVariables = {orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>}
 
     export const useUpdateTeamRole = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeamRole>>, TError,{orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTeamRole>>, TError,UpdateTeamRoleMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateTeamRole>>,
         TError,
-        {orgSlug: string;teamSlug: string;roleKey: string;data: BodyType<UpdateTeamRoleBodyDto>},
+        UpdateTeamRoleMutationVariables,
         TContext
       > => {
       return useMutation(getUpdateTeamRoleMutationOptions(options), queryClient);
@@ -12244,11 +13135,13 @@ export const removeTeamMember = async (orgSlug: string,
 
 
 
-export const getRemoveTeamMemberMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTeamMember>>, TError,{orgSlug: string;teamSlug: string;userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof removeTeamMember>>, TError,{orgSlug: string;teamSlug: string;userId: string}, TContext> => {
+export const getRemoveTeamMemberMutationKey = () => ['removeTeamMember'] as const;
 
-const mutationKey = ['removeTeamMember'];
+export const getRemoveTeamMemberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTeamMember>>, TError,RemoveTeamMemberMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeTeamMember>>, TError,RemoveTeamMemberMutationVariables, TContext> => {
+
+const mutationKey = getRemoveTeamMemberMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -12258,7 +13151,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeTeamMember>>, {orgSlug: string;teamSlug: string;userId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeTeamMember>>, RemoveTeamMemberMutationVariables> = (props) => {
           const {orgSlug,teamSlug,userId} = props ?? {};
 
           return  removeTeamMember(orgSlug,teamSlug,userId,requestOptions)
@@ -12274,13 +13167,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RemoveTeamMemberMutationResult = NonNullable<Awaited<ReturnType<typeof removeTeamMember>>>
 
     export type RemoveTeamMemberMutationError = ErrorType<unknown>
+    export type RemoveTeamMemberMutationVariables = {orgSlug: string;teamSlug: string;userId: string}
 
     export const useRemoveTeamMember = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTeamMember>>, TError,{orgSlug: string;teamSlug: string;userId: string}, TContext>, request?: SecondParameter<typeof orvalFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTeamMember>>, TError,RemoveTeamMemberMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof removeTeamMember>>,
         TError,
-        {orgSlug: string;teamSlug: string;userId: string},
+        RemoveTeamMemberMutationVariables,
         TContext
       > => {
       return useMutation(getRemoveTeamMemberMutationOptions(options), queryClient);

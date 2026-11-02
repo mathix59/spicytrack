@@ -207,6 +207,12 @@ export class OrganizationOverviewProjectDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   lastEventAt?: string | null;
+
+  @ApiProperty({
+    type: [Number],
+    description: "Event counts for the last 14 UTC days, oldest first",
+  })
+  eventTrend14d!: number[];
 }
 
 export class OrganizationOverviewRegressionDto {
@@ -253,6 +259,12 @@ export class OrganizationOverviewDto {
 
   @ApiProperty()
   resolvedIssueCount24h!: number;
+
+  @ApiProperty({
+    type: [Number],
+    description: "Event counts for the last 14 UTC days, oldest first",
+  })
+  eventTrend14d!: number[];
 
   @ApiProperty({ type: [OrganizationOverviewRegressionDto] })
   topRegressions!: OrganizationOverviewRegressionDto[];
@@ -983,6 +995,28 @@ export class PaginatedIssuesDto {
 
   @ApiProperty()
   pageSize!: number;
+}
+
+export class IssueTrendItemDto {
+  @ApiProperty()
+  issueId!: string;
+
+  @ApiProperty({ type: [Number], description: "Event counts per bucket, oldest first" })
+  counts!: number[];
+}
+
+export class IssueTrendsDto {
+  @ApiProperty({ enum: ["24h", "14d"] })
+  period!: "24h" | "14d";
+
+  @ApiProperty({ description: "Bucket width in seconds" })
+  bucketSeconds!: number;
+
+  @ApiProperty({ description: "ISO start of the first (oldest) bucket, UTC aligned" })
+  start!: string;
+
+  @ApiProperty({ type: [IssueTrendItemDto] })
+  items!: IssueTrendItemDto[];
 }
 
 export class ResolvedFrameDto {
