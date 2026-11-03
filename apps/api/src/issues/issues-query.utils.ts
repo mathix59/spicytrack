@@ -64,30 +64,43 @@ function buildIssueListFilters(
     filters.push(eq(issues.isRegressed, input.isRegressed));
   }
 
+  // The environment / release id is resolved first so the events lookup is an index-only scan
+  // of (project_id, environment_id|release_id, issue_id).
   if (input.environment) {
+    const environmentIds = db
+      .select({ id: environments.id })
+      .from(environments)
+      .where(
+        and(eq(environments.projectId, input.projectId), eq(environments.name, input.environment)),
+      );
     filters.push(
       inArray(
         issues.id,
         db
           .select({ issueId: events.issueId })
           .from(events)
-          .innerJoin(environments, eq(events.environmentId, environments.id))
           .where(
-            and(eq(events.projectId, input.projectId), eq(environments.name, input.environment)),
+            and(
+              eq(events.projectId, input.projectId),
+              inArray(events.environmentId, environmentIds),
+            ),
           ),
       ),
     );
   }
 
   if (input.release) {
+    const releaseIds = db
+      .select({ id: releases.id })
+      .from(releases)
+      .where(and(eq(releases.projectId, input.projectId), eq(releases.version, input.release)));
     filters.push(
       inArray(
         issues.id,
         db
           .select({ issueId: events.issueId })
           .from(events)
-          .innerJoin(releases, eq(events.releaseId, releases.id))
-          .where(and(eq(events.projectId, input.projectId), eq(releases.version, input.release))),
+          .where(and(eq(events.projectId, input.projectId), inArray(events.releaseId, releaseIds))),
       ),
     );
   }

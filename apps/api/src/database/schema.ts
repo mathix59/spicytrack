@@ -476,22 +476,31 @@ export const alertIssueCooldowns = pgTable(
   }),
 );
 
-export const alertDeliveries = pgTable("alert_deliveries", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  organizationId: uuid("organization_id").notNull(),
-  projectId: uuid("project_id").notNull(),
-  alertRuleId: uuid("alert_rule_id").notNull(),
-  issueId: uuid("issue_id"),
-  eventId: uuid("event_id"),
-  /** pending → (retrying →)* success | failed. */
-  status: varchar("status", { length: 32 }).notNull(),
-  attempts: integer("attempts").notNull().default(0),
-  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
-  responseStatus: integer("response_status"),
-  responseBody: text("response_body"),
-  payload: jsonb("payload").notNull().default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const alertDeliveries = pgTable(
+  "alert_deliveries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    alertRuleId: uuid("alert_rule_id").notNull(),
+    issueId: uuid("issue_id"),
+    eventId: uuid("event_id"),
+    /** pending → (retrying →)* success | failed. */
+    status: varchar("status", { length: 32 }).notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+    responseStatus: integer("response_status"),
+    responseBody: text("response_body"),
+    payload: jsonb("payload").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    projectCreatedIdx: index("alert_deliveries_project_created_idx").on(
+      table.projectId,
+      table.createdAt,
+    ),
+  }),
+);
 
 export const issues = pgTable(
   "issues",
@@ -528,6 +537,17 @@ export const issues = pgTable(
       table.groupingVersion,
       table.groupingKey,
     ),
+    // Ingestion looks issues up by key whatever their grouping version.
+    groupingKeyIdx: index("issues_project_grouping_key_idx").on(table.projectId, table.groupingKey),
+    lastSeenIdx: index("issues_project_last_seen_idx").on(table.projectId, table.lastSeenAt),
+    statusLastSeenIdx: index("issues_project_status_last_seen_idx").on(
+      table.projectId,
+      table.status,
+      table.lastSeenAt,
+    ),
+    mergedIntoIdx: index("issues_merged_into_idx")
+      .on(table.mergedIntoIssueId)
+      .where(sql`${table.mergedIntoIssueId} is not null`),
   }),
 );
 
@@ -568,42 +588,78 @@ export const events = pgTable(
     eventExternalIdx: uniqueIndex("events_project_event_id_idx").on(table.projectId, table.eventId),
     issueTimestampIdx: index("events_issue_timestamp_idx").on(table.issueId, table.timestamp),
     projectTimestampIdx: index("events_project_timestamp_idx").on(table.projectId, table.timestamp),
+    // Issue list filters by environment / release read issue ids straight from these.
+    projectEnvironmentIssueIdx: index("events_project_environment_issue_idx").on(
+      table.projectId,
+      table.environmentId,
+      table.issueId,
+    ),
+    projectReleaseIssueIdx: index("events_project_release_issue_idx").on(
+      table.projectId,
+      table.releaseId,
+      table.issueId,
+    ),
+    projectIngestedIdx: index("events_project_ingested_idx").on(table.projectId, table.ingestedAt),
+    mergedFromIdx: index("events_merged_from_idx")
+      .on(table.mergedFromIssueId)
+      .where(sql`${table.mergedFromIssueId} is not null`),
   }),
 );
 
-export const issueComments = pgTable("issue_comments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  organizationId: uuid("organization_id").notNull(),
-  projectId: uuid("project_id").notNull(),
-  issueId: uuid("issue_id").notNull(),
-  userId: uuid("user_id").notNull(),
-  body: text("body").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const issueComments = pgTable(
+  "issue_comments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    issueId: uuid("issue_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    issueCreatedIdx: index("issue_comments_issue_created_idx").on(table.issueId, table.createdAt),
+  }),
+);
 
-export const issueActivity = pgTable("issue_activity", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  organizationId: uuid("organization_id").notNull(),
-  projectId: uuid("project_id").notNull(),
-  issueId: uuid("issue_id").notNull(),
-  actorUserId: uuid("actor_user_id"),
-  type: varchar("type", { length: 64 }).notNull(),
-  payload: jsonb("payload").notNull().default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const issueActivity = pgTable(
+  "issue_activity",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    issueId: uuid("issue_id").notNull(),
+    actorUserId: uuid("actor_user_id"),
+    type: varchar("type", { length: 64 }).notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    issueCreatedIdx: index("issue_activity_issue_created_idx").on(table.issueId, table.createdAt),
+  }),
+);
 
-export const auditLogs = pgTable("audit_logs", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  organizationId: uuid("organization_id").notNull(),
-  projectId: uuid("project_id"),
-  actorUserId: uuid("actor_user_id"),
-  action: varchar("action", { length: 128 }).notNull(),
-  targetType: varchar("target_type", { length: 64 }).notNull(),
-  targetId: uuid("target_id"),
-  payload: jsonb("payload").notNull().default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id"),
+    actorUserId: uuid("actor_user_id"),
+    action: varchar("action", { length: 128 }).notNull(),
+    targetType: varchar("target_type", { length: 64 }).notNull(),
+    targetId: uuid("target_id"),
+    payload: jsonb("payload").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    organizationCreatedIdx: index("audit_logs_organization_created_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
+  }),
+);
 
 export const invitations = pgTable(
   "invitations",

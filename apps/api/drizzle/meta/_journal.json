@@ -57,6 +57,13 @@
       "when": 1793725854455,
       "tag": "0007_alert_delivery_retries",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793726230222,
+      "tag": "0008_hot_path_indexes",
+      "breakpoints": true
     }
   ]
 }
