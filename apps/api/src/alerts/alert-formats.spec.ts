@@ -37,6 +37,25 @@ describe("slackMessage", () => {
     expect(actions.elements[0].url).toBe(issueAlert.issueUrl);
   });
 
+  it("adds issue actions only when the organization has the Slack app", () => {
+    const actionIds = (message: ReturnType<typeof slackMessage>) =>
+      (message.blocks as Array<Record<string, any>>)
+        .find((block) => block.type === "actions")!
+        .elements.map((element: { action_id: string }) => element.action_id);
+    expect(actionIds(slackMessage(issueAlert, "fallback"))).toEqual(["spicytrack:view"]);
+    expect(actionIds(slackMessage(issueAlert, "fallback", { interactive: true }))).toEqual([
+      "spicytrack:view",
+      "spicytrack:resolve",
+      "spicytrack:ignore",
+      "spicytrack:assign_me",
+    ]);
+    expect(
+      actionIds(
+        slackMessage({ ...issueAlert, issueStatus: "resolved" }, "fallback", { interactive: true }),
+      ),
+    ).toEqual(["spicytrack:view", "spicytrack:reopen", "spicytrack:assign_me"]);
+  });
+
   it("summarises a daily digest", () => {
     const message = slackMessage(
       {

@@ -8,6 +8,7 @@ import { AuthModule } from "./auth/auth.module";
 import { AutofixModule } from "./autofix/autofix.module";
 import { DatabaseModule } from "./database/database.module";
 import { IntegrationsModule } from "./integrations/integrations.module";
+import { SlackModule } from "./slack/slack.module";
 import { TicketsModule } from "./tickets/tickets.module";
 import { InstanceAdminModule } from "./instance-admin/instance-admin.module";
 import { IssuesModule } from "./issues/issues.module";
@@ -46,6 +47,7 @@ import { TeamsModule } from "./teams/teams.module";
     IssuesModule,
     IntegrationsModule,
     TicketsModule,
+    SlackModule,
     OnboardingModule,
     InstanceAdminModule,
     AutofixModule,

@@ -6,6 +6,7 @@ export type EndpointAccessMode =
   | "public"
   | "project-key"
   | "github-signature"
+  | "slack-signature"
   | "mcp-credential"
   | "instance-admin";
 

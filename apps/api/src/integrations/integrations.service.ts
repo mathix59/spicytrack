@@ -88,7 +88,7 @@ function fromBase64Url(value: string): string {
   return Buffer.from(value, "base64url").toString("utf8");
 }
 
-function publicAppUrl(): string {
+export function publicAppUrl(): string {
   const configured =
     process.env.APP_URL ?? process.env.WEB_BASE_URL ?? process.env.WEB_ORIGIN?.split(",")[0];
   const value = (configured ?? "http://localhost:5173").trim().replace(/\/+$/, "");

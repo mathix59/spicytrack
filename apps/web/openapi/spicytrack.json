@@ -6393,6 +6393,120 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/settings/slack": {
+      "get": {
+        "operationId": "getOrganizationSlackSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSlackSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "operationId": "updateOrganizationSlackSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationSlackSettingsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSlackSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteOrganizationSlackSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
     "/organizations/{orgSlug}/projects/{projectSlug}/onboarding/first-event": {
       "get": {
         "operationId": "getProjectFirstEvent",
@@ -10391,6 +10505,60 @@
         },
         "required": [
           "trackerId"
+        ]
+      },
+      "OrganizationSlackSettingsDto": {
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "teamId": {
+            "type": "string",
+            "nullable": true
+          },
+          "teamName": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "requestUrl": {
+            "type": "string",
+            "description": "Interactivity Request URL to set in the Slack app."
+          },
+          "manifest": {
+            "type": "string",
+            "description": "Slack app manifest (JSON) with the needed scopes."
+          }
+        },
+        "required": [
+          "configured",
+          "teamId",
+          "teamName",
+          "updatedAt",
+          "requestUrl",
+          "manifest"
+        ]
+      },
+      "UpdateOrganizationSlackSettingsBodyDto": {
+        "type": "object",
+        "properties": {
+          "signingSecret": {
+            "type": "string",
+            "description": "Basic Information → Signing Secret."
+          },
+          "botToken": {
+            "type": "string",
+            "description": "OAuth & Permissions → Bot User OAuth Token (xoxb-…)."
+          }
+        },
+        "required": [
+          "signingSecret",
+          "botToken"
         ]
       },
       "ProjectFirstEventDto": {

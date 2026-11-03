@@ -1,6 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 
 import { OrgGithubAppCard } from "@/components/integrations/org-github-app-card";
+import { OrgSlackAppCard } from "@/components/integrations/org-slack-app-card";
 import type { OrganizationDto, ProjectDto } from "@/generated/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -72,6 +73,7 @@ function OrganizationSettingsPanel({
       <TabsContent className="mt-0 grid grid-cols-[minmax(0,1fr)] gap-6" value="general">
         <OrganizationGeneralCard organization={organization} />
         <OrgGithubAppCard canManage={canManage} orgSlug={orgSlug} />
+        <OrgSlackAppCard canManage={canManage} orgSlug={orgSlug} />
       </TabsContent>
 
       <TabsContent className="mt-0" value="ai">

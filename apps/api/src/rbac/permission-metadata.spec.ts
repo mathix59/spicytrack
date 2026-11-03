@@ -19,6 +19,7 @@ const ALTERNATIVE_AUTH = new Set<EndpointAccessMode>([
   "public",
   "project-key",
   "github-signature",
+  "slack-signature",
   "mcp-credential",
 ]);
 

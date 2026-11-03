@@ -127,6 +127,13 @@
       "when": 1793738948948,
       "tag": "0017_issue_tickets",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793740357876,
+      "tag": "0018_slack_app",
+      "breakpoints": true
     }
   ]
 }

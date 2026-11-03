@@ -1786,6 +1786,27 @@ export interface CreateIssueTicketBodyDto {
   description?: string;
 }
 
+export interface OrganizationSlackSettingsDto {
+  configured: boolean;
+  /** @nullable */
+  teamId: string | null;
+  /** @nullable */
+  teamName: string | null;
+  /** @nullable */
+  updatedAt: string | null;
+  /** Interactivity Request URL to set in the Slack app. */
+  requestUrl: string;
+  /** Slack app manifest (JSON) with the needed scopes. */
+  manifest: string;
+}
+
+export interface UpdateOrganizationSlackSettingsBodyDto {
+  /** Basic Information → Signing Secret. */
+  signingSecret: string;
+  /** OAuth & Permissions → Bot User OAuth Token (xoxb-…). */
+  botToken: string;
+}
+
 export interface ProjectFirstEventDto {
   /** @nullable */
   firstEventAt: string | null;
@@ -15941,6 +15962,288 @@ export function useGetIssueTicketDraft<TData = Awaited<ReturnType<typeof getIssu
 
 
 
+
+export type getOrganizationSlackSettingsResponse200 = {
+  data: OrganizationSlackSettingsDto
+  status: 200
+}
+
+export type getOrganizationSlackSettingsResponseSuccess = (getOrganizationSlackSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getOrganizationSlackSettingsResponse = (getOrganizationSlackSettingsResponseSuccess)
+
+export const getGetOrganizationSlackSettingsUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/slack`
+}
+
+export const getOrganizationSlackSettings = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationSlackSettingsResponse> => {
+
+  return orvalFetch<getOrganizationSlackSettingsResponse>(getGetOrganizationSlackSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationSlackSettingsQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/slack`
+    ] as const;
+    }
+
+
+export const getGetOrganizationSlackSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationSlackSettingsQueryKey(orgSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationSlackSettings>>> = ({ signal }) => getOrganizationSlackSettings(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationSlackSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationSlackSettings>>>
+export type GetOrganizationSlackSettingsQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationSlackSettings<TData = Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationSlackSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationSlackSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationSlackSettings<TData = Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationSlackSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationSlackSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationSlackSettings<TData = Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetOrganizationSlackSettings<TData = Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSlackSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetOrganizationSlackSettingsQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type updateOrganizationSlackSettingsResponse200 = {
+  data: OrganizationSlackSettingsDto
+  status: 200
+}
+
+export type updateOrganizationSlackSettingsResponseSuccess = (updateOrganizationSlackSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type updateOrganizationSlackSettingsResponse = (updateOrganizationSlackSettingsResponseSuccess)
+
+export const getUpdateOrganizationSlackSettingsUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/slack`
+}
+
+export const updateOrganizationSlackSettings = async (orgSlug: string,
+    updateOrganizationSlackSettingsBodyDto: UpdateOrganizationSlackSettingsBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationSlackSettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateOrganizationSlackSettingsResponse>(getUpdateOrganizationSlackSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateOrganizationSlackSettingsBodyDto)
+  }
+);}
+
+
+
+
+
+export const getUpdateOrganizationSlackSettingsMutationKey = () => ['updateOrganizationSlackSettings'] as const;
+
+export const getUpdateOrganizationSlackSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationSlackSettings>>, TError,UpdateOrganizationSlackSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationSlackSettings>>, TError,UpdateOrganizationSlackSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationSlackSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationSlackSettings>>, UpdateOrganizationSlackSettingsMutationVariables> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  updateOrganizationSlackSettings(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationSlackSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationSlackSettings>>>
+    export type UpdateOrganizationSlackSettingsMutationBody = BodyType<UpdateOrganizationSlackSettingsBodyDto>
+    export type UpdateOrganizationSlackSettingsMutationError = ErrorType<unknown>
+    export type UpdateOrganizationSlackSettingsMutationVariables = {orgSlug: string;data: BodyType<UpdateOrganizationSlackSettingsBodyDto>}
+
+    export const useUpdateOrganizationSlackSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationSlackSettings>>, TError,UpdateOrganizationSlackSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateOrganizationSlackSettings>>,
+        TError,
+        UpdateOrganizationSlackSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateOrganizationSlackSettingsMutationOptions(options), queryClient);
+    }
+
+export type deleteOrganizationSlackSettingsResponse200 = {
+  data: SuccessDto
+  status: 200
+}
+
+export type deleteOrganizationSlackSettingsResponseSuccess = (deleteOrganizationSlackSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteOrganizationSlackSettingsResponse = (deleteOrganizationSlackSettingsResponseSuccess)
+
+export const getDeleteOrganizationSlackSettingsUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/slack`
+}
+
+export const deleteOrganizationSlackSettings = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteOrganizationSlackSettingsResponse> => {
+
+  return orvalFetch<deleteOrganizationSlackSettingsResponse>(getDeleteOrganizationSlackSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteOrganizationSlackSettingsMutationKey = () => ['deleteOrganizationSlackSettings'] as const;
+
+export const getDeleteOrganizationSlackSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationSlackSettings>>, TError,DeleteOrganizationSlackSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationSlackSettings>>, TError,DeleteOrganizationSlackSettingsMutationVariables, TContext> => {
+
+const mutationKey = getDeleteOrganizationSlackSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOrganizationSlackSettings>>, DeleteOrganizationSlackSettingsMutationVariables> = (props) => {
+          const {orgSlug} = props ?? {};
+
+          return  deleteOrganizationSlackSettings(orgSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteOrganizationSlackSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOrganizationSlackSettings>>>
+
+    export type DeleteOrganizationSlackSettingsMutationError = ErrorType<unknown>
+    export type DeleteOrganizationSlackSettingsMutationVariables = {orgSlug: string}
+
+    export const useDeleteOrganizationSlackSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationSlackSettings>>, TError,DeleteOrganizationSlackSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteOrganizationSlackSettings>>,
+        TError,
+        DeleteOrganizationSlackSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteOrganizationSlackSettingsMutationOptions(options), queryClient);
+    }
 
 export type getProjectFirstEventResponse200 = {
   data: ProjectFirstEventDto

@@ -14,6 +14,7 @@ const UNAUTHENTICATED_ROUTES = [
   /^\/api\/auth\/registration-status$/,
   /^\/api\/:projectId\/(?:store|envelope)$/,
   /^\/api\/github-app\/webhooks$/,
+  /^\/api\/slack\/interactions$/,
   /^\/api\/mcp$/,
 ];
 

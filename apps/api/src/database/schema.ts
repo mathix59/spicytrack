@@ -959,6 +959,27 @@ export const organizationGithubAppSettings = pgTable(
   }),
 );
 
+/** The organization's own Slack app: buttons in Slack alerts act on issues through it. */
+export const organizationSlackSettings = pgTable(
+  "organization_slack_settings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    /** Slack workspace id (T…), read from the bot token. Interactions are matched on it. */
+    teamId: varchar("team_id", { length: 32 }).notNull(),
+    teamName: varchar("team_name", { length: 255 }),
+    signingSecretCiphertext: text("signing_secret_ciphertext").notNull(),
+    botTokenCiphertext: text("bot_token_ciphertext").notNull(),
+    updatedByUserId: uuid("updated_by_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    organizationIdx: uniqueIndex("org_slack_settings_org_idx").on(table.organizationId),
+    teamIdx: index("org_slack_settings_team_idx").on(table.teamId),
+  }),
+);
+
 export const autofixRuns = pgTable(
   "autofix_runs",
   {

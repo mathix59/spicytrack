@@ -1,6 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
+import { eq } from "drizzle-orm";
 
 import { decryptSecret } from "../common/secrets";
+import { DATABASE } from "../database/database.provider";
+import type { DatabaseClient } from "../database/database.provider";
+import { organizationSlackSettings } from "../database/schema";
 import { EmailService } from "../email/email.service";
 import {
   alertTriggerLabel,
@@ -48,7 +52,21 @@ function projectLabel(payload: AlertPayload): string {
 
 @Injectable()
 export class AlertsDeliveryService {
-  constructor(private readonly emailService: EmailService) {}
+  constructor(
+    private readonly emailService: EmailService,
+    @Optional() @Inject(DATABASE) private readonly db?: DatabaseClient,
+  ) {}
+
+  /** Buttons in Slack alerts only work once the organization's Slack app receives them. */
+  private async slackInteractive(organizationId: string): Promise<boolean> {
+    if (!this.db) return false;
+    const [settings] = await this.db
+      .select({ id: organizationSlackSettings.id })
+      .from(organizationSlackSettings)
+      .where(eq(organizationSlackSettings.organizationId, organizationId))
+      .limit(1);
+    return Boolean(settings);
+  }
 
   async deliverToDestination(
     rule: AlertRuleRecord,
@@ -64,7 +82,9 @@ export class AlertsDeliveryService {
       case "slack":
         return this.deliverWebhook(
           rule.destinationTarget,
-          slackMessage(payload, this.buildMessage(payload)),
+          slackMessage(payload, this.buildMessage(payload), {
+            interactive: await this.slackInteractive(rule.organizationId),
+          }),
           options,
         );
       case "teams":

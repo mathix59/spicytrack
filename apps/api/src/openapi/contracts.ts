@@ -905,6 +905,34 @@ export class CreateIssueTicketBodyDto {
   description?: string;
 }
 
+export class OrganizationSlackSettingsDto {
+  @ApiProperty()
+  configured!: boolean;
+
+  @ApiProperty({ type: String, nullable: true })
+  teamId!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  teamName!: string | null;
+
+  @ApiProperty({ type: String, format: "date-time", nullable: true })
+  updatedAt!: string | null;
+
+  @ApiProperty({ description: "Interactivity Request URL to set in the Slack app." })
+  requestUrl!: string;
+
+  @ApiProperty({ description: "Slack app manifest (JSON) with the needed scopes." })
+  manifest!: string;
+}
+
+export class UpdateOrganizationSlackSettingsBodyDto {
+  @ApiProperty({ description: "Basic Information → Signing Secret." })
+  signingSecret!: string;
+
+  @ApiProperty({ description: "OAuth & Permissions → Bot User OAuth Token (xoxb-…)." })
+  botToken!: string;
+}
+
 export class AlertRuleDto {
   @ApiProperty()
   id!: string;

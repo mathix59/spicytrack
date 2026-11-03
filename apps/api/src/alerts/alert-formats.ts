@@ -1,3 +1,4 @@
+import { issueActionsBlock } from "../slack/slack-blocks";
 import { createHmac } from "node:crypto";
 
 import type { AlertPayload } from "./alerts.types";
@@ -85,8 +86,16 @@ function slackEscape(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** Slack incoming webhook body: Block Kit, with `text` as the notification fallback. */
-export function slackMessage(payload: AlertPayload, fallback: string) {
+/**
+ * Slack incoming webhook body: Block Kit, with `text` as the notification fallback. With
+ * `interactive`, issue alerts carry Resolve, Ignore and Assign buttons handled by the
+ * organization's Slack app.
+ */
+export function slackMessage(
+  payload: AlertPayload,
+  fallback: string,
+  options: { interactive?: boolean } = {},
+) {
   const link = text(payload.issueUrl) ?? text(payload.projectUrl);
 
   if (payload.triggerType === "daily_digest") {
@@ -117,6 +126,16 @@ export function slackMessage(payload: AlertPayload, fallback: string) {
 
   const title = slackEscape(issueTitle(payload));
   const culprit = text(payload.culprit);
+  const issueId = text(payload.issueId);
+  const actions = issueActionsBlock(
+    {
+      projectId: payload.projectId,
+      issueId: issueId ?? "",
+      status: text(payload.issueStatus) ?? "open",
+      link,
+    },
+    Boolean(options.interactive && issueId),
+  );
   return {
     text: fallback,
     blocks: [
@@ -140,21 +159,7 @@ export function slackMessage(payload: AlertPayload, fallback: string) {
           text: `*${label}*\n${slackEscape(value)}`,
         })),
       },
-      ...(link
-        ? [
-            {
-              type: "actions",
-              elements: [
-                {
-                  type: "button",
-                  style: "primary",
-                  text: { type: "plain_text", text: "View issue" },
-                  url: link,
-                },
-              ],
-            },
-          ]
-        : []),
+      ...[actions].filter((block) => block !== null),
     ],
   };
 }

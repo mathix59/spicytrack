@@ -1,4 +1,4 @@
-import { ForbiddenException } from "@nestjs/common";
+import { AccessResolver } from "./access-resolver.service";
 import { PermissionGuard } from "./permission.guard";
 // Explicit boundary cases; the full independent policy is checked by PermissionService.
 const GRANTED_ROLE_CASES = [
@@ -56,23 +56,14 @@ describe("PermissionGuard", () => {
   const reflector = {
     getAllAndOverride: jest.fn(),
   };
-  const permissionService = {
-    assertPermission: jest.fn(() => {
-      throw new ForbiddenException("Missing permission");
-    }),
-  };
-
   beforeEach(() => {
     jest.resetAllMocks();
-    permissionService.assertPermission.mockImplementation(() => {
-      throw new ForbiddenException("Missing permission");
-    });
   });
 
   it("allows routes that do not declare permissions", async () => {
     reflector.getAllAndOverride.mockReturnValue(undefined);
     const db = createDatabase();
-    const guard = new PermissionGuard(reflector as never, permissionService as never, db as never);
+    const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
     await expect(guard.canActivate(createContext({}))).resolves.toBe(true);
     expect(db.select).not.toHaveBeenCalled();
@@ -82,8 +73,7 @@ describe("PermissionGuard", () => {
     reflector.getAllAndOverride.mockReturnValue(["org.read"]);
     const guard = new PermissionGuard(
       reflector as never,
-      permissionService as never,
-      createDatabase() as never,
+      new AccessResolver(createDatabase() as never),
     );
 
     await expect(guard.canActivate(createContext({ withoutMembership: true }))).resolves.toBe(
@@ -94,7 +84,7 @@ describe("PermissionGuard", () => {
   it("uses the code-defined permissions for system roles instead of stale database rows", async () => {
     reflector.getAllAndOverride.mockReturnValue(["project.read"]);
     const db = createDatabase([{ permissions: [] }]);
-    const guard = new PermissionGuard(reflector as never, permissionService as never, db as never);
+    const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
     await expect(
       guard.canActivate(
@@ -109,11 +99,7 @@ describe("PermissionGuard", () => {
     async ({ role, permission }) => {
       reflector.getAllAndOverride.mockReturnValue([permission]);
       const db = createDatabase();
-      const guard = new PermissionGuard(
-        reflector as never,
-        permissionService as never,
-        db as never,
-      );
+      const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
       await expect(guard.canActivate(createContext({ organizationRole: role }))).resolves.toBe(
         true,
@@ -127,11 +113,7 @@ describe("PermissionGuard", () => {
     async ({ role, permission }) => {
       reflector.getAllAndOverride.mockReturnValue([permission]);
       const db = createDatabase();
-      const guard = new PermissionGuard(
-        reflector as never,
-        permissionService as never,
-        db as never,
-      );
+      const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
       await expect(guard.canActivate(createContext({ organizationRole: role }))).rejects.toThrow(
         "Missing permission",
@@ -143,16 +125,15 @@ describe("PermissionGuard", () => {
   it("grants a custom organization role its direct permissions", async () => {
     reflector.getAllAndOverride.mockReturnValue(["org.members.invite"]);
     const db = createDatabase([{ permissions: ["org.members.invite"] }]);
-    const guard = new PermissionGuard(reflector as never, permissionService as never, db as never);
+    const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
     await expect(guard.canActivate(createContext({}))).resolves.toBe(true);
-    expect(permissionService.assertPermission).not.toHaveBeenCalled();
   });
 
   it("grants organization-wide project permissions without a team membership", async () => {
     reflector.getAllAndOverride.mockReturnValue(["project.keys.manage"]);
     const db = createDatabase([{ permissions: ["project.keys.manage"] }]);
-    const guard = new PermissionGuard(reflector as never, permissionService as never, db as never);
+    const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
     await expect(
       guard.canActivate(
@@ -177,7 +158,7 @@ describe("PermissionGuard", () => {
   ] as const)("grants %s from the %s team permission", async (permission, teamPermission) => {
     reflector.getAllAndOverride.mockReturnValue([permission]);
     const db = createDatabase([{ permissions: [] }], [{ permissions: [teamPermission] }]);
-    const guard = new PermissionGuard(reflector as never, permissionService as never, db as never);
+    const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
     await expect(guard.canActivate(createContext({ project: { teamId: "team-1" } }))).resolves.toBe(
       true,
@@ -197,7 +178,7 @@ describe("PermissionGuard", () => {
   ] as const)("grants %s from a team view permission", async (permission) => {
     reflector.getAllAndOverride.mockReturnValue([permission]);
     const db = createDatabase([{ permissions: [] }], [{ permissions: ["view_projects"] }]);
-    const guard = new PermissionGuard(reflector as never, permissionService as never, db as never);
+    const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
     await expect(guard.canActivate(createContext({ project: { teamId: "team-1" } }))).resolves.toBe(
       true,
@@ -207,7 +188,7 @@ describe("PermissionGuard", () => {
   it("does not use a team role for organization-scoped permissions", async () => {
     reflector.getAllAndOverride.mockReturnValue(["org.members.read"]);
     const db = createDatabase([{ permissions: [] }], [{ permissions: ["manage_team"] }]);
-    const guard = new PermissionGuard(reflector as never, permissionService as never, db as never);
+    const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
     await expect(
       guard.canActivate(createContext({ project: { teamId: "team-1" } })),
@@ -217,7 +198,7 @@ describe("PermissionGuard", () => {
   it("rejects a missing permission on an unassigned project", async () => {
     reflector.getAllAndOverride.mockReturnValue(["project.keys.manage"]);
     const db = createDatabase([{ permissions: [] }]);
-    const guard = new PermissionGuard(reflector as never, permissionService as never, db as never);
+    const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
     await expect(guard.canActivate(createContext({ project: { teamId: null } }))).rejects.toThrow(
       "Missing permission",
@@ -227,7 +208,7 @@ describe("PermissionGuard", () => {
   it("rejects a custom role when neither its organization nor team role grants the permission", async () => {
     reflector.getAllAndOverride.mockReturnValue(["project.integrations.manage"]);
     const db = createDatabase([{ permissions: [] }], [{ permissions: ["view_projects"] }]);
-    const guard = new PermissionGuard(reflector as never, permissionService as never, db as never);
+    const guard = new PermissionGuard(reflector as never, new AccessResolver(db as never));
 
     await expect(
       guard.canActivate(createContext({ project: { teamId: "team-1" } })),

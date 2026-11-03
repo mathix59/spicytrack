@@ -46,6 +46,20 @@ describe("organization deletion persistence", () => {
     await db
       .insert(schema.projectKeys)
       .values({ id: keyId, organizationId: orgId, projectId, name: "key", publicKey: "test-key" });
+    await db.insert(schema.ticketTrackers).values({
+      organizationId: orgId,
+      projectId,
+      provider: "linear",
+      name: "Linear",
+      config: { provider: "linear", teamId: "t", teamKey: "ENG", teamName: "Eng" },
+      tokenCiphertext: "ciphertext",
+    });
+    await db.insert(schema.organizationSlackSettings).values({
+      organizationId: orgId,
+      teamId: "T1",
+      signingSecretCiphertext: "ciphertext",
+      botTokenCiphertext: "ciphertext",
+    });
     await db.insert(schema.mcpCredentials).values({
       id: credentialId,
       organizationId: orgId,
@@ -82,6 +96,8 @@ describe("organization deletion persistence", () => {
     expect(await db.select().from(schema.projects)).toHaveLength(0);
     expect(await db.select().from(schema.projectKeys)).toHaveLength(0);
     expect(await db.select().from(schema.mcpCredentials)).toHaveLength(0);
+    expect(await db.select().from(schema.ticketTrackers)).toHaveLength(0);
+    expect(await db.select().from(schema.organizationSlackSettings)).toHaveLength(0);
     expect(await db.select().from(schema.mcpCredentialProjects)).toHaveLength(0);
     expect(await db.select().from(schema.ingestRateCounters)).toMatchObject([
       { scopeId: otherOrgId },
