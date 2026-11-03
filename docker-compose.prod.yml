@@ -43,6 +43,9 @@ services:
       INGEST_BASE_URL: ${INGEST_BASE_URL:-http://localhost:8080}
       WEB_BASE_URL: http://localhost:8080
       BETTER_AUTH_URL: http://localhost:8080/api/better-auth
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required (32+ characters)}
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:?SECRETS_ENCRYPTION_KEY is required (openssl rand -base64 32)}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
       AUTH_PASSWORD_ENABLED: ${AUTH_PASSWORD_ENABLED:-true}
       OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
@@ -112,6 +115,8 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/spicytrack
       PUBLIC_BASE_URL: http://localhost:8080
       WEB_BASE_URL: http://localhost:8080
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required (32+ characters)}
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:?SECRETS_ENCRYPTION_KEY is required (openssl rand -base64 32)}
       ALLOW_PRIVATE_WEBHOOK_URLS: ${ALLOW_PRIVATE_WEBHOOK_URLS:-false}
       VCS_ALLOWED_HOSTS: ${VCS_ALLOWED_HOSTS:-}
       VCS_ALLOW_INSECURE_HTTP: ${VCS_ALLOW_INSECURE_HTTP:-false}

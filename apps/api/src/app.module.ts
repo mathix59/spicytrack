@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { validateEnvironment } from "./common/environment";
 import { AlertsModule } from "./alerts/alerts.module";
 import { ArtifactsModule } from "./artifacts/artifacts.module";
 import { AuditModule } from "./audit/audit.module";
@@ -22,6 +23,7 @@ import { TeamsModule } from "./teams/teams.module";
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnvironment("api"),
       // Look in the package dir first (docker/CI can inject env vars directly
       // with no .env present), then fall back to the monorepo root .env used
       // for local dev (pnpm sets cwd to apps/api when run via a filter).

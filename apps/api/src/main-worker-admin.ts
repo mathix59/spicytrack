@@ -2,10 +2,8 @@ import "reflect-metadata";
 import { Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { AppWorkerAdminModule } from "./app-worker-admin.module";
-import { validateProductionSecretConfiguration } from "./common/secrets";
 
 async function bootstrap() {
-  validateProductionSecretConfiguration();
   const app = await NestFactory.createApplicationContext(AppWorkerAdminModule);
   const logger = new Logger("WorkerAdmin");
 

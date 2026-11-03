@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { validateEnvironment } from "./common/environment";
 import { AlertsModule } from "./alerts/alerts.module";
 import { AiUsageWorkerModule } from "./ai-usage/ai-usage-worker.module";
 import { AutofixWorkerModule } from "./autofix/autofix-worker.module";
@@ -14,6 +15,7 @@ import { JobsWorkerModule } from "./jobs/jobs-worker.module";
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnvironment("worker-admin"),
       envFilePath: [".env", "../../.env"],
     }),
     DatabaseModule,
