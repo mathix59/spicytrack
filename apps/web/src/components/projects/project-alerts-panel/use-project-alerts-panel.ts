@@ -58,7 +58,17 @@ function useProjectAlertsPanel({
   const [createDestinationType, setCreateDestinationType] = useState<DestinationType>("webhook");
 
   const alertsQuery = useListProjectAlerts(orgSlug, projectSlug);
-  const deliveriesQuery = useListProjectAlertDeliveries(orgSlug, projectSlug);
+  const deliveriesQuery = useListProjectAlertDeliveries(orgSlug, projectSlug, {
+    query: {
+      // Deliveries are sent by the worker; keep polling while some are still in flight.
+      refetchInterval: (query) =>
+        query.state.data?.data.some(
+          (delivery) => delivery.status === "pending" || delivery.status === "retrying",
+        )
+          ? 5_000
+          : false,
+    },
+  });
 
   const invalidateAlerts = async () => {
     await invalidateQueryKeys(queryClient, [

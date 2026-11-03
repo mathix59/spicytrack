@@ -672,8 +672,17 @@ export class AlertDeliveryDto {
   @ApiPropertyOptional({ type: String, nullable: true })
   eventId?: string | null;
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: ["pending", "retrying", "success", "failed"],
+    description: "pending and retrying deliveries are still being sent by the worker.",
+  })
   status!: string;
+
+  @ApiProperty({ description: "Delivery attempts made so far." })
+  attempts!: number;
+
+  @ApiPropertyOptional({ type: String, format: "date-time", nullable: true })
+  lastAttemptAt?: string | null;
 
   @ApiPropertyOptional({ type: Number, nullable: true })
   responseStatus?: number | null;

@@ -3,8 +3,9 @@ import { and, eq, gte, lt, sql } from "drizzle-orm";
 
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
-import { alertDeliveries, alertIssueCooldowns, alertRules, events } from "../database/schema";
+import { alertIssueCooldowns, alertRules, events } from "../database/schema";
 
+import { AlertDeliveryQueueService } from "./alert-delivery-queue.service";
 import { issueUrl, loadProjectLinks } from "./alert-links";
 import type { ProjectLinks } from "./alert-links";
 import { AlertsDeliveryService } from "./alerts-delivery.service";
@@ -43,6 +44,7 @@ export class AlertsExecutionService {
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
     private readonly alertsDeliveryService: AlertsDeliveryService,
+    private readonly deliveryQueue: AlertDeliveryQueueService,
   ) {}
 
   async handleEvent(input: {
@@ -72,10 +74,6 @@ export class AlertsExecutionService {
         continue;
       }
 
-      if (!(await this.claimCooldown(rule, input.issueId, now))) {
-        continue;
-      }
-
       links ??= await loadProjectLinks(this.db, input.projectId);
       const payload: AlertPayload = {
         triggerType: triggerTypes[0],
@@ -93,25 +91,22 @@ export class AlertsExecutionService {
           : {}),
       };
 
-      const { status, responseStatus, responseBody } =
-        await this.alertsDeliveryService.deliverToDestination(rule, payload);
+      // Cooldown, delivery and its job commit together: a retried post-ingest job either finds
+      // the cooldown taken (alert already queued) or queues it, never both or neither.
+      await this.db.transaction(async (tx) => {
+        if (!(await this.claimCooldown(tx, rule, input.issueId, now))) return;
 
-      await this.db.insert(alertDeliveries).values({
-        organizationId: input.organizationId,
-        projectId: input.projectId,
-        alertRuleId: rule.id,
-        issueId: input.issueId,
-        eventId: input.eventId,
-        status,
-        responseStatus,
-        responseBody,
-        payload,
+        await this.deliveryQueue.queue(tx, {
+          rule,
+          payload,
+          issueId: input.issueId,
+          eventId: input.eventId,
+        });
+        await tx
+          .update(alertRules)
+          .set({ lastTriggeredAt: now, updatedAt: now })
+          .where(eq(alertRules.id, rule.id));
       });
-
-      await this.db
-        .update(alertRules)
-        .set({ lastTriggeredAt: now, updatedAt: now })
-        .where(eq(alertRules.id, rule.id));
     }
   }
 
@@ -142,12 +137,13 @@ export class AlertsExecutionService {
    * alert for the same issue is still cooling down, including when concurrent workers race.
    */
   private async claimCooldown(
+    executor: Pick<DatabaseClient, "insert">,
     rule: Pick<typeof alertRules.$inferSelect, "id" | "cooldownMinutes">,
     issueId: string,
     now: Date,
   ) {
     const cutoff = new Date(now.getTime() - rule.cooldownMinutes * 60 * 1000);
-    const claimed = await this.db
+    const claimed = await executor
       .insert(alertIssueCooldowns)
       .values({ alertRuleId: rule.id, issueId, lastTriggeredAt: now })
       .onConflictDoUpdate({

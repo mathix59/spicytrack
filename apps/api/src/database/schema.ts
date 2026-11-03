@@ -483,7 +483,10 @@ export const alertDeliveries = pgTable("alert_deliveries", {
   alertRuleId: uuid("alert_rule_id").notNull(),
   issueId: uuid("issue_id"),
   eventId: uuid("event_id"),
+  /** pending → (retrying →)* success | failed. */
   status: varchar("status", { length: 32 }).notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
   responseStatus: integer("response_status"),
   responseBody: text("response_body"),
   payload: jsonb("payload").notNull().default({}),

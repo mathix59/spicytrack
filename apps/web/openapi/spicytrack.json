@@ -5532,7 +5532,23 @@
             "nullable": true
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "pending",
+              "retrying",
+              "success",
+              "failed"
+            ],
+            "description": "pending and retrying deliveries are still being sent by the worker."
+          },
+          "attempts": {
+            "type": "number",
+            "description": "Delivery attempts made so far."
+          },
+          "lastAttemptAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           },
           "responseStatus": {
             "type": "number",
@@ -5556,6 +5572,7 @@
           "projectId",
           "alertRuleId",
           "status",
+          "attempts",
           "payload",
           "createdAt"
         ]

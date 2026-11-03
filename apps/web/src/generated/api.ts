@@ -79,6 +79,19 @@ export interface UpdateAlertRuleBodyDto {
   destinationTarget?: string;
 }
 
+/**
+ * pending and retrying deliveries are still being sent by the worker.
+ */
+export type AlertDeliveryDtoStatus = typeof AlertDeliveryDtoStatus[keyof typeof AlertDeliveryDtoStatus];
+
+
+export const AlertDeliveryDtoStatus = {
+  pending: 'pending',
+  retrying: 'retrying',
+  success: 'success',
+  failed: 'failed',
+} as const;
+
 export type AlertDeliveryDtoPayload = { [key: string]: unknown };
 
 export interface AlertDeliveryDto {
@@ -90,7 +103,12 @@ export interface AlertDeliveryDto {
   issueId?: string | null;
   /** @nullable */
   eventId?: string | null;
-  status: string;
+  /** pending and retrying deliveries are still being sent by the worker. */
+  status: AlertDeliveryDtoStatus;
+  /** Delivery attempts made so far. */
+  attempts: number;
+  /** @nullable */
+  lastAttemptAt?: string | null;
   /** @nullable */
   responseStatus?: number | null;
   /** @nullable */

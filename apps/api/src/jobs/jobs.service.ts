@@ -9,6 +9,8 @@ type EnqueueOptions = {
   dedupeKey?: string;
   organizationId?: string;
   projectId?: string;
+  /** Enqueue inside the caller's transaction so the job exists only if that work commits. */
+  executor?: Pick<DatabaseClient, "insert">;
 };
 export type JobQueueSummary = {
   pending: number;
@@ -49,7 +51,7 @@ export class JobsService {
     options: EnqueueOptions = {},
   ): Promise<void> {
     try {
-      await this.db.insert(jobs).values({
+      await (options.executor ?? this.db).insert(jobs).values({
         organizationId: options.organizationId ?? null,
         projectId: options.projectId ?? null,
         type,

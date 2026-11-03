@@ -3,7 +3,26 @@ import { Injectable } from "@nestjs/common";
 import { EmailService } from "../email/email.service";
 import { assertSafeWebhookUrl } from "./webhook-url-policy";
 
-import type { AlertPayload, AlertRuleRecord, DeliveryResult } from "./alerts.types";
+import type {
+  AlertPayload,
+  AlertRuleRecord,
+  DeliveryOptions,
+  DeliveryResult,
+} from "./alerts.types";
+
+const WEBHOOK_TIMEOUT_MS = 10_000;
+const MAX_RESPONSE_BODY_LENGTH = 2_000;
+const RETRYABLE_STATUSES = new Set([408, 425, 429]);
+
+export function isRetryableStatus(status: number): boolean {
+  return status >= 500 || RETRYABLE_STATUSES.has(status);
+}
+
+function truncate(body: string): string {
+  return body.length > MAX_RESPONSE_BODY_LENGTH
+    ? `${body.slice(0, MAX_RESPONSE_BODY_LENGTH)}…`
+    : body;
+}
 
 function textValue(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim() ? value : fallback;
@@ -42,22 +61,24 @@ export class AlertsDeliveryService {
   async deliverToDestination(
     rule: AlertRuleRecord,
     payload: AlertPayload,
+    options: DeliveryOptions = {},
   ): Promise<DeliveryResult> {
     switch (rule.destinationType) {
       case "webhook":
-        return this.deliverWebhook(rule.destinationTarget, payload);
+        return this.deliverWebhook(rule.destinationTarget, payload, options);
       case "slack":
-        return this.deliverWebhook(rule.destinationTarget, {
-          text: this.buildMessage(payload),
-        });
       case "teams":
-        return this.deliverWebhook(rule.destinationTarget, {
-          text: this.buildMessage(payload),
-        });
+        return this.deliverWebhook(
+          rule.destinationTarget,
+          { text: this.buildMessage(payload) },
+          options,
+        );
       case "discord":
-        return this.deliverWebhook(rule.destinationTarget, {
-          content: this.buildMessage(payload),
-        });
+        return this.deliverWebhook(
+          rule.destinationTarget,
+          { content: this.buildMessage(payload) },
+          options,
+        );
       case "email":
         return this.deliverEmail(rule.destinationTarget, payload);
       default:
@@ -72,28 +93,55 @@ export class AlertsDeliveryService {
   private async deliverWebhook(
     target: string,
     body: Record<string, unknown>,
+    options: DeliveryOptions,
   ): Promise<DeliveryResult> {
+    let safeTarget: string;
     try {
-      const safeTarget = await assertSafeWebhookUrl(target);
+      safeTarget = await assertSafeWebhookUrl(target);
+    } catch (error) {
+      // A URL rejected by the policy will not become valid on retry.
+      return {
+        status: "failed",
+        responseStatus: null,
+        responseBody: error instanceof Error ? error.message : "Webhook URL is not allowed",
+      };
+    }
+
+    const timeout = AbortSignal.timeout(WEBHOOK_TIMEOUT_MS);
+    try {
       const response = await fetch(safeTarget, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "User-Agent": "SpicyTrack-Alerts",
+          ...(options.deliveryId
+            ? {
+                "Idempotency-Key": options.deliveryId,
+                "X-SpicyTrack-Delivery": options.deliveryId,
+              }
+            : {}),
         },
         body: JSON.stringify(body),
+        signal: options.signal ? AbortSignal.any([options.signal, timeout]) : timeout,
       });
-      const responseBody = await response.text();
+      const responseBody = truncate(await response.text());
 
       return {
         status: response.ok ? "success" : "failed",
         responseStatus: response.status,
         responseBody,
+        retryable: !response.ok && isRetryableStatus(response.status),
       };
     } catch (error) {
       return {
         status: "failed",
         responseStatus: null,
-        responseBody: error instanceof Error ? error.message : "Unknown delivery error",
+        responseBody: timeout.aborted
+          ? `No response within ${WEBHOOK_TIMEOUT_MS / 1000} s`
+          : error instanceof Error
+            ? error.message
+            : "Unknown delivery error",
+        retryable: true,
       };
     }
   }
@@ -117,10 +165,12 @@ export class AlertsDeliveryService {
 
       return { status: "success", responseStatus: null, responseBody: null };
     } catch (error) {
+      // SMTP failures (connection, greylisting, 4xx replies) are usually transient.
       return {
         status: "failed",
         responseStatus: null,
         responseBody: error instanceof Error ? error.message : "Unknown delivery error",
+        retryable: true,
       };
     }
   }

@@ -3,16 +3,16 @@ import { and, desc, eq, sql } from "drizzle-orm";
 
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
-import { alertDeliveries, alertRules, events, issues } from "../database/schema";
+import { alertRules, events, issues } from "../database/schema";
+import { AlertDeliveryQueueService } from "./alert-delivery-queue.service";
 import { loadProjectLinks } from "./alert-links";
-import { AlertsDeliveryService } from "./alerts-delivery.service";
 import type { AlertPayload } from "./alerts.types";
 
 @Injectable()
 export class DailyDigestService {
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
-    private readonly deliveryService: AlertsDeliveryService,
+    private readonly deliveryQueue: AlertDeliveryQueueService,
   ) {}
 
   async run(now = new Date()) {
@@ -77,20 +77,13 @@ export class DailyDigestService {
         openRegressionCount: regressionCountRows[0]?.count ?? 0,
         topRegressions,
       };
-      const result = await this.deliveryService.deliverToDestination(rule, payload);
-      await this.db.insert(alertDeliveries).values({
-        organizationId: rule.organizationId,
-        projectId: rule.projectId,
-        alertRuleId: rule.id,
-        status: result.status,
-        responseStatus: result.responseStatus,
-        responseBody: result.responseBody,
-        payload,
+      await this.db.transaction(async (tx) => {
+        await this.deliveryQueue.queue(tx, { rule, payload });
+        await tx
+          .update(alertRules)
+          .set({ lastDigestAt: now, lastTriggeredAt: now, updatedAt: now })
+          .where(eq(alertRules.id, rule.id));
       });
-      await this.db
-        .update(alertRules)
-        .set({ lastDigestAt: now, lastTriggeredAt: now, updatedAt: now })
-        .where(eq(alertRules.id, rule.id));
     }
   }
 }

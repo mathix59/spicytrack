@@ -50,6 +50,13 @@
       "when": 1793720646207,
       "tag": "0006_lot0_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793725854455,
+      "tag": "0007_alert_delivery_retries",
+      "breakpoints": true
     }
   ]
 }

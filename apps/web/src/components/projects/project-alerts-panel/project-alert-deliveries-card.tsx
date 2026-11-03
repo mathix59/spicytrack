@@ -14,8 +14,22 @@ import { compactDate, deliveryTitle } from "./utils";
 const PRE_CLASS_NAME =
   "mt-2 max-h-64 overflow-auto rounded-md bg-muted/30 px-3 py-2 font-mono text-[11px] text-foreground";
 
+const STATUS_STYLES = {
+  success: { dot: "bg-success", badge: "success" },
+  failed: { dot: "bg-destructive", badge: "danger" },
+  pending: { dot: "bg-muted-foreground", badge: "muted" },
+  retrying: { dot: "bg-warning", badge: "warning" },
+} as const;
+
+function deliveryStatusLabel(delivery: AlertDeliveryDto) {
+  const response = delivery.responseStatus ? ` · ${delivery.responseStatus}` : "";
+  const attempts = delivery.attempts > 1 ? ` · ${delivery.attempts} attempts` : "";
+  return `${delivery.status}${response}${attempts}`;
+}
+
 function DeliveryItem({ delivery }: { delivery: AlertDeliveryDto }) {
-  const succeeded = delivery.status === "success";
+  const style =
+    STATUS_STYLES[delivery.status as keyof typeof STATUS_STYLES] ?? STATUS_STYLES.failed;
 
   return (
     <li className="min-w-0 rounded-lg border border-border bg-muted/20 p-4">
@@ -23,18 +37,15 @@ function DeliveryItem({ delivery }: { delivery: AlertDeliveryDto }) {
         <div className="flex min-w-0 items-start gap-2">
           <span
             aria-hidden="true"
-            className={cn(
-              "mt-1.5 size-2 shrink-0 rounded-full",
-              succeeded ? "bg-success" : "bg-warning",
-            )}
+            className={cn("mt-1.5 size-2 shrink-0 rounded-full", style.dot)}
           />
           <div className="min-w-0">
             <p className="truncate font-medium">{deliveryTitle(delivery.payload)}</p>
             <p className="mt-1 text-xs text-muted-foreground">{compactDate(delivery.createdAt)}</p>
           </div>
         </div>
-        <Badge className="shrink-0" variant={succeeded ? "success" : "warning"}>
-          {delivery.status} · {delivery.responseStatus ?? "n/a"}
+        <Badge className="shrink-0" variant={style.badge}>
+          {deliveryStatusLabel(delivery)}
         </Badge>
       </div>
       <details className="mt-3 text-xs">

@@ -5,6 +5,7 @@ import { AiUsageWorkerModule } from "./ai-usage/ai-usage-worker.module";
 import { AutofixWorkerModule } from "./autofix/autofix-worker.module";
 import { DatabaseModule } from "./database/database.module";
 import { PostIngestAdminModule } from "./ingest/post-ingest-admin.module";
+import { AlertDeliveryJobHandler } from "./alerts/alert-delivery-job.handler";
 import { DailyDigestJobHandler } from "./alerts/daily-digest-job.handler";
 import { JobsModule } from "./jobs/jobs.module";
 import { JobsWorkerModule } from "./jobs/jobs-worker.module";
@@ -23,6 +24,6 @@ import { JobsWorkerModule } from "./jobs/jobs-worker.module";
     JobsWorkerModule,
     PostIngestAdminModule,
   ],
-  providers: [DailyDigestJobHandler],
+  providers: [AlertDeliveryJobHandler, DailyDigestJobHandler],
 })
 export class AppWorkerAdminModule {}

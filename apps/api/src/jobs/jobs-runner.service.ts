@@ -199,6 +199,11 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** True when a failure of this run will not be retried. */
+  isFinalAttempt(job: Pick<Job, "type" | "attempts">): boolean {
+    return job.attempts >= this.resolveMaxAttempts(job.type);
+  }
+
   private async handleFailure(job: Job, error: unknown): Promise<void> {
     const message = error instanceof Error ? error.message : String(error);
     const maxAttempts = this.resolveMaxAttempts(job.type);

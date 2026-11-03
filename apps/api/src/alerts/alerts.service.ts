@@ -253,6 +253,8 @@ export class AlertsService {
         projectId: input.projectId,
         alertRuleId: rule.id,
         status: result.status,
+        attempts: 1,
+        lastAttemptAt: new Date(),
         responseStatus: result.responseStatus,
         responseBody: result.responseBody,
         payload,

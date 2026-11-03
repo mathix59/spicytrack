@@ -19,12 +19,20 @@ type AlertPayload = {
 };
 
 type DeliveryResult = {
-  status: string;
+  status: "success" | "failed";
   responseStatus: number | null;
   responseBody: string | null;
+  /** A failure that may succeed later (network error, timeout, 408, 425, 429, 5xx). */
+  retryable?: boolean;
+};
+
+type DeliveryOptions = {
+  /** Sent as Idempotency-Key and X-SpicyTrack-Delivery so receivers can drop retried duplicates. */
+  deliveryId?: string;
+  signal?: AbortSignal;
 };
 
 type AlertRuleRecord = typeof alertRules.$inferSelect;
 
 export { DESTINATION_TYPES };
-export type { AlertPayload, AlertRuleRecord, DeliveryResult, DestinationType };
+export type { AlertPayload, AlertRuleRecord, DeliveryOptions, DeliveryResult, DestinationType };

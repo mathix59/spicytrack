@@ -77,6 +77,17 @@ export class OrganizationDeletionService {
           ),
         );
       await tx
+        .delete(schema.alertIssueCooldowns)
+        .where(
+          inArray(
+            schema.alertIssueCooldowns.alertRuleId,
+            tx
+              .select({ id: schema.alertRules.id })
+              .from(schema.alertRules)
+              .where(eq(schema.alertRules.organizationId, organizationId)),
+          ),
+        );
+      await tx
         .delete(schema.ingestRateCounters)
         .where(
           or(

@@ -1,6 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import { AlertsDeliveryService } from "./alerts-delivery.service";
-import { resolveDestinationUpdate } from "./alerts.controller";
+import { resolveDestinationUpdate } from "./alerts-controller.utils";
 import { matchingTriggerTypes, shouldTriggerAlertRule } from "./alerts-execution.service";
 import { maskDestinationTarget } from "./alerts.service";
 import type { EmailService } from "../email/email.service";
