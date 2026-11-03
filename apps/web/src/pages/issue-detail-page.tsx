@@ -60,6 +60,7 @@ function IssueDetailPage() {
         title={page.issue.title}
         totalEvents={page.events.totalEvents}
         userCount={page.issue.userCount ?? 0}
+        resolvedInReleaseVersion={page.issue.resolvedInReleaseVersion}
         trend={page.trend}
       />
 

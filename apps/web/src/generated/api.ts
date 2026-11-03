@@ -267,6 +267,13 @@ export interface IssueDto {
   externalIssueUrl?: string | null;
   /** @nullable */
   mergedIntoIssueId?: string | null;
+  /**
+     * Set when resolved in the next release: the latest release at resolution time.
+     * @nullable
+     */
+  resolvedInReleaseId?: string | null;
+  /** @nullable */
+  resolvedInReleaseVersion?: string | null;
   /** Distinct users affected, when the endpoint computes it. */
   userCount?: number;
 }
@@ -496,8 +503,21 @@ export interface IssueTriageDto {
   evidence: IssueTriageDtoEvidence;
 }
 
+/**
+ * With status "resolved": "now" (default) reopens the issue on its next event; "next_release" only on an event from a release created after the resolution.
+ */
+export type IssueStatusUpdateBodyDtoResolution = typeof IssueStatusUpdateBodyDtoResolution[keyof typeof IssueStatusUpdateBodyDtoResolution];
+
+
+export const IssueStatusUpdateBodyDtoResolution = {
+  now: 'now',
+  next_release: 'next_release',
+} as const;
+
 export interface IssueStatusUpdateBodyDto {
   status: string;
+  /** With status "resolved": "now" (default) reopens the issue on its next event; "next_release" only on an event from a release created after the resolution. */
+  resolution?: IssueStatusUpdateBodyDtoResolution;
   /** @nullable */
   ignoredUntil?: string | null;
 }
@@ -530,9 +550,22 @@ export interface MergeIssueBodyDto {
   targetIssueId: string;
 }
 
+/**
+ * With status "resolved": "now" (default) reopens the issue on its next event; "next_release" only on an event from a release created after the resolution.
+ */
+export type BulkIssueStatusUpdateBodyDtoResolution = typeof BulkIssueStatusUpdateBodyDtoResolution[keyof typeof BulkIssueStatusUpdateBodyDtoResolution];
+
+
+export const BulkIssueStatusUpdateBodyDtoResolution = {
+  now: 'now',
+  next_release: 'next_release',
+} as const;
+
 export interface BulkIssueStatusUpdateBodyDto {
   issueIds: string[];
   status: string;
+  /** With status "resolved": "now" (default) reopens the issue on its next event; "next_release" only on an event from a release created after the resolution. */
+  resolution?: BulkIssueStatusUpdateBodyDtoResolution;
 }
 
 export interface BulkOperationResultDto {

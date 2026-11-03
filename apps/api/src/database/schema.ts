@@ -527,6 +527,11 @@ export const issues = pgTable(
     assignedUserId: uuid("assigned_user_id"),
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
     resolvedByUserId: uuid("resolved_by_user_id"),
+    /**
+     * Resolved "in the next release": the project's latest release when it was resolved. Only an
+     * event from a release created after the resolution reopens the issue.
+     */
+    resolvedInReleaseId: uuid("resolved_in_release_id"),
     ignoredUntil: timestamp("ignored_until", { withTimezone: true }),
     externalIssueUrl: text("external_issue_url"),
     mergedIntoIssueId: uuid("merged_into_issue_id"),

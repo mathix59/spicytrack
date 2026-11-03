@@ -797,9 +797,15 @@ export class UpdateAlertRuleBodyDto {
   destinationTarget?: string;
 }
 
+const ISSUE_RESOLUTION_DESCRIPTION =
+  'With status "resolved": "now" (default) reopens the issue on its next event; "next_release" only on an event from a release created after the resolution.';
+
 export class IssueStatusUpdateBodyDto {
   @ApiProperty()
   status!: string;
+
+  @ApiPropertyOptional({ enum: ["now", "next_release"], description: ISSUE_RESOLUTION_DESCRIPTION })
+  resolution?: string;
 
   @ApiPropertyOptional({ type: String, nullable: true })
   ignoredUntil?: string | null;
@@ -836,6 +842,9 @@ export class BulkIssueStatusUpdateBodyDto {
 
   @ApiProperty()
   status!: string;
+
+  @ApiPropertyOptional({ enum: ["now", "next_release"], description: ISSUE_RESOLUTION_DESCRIPTION })
+  resolution?: string;
 }
 
 export class BulkIssuePriorityUpdateBodyDto {
@@ -910,6 +919,16 @@ export class IssueDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   mergedIntoIssueId?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: "Set when resolved in the next release: the latest release at resolution time.",
+  })
+  resolvedInReleaseId?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  resolvedInReleaseVersion?: string | null;
 
   @ApiPropertyOptional({ description: "Distinct users affected, when the endpoint computes it." })
   userCount?: number;

@@ -13,7 +13,14 @@ import { GROUPING_VERSION } from "../common/grouping";
 import { isUniqueViolation } from "../common/postgres-errors";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
-import { events, ingestRateCounters, issues, projectKeys, projects } from "../database/schema";
+import {
+  events,
+  ingestRateCounters,
+  issues,
+  projectKeys,
+  projects,
+  releases,
+} from "../database/schema";
 
 import { IngestResolversService } from "./ingest-resolvers.service";
 import {
@@ -445,7 +452,10 @@ export class IngestService {
       }
     }
 
-    const { isRegression, shouldReopen } = resolveIssueReopenState(currentIssue, context);
+    const { isRegression, shouldReopen } = resolveIssueReopenState(currentIssue, {
+      ...context,
+      releaseCreatedAt: await this.releaseCreatedAtForReopen(tx, currentIssue, context.releaseId),
+    });
 
     const [updatedIssue] = await tx
       .update(issues)
@@ -461,6 +471,7 @@ export class IngestService {
         isRegressed: currentIssue.isRegressed || isRegression,
         resolvedAt: shouldReopen ? null : currentIssue.resolvedAt,
         resolvedByUserId: shouldReopen ? null : currentIssue.resolvedByUserId,
+        resolvedInReleaseId: shouldReopen ? null : currentIssue.resolvedInReleaseId,
         ignoredUntil: shouldReopen ? null : currentIssue.ignoredUntil,
         assignedUserId: currentIssue.assignedUserId ?? context.suggestedAssigneeId,
         updatedAt: new Date(),
@@ -469,6 +480,28 @@ export class IngestService {
       .returning();
 
     return { issue: updatedIssue, issueWasCreated: false, issueRegressed: isRegression };
+  }
+
+  /** Only an issue resolved in the next release needs to know when the event's release appeared. */
+  private async releaseCreatedAtForReopen(
+    tx: TransactionClient,
+    issue: typeof issues.$inferSelect,
+    releaseId: string | null,
+  ): Promise<Date | null> {
+    if (
+      issue.status !== "resolved" ||
+      !issue.resolvedInReleaseId ||
+      !releaseId ||
+      releaseId === issue.resolvedInReleaseId
+    ) {
+      return null;
+    }
+    const [release] = await tx
+      .select({ createdAt: releases.createdAt })
+      .from(releases)
+      .where(eq(releases.id, releaseId))
+      .limit(1);
+    return release?.createdAt ?? null;
   }
 
   private async insertEvent(

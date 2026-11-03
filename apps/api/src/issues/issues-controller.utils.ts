@@ -111,10 +111,19 @@ function parseIssueStatusBody(body: Record<string, unknown>) {
   if (ignoredUntil instanceof Date && ignoredUntil.getTime() <= Date.now()) {
     throw new BadRequestException("ignoredUntil must be in the future");
   }
-  return {
-    status: assertOneOf(body.status, ISSUE_STATUSES, "status"),
-    ignoredUntil,
-  };
+  const status = assertOneOf(body.status, ISSUE_STATUSES, "status");
+  return { status, ignoredUntil, resolution: parseResolution(body.resolution, status) };
+}
+
+const ISSUE_RESOLUTIONS = ["now", "next_release"] as const;
+
+function parseResolution(value: unknown, status: string) {
+  if (value === undefined || value === null) return "now" as const;
+  const resolution = assertOneOf(value, ISSUE_RESOLUTIONS, "resolution");
+  if (resolution === "next_release" && status !== "resolved") {
+    throw new BadRequestException('resolution "next_release" requires status "resolved"');
+  }
+  return resolution;
 }
 
 function parseIssuePriorityBody(body: Record<string, unknown>) {
@@ -130,9 +139,11 @@ function parseIssueAssigneeBody(body: Record<string, unknown>) {
 }
 
 function parseBulkIssueStatusBody(body: Record<string, unknown>) {
+  const status = assertOneOf(body.status, ISSUE_STATUSES, "status");
   return {
     issueIds: assertIssueIds(body.issueIds),
-    status: assertOneOf(body.status, ISSUE_STATUSES, "status"),
+    status,
+    resolution: parseResolution(body.resolution, status),
   };
 }
 

@@ -234,7 +234,10 @@ function useIssueDetailPage(): IssuePageData {
   const updateStatus = async (
     status: string,
     ignoredUntil?: string | null,
-    { undoable = true }: { undoable?: boolean } = {},
+    {
+      undoable = true,
+      resolution,
+    }: { undoable?: boolean; resolution?: "now" | "next_release" } = {},
   ) => {
     const previousStatus = issue?.status;
 
@@ -243,9 +246,13 @@ function useIssueDetailPage(): IssuePageData {
         orgSlug,
         projectSlug,
         issueId,
-        data: { status, ignoredUntil },
+        data: { status, ignoredUntil, ...(resolution ? { resolution } : {}) },
       });
-      toast.success(statusToastLabel(status, ignoredUntil), {
+      const label =
+        resolution === "next_release"
+          ? "Issue resolved in the next release"
+          : statusToastLabel(status, ignoredUntil);
+      toast.success(label, {
         action:
           undoable && previousStatus && previousStatus !== status
             ? {
@@ -423,6 +430,7 @@ function useIssueDetailPage(): IssuePageData {
       autofixInFlight,
       triggerAutofix,
       updateStatus,
+      resolveInNextRelease: () => updateStatus("resolved", null, { resolution: "next_release" }),
       isUpdatingStatus: updateIssueStatusMutation.isPending,
       isTriggeringAutofix: triggerAutofixMutation.isPending,
     },

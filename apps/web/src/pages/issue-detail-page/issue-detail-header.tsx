@@ -47,6 +47,7 @@ function IssueDetailHeader({
   lastSeenAt,
   totalEvents,
   userCount,
+  resolvedInReleaseVersion,
   trend,
   navigation,
   actions,
@@ -62,6 +63,7 @@ function IssueDetailHeader({
   lastSeenAt: string;
   totalEvents: number;
   userCount: number;
+  resolvedInReleaseVersion?: string | null;
   /** Daily event counts for the last 14 days, oldest first; omitted while loading. */
   trend?: number[];
   navigation: IssueNavigation;
@@ -109,6 +111,12 @@ function IssueDetailHeader({
         <div className="flex flex-wrap items-center gap-2">
           <IssueToneBadge value={level} />
           <IssueStateBadge value={status} />
+          {status === "resolved" && resolvedInReleaseVersion ? (
+            <span className="text-xs text-muted-foreground">
+              in the next release after{" "}
+              <span className="font-mono text-foreground">{resolvedInReleaseVersion}</span>
+            </span>
+          ) : null}
         </div>
         <IssueTitle title={title} />
         {culprit ? (
@@ -147,15 +155,47 @@ function IssueDetailHeader({
 
       <div className="flex flex-wrap items-center gap-2">
         {status === "open" ? (
-          <Button
-            disabled={busy}
-            onClick={() => void actions.updateStatus("resolved")}
-            size="sm"
-            type="button"
-          >
-            <CheckCircle2 />
-            Resolve
-          </Button>
+          <div className="flex">
+            <Button
+              className="rounded-r-none"
+              disabled={busy}
+              onClick={() => void actions.updateStatus("resolved")}
+              size="sm"
+              type="button"
+            >
+              <CheckCircle2 />
+              Resolve
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  aria-label="More resolve options"
+                  className="rounded-l-none border-l border-primary-foreground/25 px-2"
+                  disabled={busy}
+                  size="sm"
+                  type="button"
+                >
+                  <ChevronDown />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuItem onClick={() => void actions.updateStatus("resolved")}>
+                  <div className="grid gap-0.5">
+                    <span>Resolve now</span>
+                    <span className="text-xs text-muted-foreground">Reopens on the next event</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => void actions.resolveInNextRelease()}>
+                  <div className="grid gap-0.5">
+                    <span>Resolve in next release</span>
+                    <span className="text-xs text-muted-foreground">
+                      Ignores events from current releases
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         ) : (
           <Button
             disabled={busy}

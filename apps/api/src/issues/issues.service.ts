@@ -23,14 +23,18 @@ import { buildIssueListFilters, eventSelect, resolveIssueSortOrder } from "./iss
 
 export const ISSUE_STATUSES = ["open", "resolved", "ignored"] as const;
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+export type IssueResolution = "now" | "next_release";
+
+type ResolutionRelease = { id: string; version: string } | null;
 
 /** Columns that change with the status; only a resolution records who resolved and when. */
-function statusChange(status: IssueStatus, actorUserId: string) {
+function statusChange(status: IssueStatus, actorUserId: string, release: ResolutionRelease = null) {
   const resolved = status === "resolved";
   return {
     status,
     resolvedAt: resolved ? new Date() : null,
     resolvedByUserId: resolved ? actorUserId : null,
+    resolvedInReleaseId: resolved ? (release?.id ?? null) : null,
     updatedAt: new Date(),
   };
 }
@@ -151,10 +155,23 @@ export class IssuesService {
         .offset(eventOffset),
     ]);
 
-    const userCounts = await this.countUsers([issue.id]);
+    const [userCounts, resolvedInRelease] = await Promise.all([
+      this.countUsers([issue.id]),
+      issue.resolvedInReleaseId
+        ? this.db
+            .select({ version: releases.version })
+            .from(releases)
+            .where(eq(releases.id, issue.resolvedInReleaseId))
+            .limit(1)
+        : Promise.resolve([]),
+    ]);
 
     return {
-      issue: { ...issue, userCount: userCounts.get(issue.id) ?? 0 },
+      issue: {
+        ...issue,
+        userCount: userCounts.get(issue.id) ?? 0,
+        resolvedInReleaseVersion: resolvedInRelease[0]?.version ?? null,
+      },
       events: {
         items: relatedEvents.map((event) => ({
           ...event,
@@ -198,15 +215,17 @@ export class IssuesService {
     status: IssueStatus;
     actorUserId: string;
     ignoredUntil?: Date | null;
+    resolution?: IssueResolution;
   }) {
     const current = await this.assertIssueRecord(input.projectId, input.issueId);
     if (current.mergedIntoIssueId) {
       throw new BadRequestException("Unmerge this issue before changing its status");
     }
+    const release = await this.resolutionRelease(input.projectId, input.resolution);
     const [issue] = await this.db
       .update(issues)
       .set({
-        ...statusChange(input.status, input.actorUserId),
+        ...statusChange(input.status, input.actorUserId, release),
         ignoredUntil: input.status === "ignored" ? (input.ignoredUntil ?? null) : null,
       })
       .where(and(eq(issues.projectId, input.projectId), eq(issues.id, input.issueId)))
@@ -222,12 +241,40 @@ export class IssuesService {
       issueId: input.issueId,
       actorUserId: input.actorUserId,
       activityType: "issue.status_changed",
-      activityPayload: { status: input.status, ignoredUntil: input.ignoredUntil ?? null },
+      activityPayload: {
+        status: input.status,
+        ignoredUntil: input.ignoredUntil ?? null,
+        ...(release ? { resolvedInRelease: release.version } : {}),
+      },
       auditAction: "issue.status.update",
-      auditPayload: { status: input.status, ignoredUntil: input.ignoredUntil ?? null },
+      auditPayload: {
+        status: input.status,
+        ignoredUntil: input.ignoredUntil ?? null,
+        ...(release ? { resolvedInRelease: release.version } : {}),
+      },
     });
 
-    return issue;
+    return { ...issue, resolvedInReleaseVersion: release?.version ?? null };
+  }
+
+  /** The release a "next release" resolution waits past: the project's latest one. */
+  private async resolutionRelease(
+    projectId: string,
+    resolution: IssueResolution | undefined,
+  ): Promise<ResolutionRelease> {
+    if (resolution !== "next_release") return null;
+    const [latest] = await this.db
+      .select({ id: releases.id, version: releases.version })
+      .from(releases)
+      .where(eq(releases.projectId, projectId))
+      .orderBy(desc(releases.createdAt))
+      .limit(1);
+    if (!latest) {
+      throw new BadRequestException(
+        "This project has no release yet: send events with a release to resolve in the next one",
+      );
+    }
+    return latest;
   }
 
   async updateAssignee(input: {
@@ -501,15 +548,17 @@ export class IssuesService {
     issueIds: string[];
     status: IssueStatus;
     actorUserId: string;
+    resolution?: IssueResolution;
   }) {
     if (input.issueIds.length === 0) {
       return { success: true, updatedCount: 0 };
     }
 
+    const release = await this.resolutionRelease(input.projectId, input.resolution);
     const updated = await this.db
       .update(issues)
       .set({
-        ...statusChange(input.status, input.actorUserId),
+        ...statusChange(input.status, input.actorUserId, release),
         // Bulk ignore has no end date: the issue stays ignored until someone reopens it.
         ignoredUntil: null,
       })
@@ -528,11 +577,16 @@ export class IssuesService {
       issueIds: updated.map((issue) => issue.id),
       actorUserId: input.actorUserId,
       activityType: "issue.status_changed",
-      activityPayload: { status: input.status, bulk: true },
+      activityPayload: {
+        status: input.status,
+        bulk: true,
+        ...(release ? { resolvedInRelease: release.version } : {}),
+      },
       auditAction: "issue.status.bulk_update",
       auditPayload: {
         issueIds: input.issueIds,
         status: input.status,
+        ...(release ? { resolvedInRelease: release.version } : {}),
         updatedCount: updated.length,
       },
     });

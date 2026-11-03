@@ -74,16 +74,52 @@ describe("ingest policies", () => {
     ).toBe("user-1");
   });
 
-  it("reopens a resolved issue only when it reappears in a new release", () => {
+  it("reopens an issue resolved now on its next event", () => {
     expect(
       resolveIssueReopenState(
         { status: "resolved", releaseId: "release-1", ignoredUntil: null },
+        { releaseId: "release-1", timestamp: new Date() },
+      ),
+    ).toEqual({ isRegression: true, shouldReopen: true });
+    expect(
+      resolveIssueReopenState(
+        { status: "resolved", releaseId: null, ignoredUntil: null },
+        { releaseId: null, timestamp: new Date() },
+      ),
+    ).toEqual({ isRegression: true, shouldReopen: true });
+  });
+
+  it("reopens an issue resolved in the next release only from a newer release", () => {
+    const issue = {
+      status: "resolved",
+      releaseId: "release-1",
+      ignoredUntil: null,
+      resolvedAt: new Date("2026-11-01T00:00:00Z"),
+      resolvedInReleaseId: "release-1",
+    };
+    const reopen = (releaseId: string | null, releaseCreatedAt: string | null) =>
+      resolveIssueReopenState(issue, {
+        releaseId,
+        timestamp: new Date("2026-11-03T00:00:00Z"),
+        releaseCreatedAt: releaseCreatedAt ? new Date(releaseCreatedAt) : null,
+      }).shouldReopen;
+
+    expect(reopen("release-1", null)).toBe(false);
+    expect(reopen(null, null)).toBe(false);
+    expect(reopen("release-0", "2026-10-20T00:00:00Z")).toBe(false);
+    expect(reopen("release-2", "2026-11-02T00:00:00Z")).toBe(true);
+  });
+
+  it("reopens an ignored issue in a new release as a regression", () => {
+    expect(
+      resolveIssueReopenState(
+        { status: "ignored", releaseId: "release-1", ignoredUntil: null },
         { releaseId: "release-2", timestamp: new Date() },
       ),
     ).toEqual({ isRegression: true, shouldReopen: true });
     expect(
       resolveIssueReopenState(
-        { status: "resolved", releaseId: "release-1", ignoredUntil: null },
+        { status: "ignored", releaseId: "release-1", ignoredUntil: null },
         { releaseId: "release-1", timestamp: new Date() },
       ),
     ).toEqual({ isRegression: false, shouldReopen: false });

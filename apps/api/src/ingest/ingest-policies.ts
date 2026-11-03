@@ -67,17 +67,37 @@ export function resolveIssueReopenState(
     status: string;
     releaseId: string | null;
     ignoredUntil: Date | null;
+    resolvedAt?: Date | null;
+    resolvedInReleaseId?: string | null;
   },
-  next: { releaseId: string | null; timestamp: Date },
+  next: {
+    releaseId: string | null;
+    timestamp: Date;
+    /** Creation time of the event's release, needed for an issue resolved in the next release. */
+    releaseCreatedAt?: Date | null;
+  },
 ) {
-  const wasClosed = issue.status === "resolved" || issue.status === "ignored";
-  const appearedInNewRelease =
-    Boolean(next.releaseId) && Boolean(issue.releaseId) && next.releaseId !== issue.releaseId;
-  const isRegression = wasClosed && appearedInNewRelease;
-  const snoozeExpired =
-    issue.status === "ignored" &&
-    issue.ignoredUntil !== null &&
-    issue.ignoredUntil <= next.timestamp;
+  if (issue.status === "resolved") {
+    // Resolved now: any new event is a regression. Resolved in the next release: only an event
+    // from a release created after the resolution.
+    const regressed = issue.resolvedInReleaseId
+      ? Boolean(next.releaseId) &&
+        next.releaseId !== issue.resolvedInReleaseId &&
+        Boolean(next.releaseCreatedAt) &&
+        (!issue.resolvedAt || next.releaseCreatedAt! > issue.resolvedAt)
+      : true;
+    return { isRegression: regressed, shouldReopen: regressed };
+  }
 
-  return { isRegression, shouldReopen: isRegression || snoozeExpired };
+  if (issue.status === "ignored") {
+    const appearedInNewRelease =
+      Boolean(next.releaseId) && Boolean(issue.releaseId) && next.releaseId !== issue.releaseId;
+    const snoozeExpired = issue.ignoredUntil !== null && issue.ignoredUntil <= next.timestamp;
+    return {
+      isRegression: appearedInNewRelease,
+      shouldReopen: appearedInNewRelease || snoozeExpired,
+    };
+  }
+
+  return { isRegression: false, shouldReopen: false };
 }

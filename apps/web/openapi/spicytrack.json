@@ -6069,6 +6069,15 @@
             "type": "string",
             "nullable": true
           },
+          "resolvedInReleaseId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Set when resolved in the next release: the latest release at resolution time."
+          },
+          "resolvedInReleaseVersion": {
+            "type": "string",
+            "nullable": true
+          },
           "userCount": {
             "type": "number",
             "description": "Distinct users affected, when the endpoint computes it."
@@ -6717,6 +6726,14 @@
           "status": {
             "type": "string"
           },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "now",
+              "next_release"
+            ],
+            "description": "With status \"resolved\": \"now\" (default) reopens the issue on its next event; \"next_release\" only on an event from a release created after the resolution."
+          },
           "ignoredUntil": {
             "type": "string",
             "nullable": true
@@ -6783,6 +6800,14 @@
           },
           "status": {
             "type": "string"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "now",
+              "next_release"
+            ],
+            "description": "With status \"resolved\": \"now\" (default) reopens the issue on its next event; \"next_release\" only on an event from a release created after the resolution."
           }
         },
         "required": [

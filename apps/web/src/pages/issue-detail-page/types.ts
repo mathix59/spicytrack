@@ -62,6 +62,8 @@ type IssueActionsState = {
   autofixInFlight: boolean;
   triggerAutofix: () => Promise<void>;
   updateStatus: (status: string, ignoredUntil?: string | null) => Promise<void>;
+  /** Resolves until an event arrives from a release newer than the latest one. */
+  resolveInNextRelease: () => Promise<void>;
   isUpdatingStatus: boolean;
   isTriggeringAutofix: boolean;
 };
