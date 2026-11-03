@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException } from "@nestjs/common";
+import { BadRequestException, ConflictException, HttpException, Logger } from "@nestjs/common";
 import { AutofixService } from "./autofix.service";
 
 function emptySelect() {
@@ -89,5 +89,58 @@ describe("AutofixService.startFix", () => {
       new ConflictException("Only an analyzed run can generate a fix."),
     );
     expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe("AutofixService.maybeAutoTrigger", () => {
+  function service(assertCanSpend: jest.Mock) {
+    const issue = { id: "issue-id" };
+    const db = {
+      select: jest.fn(() => ({
+        from: jest.fn(() => ({
+          where: jest.fn(() => ({ limit: jest.fn(async () => [issue]) })),
+        })),
+      })),
+    };
+    const enqueue = jest.fn();
+    const instance = new AutofixService(
+      db as never,
+      { findConnection: jest.fn(async () => ({ id: "connection-id" })) } as never,
+      { enqueue } as never,
+      { record: jest.fn() } as never,
+      { assertCanSpend } as never,
+    );
+    jest.spyOn(instance, "getConfig").mockResolvedValue({
+      enabled: true,
+      autoTriggerOnNewIssue: true,
+      autoMerge: false,
+      autoFixAfterAnalysis: false,
+      requirePassingChecks: true,
+      dailyCap: 5,
+      targetBranch: null,
+    });
+    jest.spyOn(instance as never, "countRunsToday").mockResolvedValue(0 as never);
+    jest
+      .spyOn(instance as never, "getOrgAiConfig")
+      .mockResolvedValue({ provider: "anthropic" } as never);
+    return { instance, enqueue };
+  }
+
+  it("skips a new issue once the monthly budget is spent, with a warning", async () => {
+    const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
+    const { instance, enqueue } = service(
+      jest.fn(async () => {
+        throw new HttpException("This organization spent its monthly AI budget of $25.00.", 429);
+      }),
+    );
+
+    await expect(
+      instance.maybeAutoTrigger("organization-id", "project-id", "issue-id"),
+    ).resolves.toBeUndefined();
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(
+      "Automatic analysis skipped for issue issue-id: This organization spent its monthly AI budget of $25.00.",
+    );
+    warn.mockRestore();
   });
 });

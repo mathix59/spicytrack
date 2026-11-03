@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
@@ -62,6 +63,8 @@ function maskKey(key: string): string {
 
 @Injectable()
 export class AutofixService {
+  private readonly logger = new Logger(AutofixService.name);
+
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
     private readonly integrationsService: IntegrationsService,
@@ -389,8 +392,11 @@ export class AutofixService {
         issueId,
         trigger: "auto",
       });
-    } catch {
-      // Missing connection/key or an in-flight run — auto-trigger is best effort.
+    } catch (error) {
+      // Best effort, but never silent: a spent budget or a missing key/connection would
+      // otherwise leave new issues unanalyzed without any trace.
+      const detail = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Automatic analysis skipped for issue ${issueId}: ${detail}`);
     }
   }
 
