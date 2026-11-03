@@ -9,6 +9,7 @@ import { SkeletonRows } from "@/components/ui/skeleton";
 
 import { AlertRuleCreateDialog } from "./alert-rule-create-dialog";
 import { AlertRuleItem } from "./alert-rule-item";
+import { SigningSecretDialog } from "./signing-secret-dialog";
 import type { ProjectAlertsPanelData } from "./types";
 
 function ProjectAlertRulesCard({ state }: { state: ProjectAlertsPanelData }) {
@@ -59,7 +60,7 @@ function ProjectAlertRulesCard({ state }: { state: ProjectAlertsPanelData }) {
                 Create alert rule
               </Button>
             }
-            description="Notify a webhook, email, Slack, Teams or Discord destination on new issues, regressions or event thresholds."
+            description="Notify a webhook, email, Slack, Teams, Discord or PagerDuty destination on new issues, regressions or event thresholds."
             icon={BellRing}
             title="No alert rules yet"
           />
@@ -71,12 +72,14 @@ function ProjectAlertRulesCard({ state }: { state: ProjectAlertsPanelData }) {
               key={rule.id}
               onDelete={() => state.removeRule(rule.id)}
               onSubmit={(event) => state.updateRule(event, rule)}
+              onRotateSecret={() => state.rotateSigningSecret(rule.id)}
               onTest={() => void state.testRule(rule.id)}
               rule={rule}
             />
           ))
         )}
       </CardContent>
+      <SigningSecretDialog onClose={state.dismissRevealedSecret} revealed={state.revealedSecret} />
     </Card>
   );
 }

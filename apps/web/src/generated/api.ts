@@ -41,13 +41,29 @@ export interface AlertRuleDto {
   thresholdWindowMinutes: number;
   cooldownMinutes: number;
   destinationType: string;
-  /** Email address, or a masked URL for webhook, Slack, Teams and Discord destinations, whose URLs act as secrets. */
+  /** Email address; a masked URL for webhook, Slack, Teams and Discord destinations, whose URLs act as secrets; the last characters of a PagerDuty integration key. */
   destinationTarget: string;
+  /** Webhook deliveries carry an X-SpicyTrack-Signature header: t=<unix seconds>,v1=<hex HMAC-SHA256 of '<t>.<body>'>. */
+  hasSigningSecret: boolean;
+  /** The webhook signing secret, only in the response that creates or rotates it. Store it now: it is never shown again. */
+  signingSecret?: string;
   /** @nullable */
   lastTriggeredAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+export type CreateAlertRuleBodyDtoDestinationType = typeof CreateAlertRuleBodyDtoDestinationType[keyof typeof CreateAlertRuleBodyDtoDestinationType];
+
+
+export const CreateAlertRuleBodyDtoDestinationType = {
+  webhook: 'webhook',
+  email: 'email',
+  slack: 'slack',
+  teams: 'teams',
+  discord: 'discord',
+  pagerduty: 'pagerduty',
+} as const;
 
 export interface CreateAlertRuleBodyDto {
   name: string;
@@ -59,7 +75,8 @@ export interface CreateAlertRuleBodyDto {
   /** Defaults to 60 minutes. */
   thresholdWindowMinutes?: number;
   cooldownMinutes?: number;
-  destinationType: string;
+  destinationType: CreateAlertRuleBodyDtoDestinationType;
+  /** Email address, webhook URL, or PagerDuty Events v2 integration key for pagerduty. */
   destinationTarget: string;
 }
 
@@ -1911,6 +1928,96 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getTestProjectAlertMutationOptions(options), queryClient);
+    }
+
+export type rotateProjectAlertSigningSecretResponse200 = {
+  data: AlertRuleDto
+  status: 200
+}
+
+export type rotateProjectAlertSigningSecretResponseSuccess = (rotateProjectAlertSigningSecretResponse200) & {
+  headers: Headers;
+};
+;
+
+export type rotateProjectAlertSigningSecretResponse = (rotateProjectAlertSigningSecretResponseSuccess)
+
+export const getRotateProjectAlertSigningSecretUrl = (orgSlug: string,
+    projectSlug: string,
+    alertRuleId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts/${alertRuleId}/signing-secret`
+}
+
+/**
+ * @summary Replace a webhook rule's signing secret; the response is the only time it is shown
+ */
+export const rotateProjectAlertSigningSecret = async (orgSlug: string,
+    projectSlug: string,
+    alertRuleId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<rotateProjectAlertSigningSecretResponse> => {
+
+  return orvalFetch<rotateProjectAlertSigningSecretResponse>(getRotateProjectAlertSigningSecretUrl(orgSlug,projectSlug,alertRuleId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRotateProjectAlertSigningSecretMutationKey = () => ['rotateProjectAlertSigningSecret'] as const;
+
+export const getRotateProjectAlertSigningSecretMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateProjectAlertSigningSecret>>, TError,RotateProjectAlertSigningSecretMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rotateProjectAlertSigningSecret>>, TError,RotateProjectAlertSigningSecretMutationVariables, TContext> => {
+
+const mutationKey = getRotateProjectAlertSigningSecretMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rotateProjectAlertSigningSecret>>, RotateProjectAlertSigningSecretMutationVariables> = (props) => {
+          const {orgSlug,projectSlug,alertRuleId} = props ?? {};
+
+          return  rotateProjectAlertSigningSecret(orgSlug,projectSlug,alertRuleId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RotateProjectAlertSigningSecretMutationResult = NonNullable<Awaited<ReturnType<typeof rotateProjectAlertSigningSecret>>>
+
+    export type RotateProjectAlertSigningSecretMutationError = ErrorType<unknown>
+    export type RotateProjectAlertSigningSecretMutationVariables = {orgSlug: string;projectSlug: string;alertRuleId: string}
+
+    /**
+ * @summary Replace a webhook rule's signing secret; the response is the only time it is shown
+ */
+export const useRotateProjectAlertSigningSecret = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rotateProjectAlertSigningSecret>>, TError,RotateProjectAlertSigningSecretMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rotateProjectAlertSigningSecret>>,
+        TError,
+        RotateProjectAlertSigningSecretMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRotateProjectAlertSigningSecretMutationOptions(options), queryClient);
     }
 
 export type listProjectAlertDeliveriesResponse200 = {

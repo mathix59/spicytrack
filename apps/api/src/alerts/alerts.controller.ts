@@ -163,6 +163,30 @@ export class AlertsController {
     });
   }
 
+  @Post(":alertRuleId/signing-secret")
+  @HttpCode(200)
+  @ApiOperation({
+    operationId: "rotateProjectAlertSigningSecret",
+    summary: "Replace a webhook rule's signing secret; the response is the only time it is shown",
+  })
+  @ApiParam({ name: "alertRuleId", type: String })
+  @ApiOkResponse({ type: AlertRuleDto })
+  @RequirePermissions("project.alerts.manage")
+  @UseGuards(PermissionGuard)
+  async rotateSigningSecret(
+    @CurrentOrganization() organization: OrganizationRecord,
+    @CurrentProject() project: ProjectRecord,
+    @CurrentUser() user: UserRecord,
+    @Param("alertRuleId") alertRuleId: string,
+  ) {
+    return this.alertsService.rotateSigningSecret({
+      organizationId: organization.id,
+      projectId: project.id,
+      alertRuleId,
+      actorUserId: user.id,
+    });
+  }
+
   @Delete(":alertRuleId")
   @ApiOperation({ operationId: "deleteProjectAlert" })
   @ApiParam({ name: "alertRuleId", type: String })

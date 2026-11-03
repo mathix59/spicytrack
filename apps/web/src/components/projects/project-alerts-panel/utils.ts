@@ -1,11 +1,30 @@
-import { BellRing, Hash, Mail, Webhook } from "lucide-react";
+import { BellRing, Hash, Mail, Siren, Webhook } from "lucide-react";
 
 import type { AlertRuleDto } from "@/generated/api";
 import { formatLocalDateTime } from "@/lib/utils";
 
 import type { DestinationType, TriggerType } from "./types";
 
-const DESTINATION_TYPES: DestinationType[] = ["webhook", "email", "slack", "teams", "discord"];
+const DESTINATION_TYPES: DestinationType[] = [
+  "webhook",
+  "email",
+  "slack",
+  "teams",
+  "discord",
+  "pagerduty",
+];
+const DESTINATION_LABELS: Record<DestinationType, string> = {
+  webhook: "Webhook",
+  email: "Email",
+  slack: "Slack",
+  teams: "Microsoft Teams",
+  discord: "Discord",
+  pagerduty: "PagerDuty",
+};
+
+function destinationLabel(type: string) {
+  return DESTINATION_LABELS[type as DestinationType] ?? type;
+}
 const TRIGGER_TYPES: Array<{ value: TriggerType; label: string }> = [
   { value: "new_issue", label: "New issue" },
   { value: "regression", label: "Regression" },
@@ -77,11 +96,26 @@ function deliveryTitle(payload: unknown) {
 }
 
 function destinationTargetLabel(destinationType: DestinationType) {
-  return destinationType === "email" ? "Email address" : "Webhook URL";
+  if (destinationType === "email") return "Email address";
+  if (destinationType === "pagerduty") return "Integration key";
+  return "Webhook URL";
 }
 
 function destinationTargetInputType(destinationType: DestinationType) {
-  return destinationType === "email" ? "email" : "url";
+  if (destinationType === "email") return "email";
+  if (destinationType === "pagerduty") return "text";
+  return "url";
+}
+
+function destinationTargetHint(destinationType: DestinationType) {
+  switch (destinationType) {
+    case "pagerduty":
+      return "Events API v2 key. One incident per issue.";
+    case "webhook":
+      return "Signed with a secret shown once after saving.";
+    default:
+      return undefined;
+  }
 }
 
 function destinationTargetPlaceholder(destinationType: DestinationType) {
@@ -94,6 +128,8 @@ function destinationTargetPlaceholder(destinationType: DestinationType) {
       return "https://...webhook.office.com/...";
     case "discord":
       return "https://discord.com/api/webhooks/...";
+    case "pagerduty":
+      return "32-character integration key";
     default:
       return "https://example.com/webhook";
   }
@@ -105,12 +141,15 @@ export {
   TRIGGER_TYPES,
   compactDate,
   deliveryTitle,
+  destinationLabel,
+  destinationTargetHint,
   destinationTargetInputType,
   destinationTargetLabel,
   destinationTargetPlaceholder,
   Hash,
   Mail,
   ruleTriggerTypes,
+  Siren,
   triggerLabel,
   Webhook,
 };

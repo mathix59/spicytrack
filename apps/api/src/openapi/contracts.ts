@@ -639,9 +639,21 @@ export class AlertRuleDto {
 
   @ApiProperty({
     description:
-      "Email address, or a masked URL for webhook, Slack, Teams and Discord destinations, whose URLs act as secrets.",
+      "Email address; a masked URL for webhook, Slack, Teams and Discord destinations, whose URLs act as secrets; the last characters of a PagerDuty integration key.",
   })
   destinationTarget!: string;
+
+  @ApiProperty({
+    description:
+      "Webhook deliveries carry an X-SpicyTrack-Signature header: t=<unix seconds>,v1=<hex HMAC-SHA256 of '<t>.<body>'>.",
+  })
+  hasSigningSecret!: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      "The webhook signing secret, only in the response that creates or rotates it. Store it now: it is never shown again.",
+  })
+  signingSecret?: string;
 
   @ApiPropertyOptional({ type: String, nullable: true })
   lastTriggeredAt?: string | null;
@@ -759,10 +771,13 @@ export class CreateAlertRuleBodyDto {
   @ApiPropertyOptional({ type: Number })
   cooldownMinutes?: number;
 
-  @ApiProperty()
+  @ApiProperty({ enum: ["webhook", "email", "slack", "teams", "discord", "pagerduty"] })
   destinationType!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      "Email address, webhook URL, or PagerDuty Events v2 integration key for pagerduty.",
+  })
   destinationTarget!: string;
 }
 

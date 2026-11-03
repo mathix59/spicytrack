@@ -6,8 +6,8 @@ import type { DatabaseClient } from "../database/database.provider";
 import { alertIssueCooldowns, alertRules, events } from "../database/schema";
 
 import { AlertDeliveryQueueService } from "./alert-delivery-queue.service";
-import { issueUrl, loadProjectLinks } from "./alert-links";
-import type { ProjectLinks } from "./alert-links";
+import { issueUrl, loadIssueAlertContext, loadProjectLinks } from "./alert-links";
+import type { IssueAlertContext, ProjectLinks } from "./alert-links";
 import { AlertsDeliveryService } from "./alerts-delivery.service";
 import type { AlertPayload } from "./alerts.types";
 
@@ -64,6 +64,7 @@ export class AlertsExecutionService {
       .where(and(eq(alertRules.projectId, input.projectId), eq(alertRules.isActive, true)));
     const now = new Date();
     let links: ProjectLinks | undefined;
+    let context: IssueAlertContext | undefined;
 
     for (const rule of activeRules) {
       const recentEventCount = usesThreshold(rule)
@@ -75,7 +76,9 @@ export class AlertsExecutionService {
       }
 
       links ??= await loadProjectLinks(this.db, input.projectId);
+      context ??= await loadIssueAlertContext(this.db, input.issueId, input.eventId);
       const payload: AlertPayload = {
+        ...context,
         triggerType: triggerTypes[0],
         triggerTypes,
         projectId: input.projectId,

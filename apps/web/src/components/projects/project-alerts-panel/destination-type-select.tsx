@@ -1,6 +1,6 @@
 import { Select } from "@/components/ui/select";
 
-import { DESTINATION_TYPES } from "./utils";
+import { DESTINATION_TYPES, destinationLabel } from "./utils";
 import type { DestinationType } from "./types";
 
 function DestinationTypeSelect({
@@ -24,7 +24,7 @@ function DestinationTypeSelect({
     >
       {DESTINATION_TYPES.map((type) => (
         <option key={type} value={type}>
-          {type}
+          {destinationLabel(type)}
         </option>
       ))}
     </Select>

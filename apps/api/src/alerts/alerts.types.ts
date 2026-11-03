@@ -1,6 +1,6 @@
 import { alertRules } from "../database/schema";
 
-const DESTINATION_TYPES = ["webhook", "email", "slack", "teams", "discord"] as const;
+const DESTINATION_TYPES = ["webhook", "email", "slack", "teams", "discord", "pagerduty"] as const;
 type DestinationType = (typeof DESTINATION_TYPES)[number];
 
 type AlertPayload = {
@@ -16,6 +16,11 @@ type AlertPayload = {
   issueTitle?: string;
   issueStatus?: string;
   timesSeen?: number;
+  userCount?: number;
+  level?: string;
+  culprit?: string | null;
+  environment?: string | null;
+  release?: string | null;
 };
 
 type DeliveryResult = {

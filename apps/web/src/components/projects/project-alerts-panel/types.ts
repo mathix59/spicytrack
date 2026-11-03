@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 
 import type { AlertDeliveryDto, AlertRuleDto } from "@/generated/api";
 
-type DestinationType = "webhook" | "email" | "slack" | "teams" | "discord";
+type DestinationType = "webhook" | "email" | "slack" | "teams" | "discord" | "pagerduty";
 type TriggerType = "new_issue" | "regression" | "event_threshold" | "daily_digest";
 
 type QueryState = {
@@ -30,6 +30,11 @@ type ProjectAlertsPanelData = {
   /** Throws on failure so the confirmation dialog can show the error. */
   removeRule: (ruleId: string) => Promise<void>;
   testRule: (ruleId: string) => Promise<void>;
+  /** Replaces a webhook rule's signing secret and shows the new one. */
+  rotateSigningSecret: (ruleId: string) => Promise<void>;
+  /** A signing secret just created, shown once. */
+  revealedSecret: { ruleName: string; secret: string } | null;
+  dismissRevealedSecret: () => void;
 };
 
 type ProjectAlertsPanelProps = {

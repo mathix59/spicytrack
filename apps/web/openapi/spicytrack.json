@@ -264,6 +264,58 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/projects/{projectSlug}/alerts/{alertRuleId}/signing-secret": {
+      "post": {
+        "operationId": "rotateProjectAlertSigningSecret",
+        "parameters": [
+          {
+            "name": "alertRuleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRuleDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a webhook rule's signing secret; the response is the only time it is shown",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
     "/organizations/{orgSlug}/projects/{projectSlug}/alerts/deliveries": {
       "get": {
         "operationId": "listProjectAlertDeliveries",
@@ -5585,7 +5637,15 @@
           },
           "destinationTarget": {
             "type": "string",
-            "description": "Email address, or a masked URL for webhook, Slack, Teams and Discord destinations, whose URLs act as secrets."
+            "description": "Email address; a masked URL for webhook, Slack, Teams and Discord destinations, whose URLs act as secrets; the last characters of a PagerDuty integration key."
+          },
+          "hasSigningSecret": {
+            "type": "boolean",
+            "description": "Webhook deliveries carry an X-SpicyTrack-Signature header: t=<unix seconds>,v1=<hex HMAC-SHA256 of '<t>.<body>'>."
+          },
+          "signingSecret": {
+            "type": "string",
+            "description": "The webhook signing secret, only in the response that creates or rotates it. Store it now: it is never shown again."
           },
           "lastTriggeredAt": {
             "type": "string",
@@ -5609,6 +5669,7 @@
           "cooldownMinutes",
           "destinationType",
           "destinationTarget",
+          "hasSigningSecret",
           "createdAt",
           "updatedAt"
         ]
@@ -5641,10 +5702,19 @@
             "type": "number"
           },
           "destinationType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "webhook",
+              "email",
+              "slack",
+              "teams",
+              "discord",
+              "pagerduty"
+            ]
           },
           "destinationTarget": {
-            "type": "string"
+            "type": "string",
+            "description": "Email address, webhook URL, or PagerDuty Events v2 integration key for pagerduty."
           }
         },
         "required": [

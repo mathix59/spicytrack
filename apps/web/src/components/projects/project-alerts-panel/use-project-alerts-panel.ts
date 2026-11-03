@@ -10,6 +10,7 @@ import {
   useDeleteProjectAlert,
   useListProjectAlertDeliveries,
   useListProjectAlerts,
+  useRotateProjectAlertSigningSecret,
   useTestProjectAlert,
   useUpdateProjectAlert,
   type AlertDeliveryDto,
@@ -43,7 +44,7 @@ function readRuleConfig(formData: FormData, fallback?: AlertRuleDto) {
     cooldownMinutes: Number(formData.get("cooldownMinutes") ?? 30) || 30,
     destinationType: String(
       formData.get("destinationType") ?? fallback?.destinationType ?? "webhook",
-    ),
+    ) as DestinationType,
     ...(destinationTarget ? { destinationTarget } : {}),
   };
 }
@@ -56,6 +57,11 @@ function useProjectAlertsPanel({
   const [createError, setCreateError] = useState<string | null>(null);
   const [createOpen, setCreateOpenState] = useState(false);
   const [createDestinationType, setCreateDestinationType] = useState<DestinationType>("webhook");
+  const [revealedSecret, setRevealedSecret] =
+    useState<ProjectAlertsPanelData["revealedSecret"]>(null);
+  const revealSecret = (rule: AlertRuleDto) => {
+    if (rule.signingSecret) setRevealedSecret({ ruleName: rule.name, secret: rule.signingSecret });
+  };
 
   const alertsQuery = useListProjectAlerts(orgSlug, projectSlug);
   const deliveriesQuery = useListProjectAlertDeliveries(orgSlug, projectSlug, {
@@ -81,6 +87,9 @@ function useProjectAlertsPanel({
   const updateAlertMutation = useUpdateProjectAlert({ mutation: { onSuccess: invalidateAlerts } });
   const deleteAlertMutation = useDeleteProjectAlert({ mutation: { onSuccess: invalidateAlerts } });
   const testAlertMutation = useTestProjectAlert({ mutation: { onSuccess: invalidateAlerts } });
+  const rotateSecretMutation = useRotateProjectAlertSigningSecret({
+    mutation: { onSuccess: invalidateAlerts },
+  });
 
   const setCreateOpen = (open: boolean) => {
     setCreateError(null);
@@ -104,10 +113,11 @@ function useProjectAlertsPanel({
             ...readRuleConfig(formData),
           },
         }),
-      onSuccess: () => {
+      onSuccess: (response) => {
         setCreateDestinationType("webhook");
         setCreateOpenState(false);
         toast.success("Alert rule created");
+        revealSecret(response.data);
       },
     });
   };
@@ -117,7 +127,7 @@ function useProjectAlertsPanel({
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
-    await updateAlertMutation.mutateAsync({
+    const response = await updateAlertMutation.mutateAsync({
       orgSlug,
       projectSlug,
       alertRuleId: rule.id,
@@ -128,6 +138,17 @@ function useProjectAlertsPanel({
       },
     });
     toast.success("Alert rule saved");
+    revealSecret(response.data);
+  };
+
+  /** Throws on failure so the confirmation dialog can show the error. */
+  const rotateSigningSecret = async (ruleId: string) => {
+    const response = await rotateSecretMutation.mutateAsync({
+      orgSlug,
+      projectSlug,
+      alertRuleId: ruleId,
+    });
+    revealSecret(response.data);
   };
 
   const removeRule = async (ruleId: string) => {
@@ -172,6 +193,9 @@ function useProjectAlertsPanel({
     updateRule,
     removeRule,
     testRule,
+    rotateSigningSecret,
+    revealedSecret,
+    dismissRevealedSecret: () => setRevealedSecret(null),
   };
 }
 

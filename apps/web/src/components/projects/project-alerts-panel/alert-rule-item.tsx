@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { KeyRound, Pencil, Trash2 } from "lucide-react";
 
 import type { AlertRuleDto } from "@/generated/api";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
@@ -14,11 +14,21 @@ import { getErrorMessage } from "@/lib/utils";
 
 import { AlertRuleConfigFields } from "./alert-rule-config-fields";
 import type { DestinationType } from "./types";
-import { BellRing, Hash, Mail, ruleTriggerTypes, triggerLabel, Webhook } from "./utils";
+import {
+  BellRing,
+  destinationLabel,
+  Hash,
+  Mail,
+  ruleTriggerTypes,
+  Siren,
+  triggerLabel,
+  Webhook,
+} from "./utils";
 
 function DestinationIcon({ type }: { type: string }) {
   const className = "size-4 shrink-0";
   if (type === "email") return <Mail className={className} />;
+  if (type === "pagerduty") return <Siren className={className} />;
   if (type === "slack" || type === "teams" || type === "discord") {
     return <Hash className={className} />;
   }
@@ -33,6 +43,7 @@ function AlertRuleItem({
   onSubmit,
   onDelete,
   onTest,
+  onRotateSecret,
 }: {
   rule: AlertRuleDto;
   isSaving: boolean;
@@ -40,6 +51,7 @@ function AlertRuleItem({
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onDelete: () => Promise<void>;
   onTest: () => void;
+  onRotateSecret: () => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,10 +103,23 @@ function AlertRuleItem({
 
       <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
         <DestinationIcon type={rule.destinationType} />
-        <span className="shrink-0">{rule.destinationType}</span>
+        <span className="shrink-0">{destinationLabel(rule.destinationType)}</span>
         <span className="min-w-0 truncate font-mono text-foreground" title={rule.destinationTarget}>
           {rule.destinationTarget}
         </span>
+        {rule.destinationType === "webhook" ? (
+          <Badge
+            className="ml-auto shrink-0"
+            title={
+              rule.hasSigningSecret
+                ? "Deliveries carry an X-SpicyTrack-Signature header"
+                : "Deliveries are not signed yet: generate a secret to sign them"
+            }
+            variant={rule.hasSigningSecret ? "success" : "warning"}
+          >
+            {rule.hasSigningSecret ? "signed" : "unsigned"}
+          </Badge>
+        ) : null}
       </div>
 
       {editing ? (
@@ -154,6 +179,25 @@ function AlertRuleItem({
           }
         />
         <div className="flex flex-wrap gap-2">
+          {rule.destinationType === "webhook" ? (
+            <ConfirmDialog
+              confirmLabel={rule.hasSigningSecret ? "Rotate secret" : "Generate secret"}
+              description={
+                rule.hasSigningSecret
+                  ? "The current secret stops working immediately: update the receiver with the new one."
+                  : "Deliveries will carry an X-SpicyTrack-Signature header your receiver can verify."
+              }
+              destructive={false}
+              onConfirm={onRotateSecret}
+              title={rule.hasSigningSecret ? "Rotate the signing secret?" : "Sign deliveries?"}
+              trigger={
+                <Button size="sm" type="button" variant="ghost">
+                  <KeyRound />
+                  {rule.hasSigningSecret ? "Rotate secret" : "Generate secret"}
+                </Button>
+              }
+            />
+          ) : null}
           <Button disabled={isTesting} onClick={onTest} size="sm" type="button" variant="outline">
             {isTesting ? "Testing…" : "Test"}
           </Button>

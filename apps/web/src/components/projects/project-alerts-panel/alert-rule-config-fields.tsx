@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { DestinationTypeSelect } from "./destination-type-select";
 import type { DestinationType } from "./types";
 import {
+  destinationTargetHint,
   destinationTargetInputType,
   destinationTargetLabel,
   destinationTargetPlaceholder,
@@ -103,7 +104,11 @@ function AlertRuleConfigFields({
           />
         </Field>
         <Field
-          hint={keepsSecret ? "Leave blank to keep the current URL." : undefined}
+          hint={
+            keepsSecret
+              ? `Leave blank to keep the current ${destinationType === "pagerduty" ? "key" : "URL"}.`
+              : destinationTargetHint(destinationType)
+          }
           label={destinationTargetLabel(destinationType)}
         >
           <Input
@@ -115,6 +120,7 @@ function AlertRuleConfigFields({
                 ? current?.destinationTarget
                 : destinationTargetPlaceholder(destinationType)
             }
+            autoComplete="off"
             required={!keepsSecret}
             type={destinationTargetInputType(destinationType)}
           />

@@ -1,8 +1,15 @@
-import { eq } from "drizzle-orm";
+import { countDistinct, eq } from "drizzle-orm";
 
 import { webOrigins } from "../auth/web-origins";
 import type { DatabaseClient } from "../database/database.provider";
-import { organizations, projects } from "../database/schema";
+import {
+  environments,
+  events,
+  issues,
+  organizations,
+  projects,
+  releases,
+} from "../database/schema";
 
 export type ProjectLinks = { projectName: string; projectUrl: string | undefined };
 
@@ -37,4 +44,40 @@ export async function loadProjectLinks(
 
 export function issueUrl(links: ProjectLinks, issueId: string): string | undefined {
   return links.projectUrl ? `${links.projectUrl}/issues/${issueId}` : undefined;
+}
+
+export type IssueAlertContext = {
+  level?: string;
+  culprit?: string | null;
+  environment?: string | null;
+  release?: string | null;
+  userCount?: number;
+};
+
+/** Details shown by rich alerts (Slack, Discord, PagerDuty): the issue and its latest event. */
+export async function loadIssueAlertContext(
+  db: DatabaseClient,
+  issueId: string,
+  eventId: string,
+): Promise<IssueAlertContext> {
+  const [[row], [users]] = await Promise.all([
+    db
+      .select({
+        level: issues.level,
+        culprit: issues.culprit,
+        environment: environments.name,
+        release: releases.version,
+      })
+      .from(issues)
+      .leftJoin(events, eq(events.id, eventId))
+      .leftJoin(environments, eq(environments.id, events.environmentId))
+      .leftJoin(releases, eq(releases.id, events.releaseId))
+      .where(eq(issues.id, issueId))
+      .limit(1),
+    db
+      .select({ value: countDistinct(events.userIdentifier) })
+      .from(events)
+      .where(eq(events.issueId, issueId)),
+  ]);
+  return row ? { ...row, userCount: users?.value ?? 0 } : {};
 }

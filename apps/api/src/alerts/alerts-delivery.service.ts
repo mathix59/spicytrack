@@ -1,6 +1,16 @@
 import { Injectable } from "@nestjs/common";
 
+import { decryptSecret } from "../common/secrets";
 import { EmailService } from "../email/email.service";
+import {
+  alertTriggerLabel,
+  discordMessage,
+  PAGERDUTY_EVENTS_URL,
+  pagerDutyEvent,
+  slackMessage,
+  WEBHOOK_SIGNATURE_HEADER,
+  webhookSignature,
+} from "./alert-formats";
 import { assertSafeWebhookUrl } from "./webhook-url-policy";
 
 import type {
@@ -36,24 +46,6 @@ function projectLabel(payload: AlertPayload): string {
   return textValue(payload.projectName, payload.projectId);
 }
 
-function triggerLabel(payload: AlertPayload): string {
-  switch (payload.triggerType) {
-    case "new_issue":
-      return "New issue";
-    case "regression":
-      return "Regression";
-    case "event_threshold":
-      return typeof payload.recentEventCount === "number" &&
-        typeof payload.thresholdWindowMinutes === "number"
-        ? `${payload.recentEventCount}+ events in ${payload.thresholdWindowMinutes} min`
-        : "Event threshold reached";
-    case "test":
-      return "Test alert";
-    default:
-      return "Alert";
-  }
-}
-
 @Injectable()
 export class AlertsDeliveryService {
   constructor(private readonly emailService: EmailService) {}
@@ -65,8 +57,16 @@ export class AlertsDeliveryService {
   ): Promise<DeliveryResult> {
     switch (rule.destinationType) {
       case "webhook":
-        return this.deliverWebhook(rule.destinationTarget, payload, options);
+        return this.deliverWebhook(rule.destinationTarget, payload, {
+          ...options,
+          signingSecret: rule.signingSecret ? decryptSecret(rule.signingSecret) : undefined,
+        });
       case "slack":
+        return this.deliverWebhook(
+          rule.destinationTarget,
+          slackMessage(payload, this.buildMessage(payload)),
+          options,
+        );
       case "teams":
         return this.deliverWebhook(
           rule.destinationTarget,
@@ -74,9 +74,18 @@ export class AlertsDeliveryService {
           options,
         );
       case "discord":
+        return this.deliverWebhook(rule.destinationTarget, discordMessage(payload), options);
+      case "pagerduty":
+        if (payload.triggerType === "daily_digest") {
+          return {
+            status: "failed",
+            responseStatus: null,
+            responseBody: "PagerDuty rules do not send daily digests",
+          };
+        }
         return this.deliverWebhook(
-          rule.destinationTarget,
-          { content: this.buildMessage(payload) },
+          PAGERDUTY_EVENTS_URL,
+          pagerDutyEvent(payload, rule.destinationTarget),
           options,
         );
       case "email":
@@ -93,7 +102,7 @@ export class AlertsDeliveryService {
   private async deliverWebhook(
     target: string,
     body: Record<string, unknown>,
-    options: DeliveryOptions,
+    options: DeliveryOptions & { signingSecret?: string },
   ): Promise<DeliveryResult> {
     let safeTarget: string;
     try {
@@ -107,6 +116,7 @@ export class AlertsDeliveryService {
       };
     }
 
+    const serializedBody = JSON.stringify(body);
     const timeout = AbortSignal.timeout(WEBHOOK_TIMEOUT_MS);
     try {
       const response = await fetch(safeTarget, {
@@ -120,8 +130,17 @@ export class AlertsDeliveryService {
                 "X-SpicyTrack-Delivery": options.deliveryId,
               }
             : {}),
+          ...(options.signingSecret
+            ? {
+                [WEBHOOK_SIGNATURE_HEADER]: webhookSignature(
+                  options.signingSecret,
+                  serializedBody,
+                  Math.floor(Date.now() / 1000),
+                ),
+              }
+            : {}),
         },
-        body: JSON.stringify(body),
+        body: serializedBody,
         signal: options.signal ? AbortSignal.any([options.signal, timeout]) : timeout,
       });
       const responseBody = truncate(await response.text());
@@ -178,7 +197,7 @@ export class AlertsDeliveryService {
   private buildSubject(payload: AlertPayload): string {
     return payload.triggerType === "daily_digest"
       ? `[SpicyTrack] Daily digest for ${projectLabel(payload)}`
-      : `[SpicyTrack] ${triggerLabel(payload)}: ${textValue(payload.issueTitle, "Unknown issue")}`;
+      : `[SpicyTrack] ${alertTriggerLabel(payload)}: ${textValue(payload.issueTitle, "Unknown issue")}`;
   }
 
   buildMessage(payload: AlertPayload): string {
@@ -204,7 +223,7 @@ export class AlertsDeliveryService {
     }
 
     return [
-      `[SpicyTrack] ${triggerLabel(payload)}: ${textValue(payload.issueTitle, "Unknown issue")}`,
+      `[SpicyTrack] ${alertTriggerLabel(payload)}: ${textValue(payload.issueTitle, "Unknown issue")}`,
       `Project: ${projectLabel(payload)} · seen ${numberValue(payload.timesSeen)} times`,
       typeof payload.issueUrl === "string" ? payload.issueUrl : null,
     ]

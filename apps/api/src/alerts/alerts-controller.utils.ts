@@ -37,10 +37,21 @@ export function optionalBoundedInteger(
   return number;
 }
 
+// PagerDuty Events v2 integration (routing) keys are 32 alphanumeric characters.
+const PAGERDUTY_ROUTING_KEY = /^[A-Za-z0-9]{32}$/;
+
 export function assertDestinationTarget(destinationType: DestinationType, value: unknown): string {
-  return destinationType === "email"
-    ? assertEmail(value)
-    : parseWebhookUrl(assertString(value, "destinationTarget")).toString();
+  if (destinationType === "email") return assertEmail(value);
+  if (destinationType === "pagerduty") {
+    const routingKey = assertString(value, "destinationTarget").trim();
+    if (!PAGERDUTY_ROUTING_KEY.test(routingKey)) {
+      throw new BadRequestException(
+        "destinationTarget must be a PagerDuty Events v2 integration key (32 characters)",
+      );
+    }
+    return routingKey;
+  }
+  return parseWebhookUrl(assertString(value, "destinationTarget")).toString();
 }
 
 /**
