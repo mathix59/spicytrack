@@ -224,7 +224,7 @@ function IssuesTable({
                 </div>
               ) : null}
 
-              <dl className="mt-3 grid grid-cols-3 gap-x-4 border-t border-border pt-3 text-xs">
+              <dl className="mt-3 grid grid-cols-4 gap-x-4 border-t border-border pt-3 text-xs">
                 <div>
                   <dt className="text-muted-foreground">Last seen</dt>
                   <dd className="mt-1 text-foreground">{formatRelativeTime(issue.lastSeenAt)}</dd>
@@ -232,6 +232,12 @@ function IssuesTable({
                 <div>
                   <dt className="text-muted-foreground">Events</dt>
                   <dd className="mt-1 tabular-nums text-foreground">{String(issue.timesSeen)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Users</dt>
+                  <dd className="mt-1 tabular-nums text-foreground">
+                    {String(issue.userCount ?? 0)}
+                  </dd>
                 </div>
                 <div className="min-w-0">
                   <dt className="text-muted-foreground">Assignee</dt>
@@ -286,6 +292,7 @@ function IssuesTable({
                   rightAligned
                 />
               </TableHead>
+              <TableHead className="hidden w-20 text-right lg:table-cell">Users</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -352,6 +359,9 @@ function IssuesTable({
                   </TableCell>
                   <TableCell className="text-right text-sm font-medium tabular-nums">
                     {String(issue.timesSeen)}
+                  </TableCell>
+                  <TableCell className="hidden text-right text-sm text-muted-foreground tabular-nums lg:table-cell">
+                    {String(issue.userCount ?? 0)}
                   </TableCell>
                 </TableRow>
               );

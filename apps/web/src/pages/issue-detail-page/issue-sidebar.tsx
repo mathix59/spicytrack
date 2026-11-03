@@ -12,6 +12,7 @@ import { Combobox } from "@/components/ui/combobox";
 import type { IssueDto } from "@/generated/api";
 import { formatRelativeTime, renderNullableText } from "@/lib/utils";
 
+import { IssueTagsCard } from "./issue-tags-card";
 import type { IssueSidebarState } from "./types";
 import { formatTimelineDate } from "./utils";
 
@@ -161,6 +162,8 @@ function IssueSidebar({
           ) : null}
         </CardContent>
       </Card>
+
+      <IssueTagsCard issueId={issueId} orgSlug={orgSlug} projectSlug={projectSlug} />
 
       <IssueTriageCard issueId={issueId} orgSlug={orgSlug} projectSlug={projectSlug} />
 

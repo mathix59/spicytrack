@@ -2149,6 +2149,58 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/tags": {
+      "get": {
+        "operationId": "getIssueTags",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueTagsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
     "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/triage": {
       "post": {
         "operationId": "generateIssueTriage",
@@ -6016,6 +6068,10 @@
           "mergedIntoIssueId": {
             "type": "string",
             "nullable": true
+          },
+          "userCount": {
+            "type": "number",
+            "description": "Distinct users affected, when the endpoint computes it."
           }
         },
         "required": [
@@ -6570,6 +6626,68 @@
         "required": [
           "issue",
           "events"
+        ]
+      },
+      "IssueTagValueDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "count"
+        ]
+      },
+      "IssueTagKeyDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number",
+            "description": "Sampled events carrying this tag."
+          },
+          "uniqueValues": {
+            "type": "number"
+          },
+          "values": {
+            "description": "Most frequent values first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueTagValueDto"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "total",
+          "uniqueValues",
+          "values"
+        ]
+      },
+      "IssueTagsDto": {
+        "type": "object",
+        "properties": {
+          "sampledEvents": {
+            "type": "number",
+            "description": "Recent events the breakdown is computed from."
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueTagKeyDto"
+            }
+          }
+        },
+        "required": [
+          "sampledEvents",
+          "keys"
         ]
       },
       "IssueTriageDto": {

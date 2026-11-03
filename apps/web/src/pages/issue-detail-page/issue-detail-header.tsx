@@ -46,6 +46,7 @@ function IssueDetailHeader({
   firstSeenAt,
   lastSeenAt,
   totalEvents,
+  userCount,
   trend,
   navigation,
   actions,
@@ -60,6 +61,7 @@ function IssueDetailHeader({
   firstSeenAt: string;
   lastSeenAt: string;
   totalEvents: number;
+  userCount: number;
   /** Daily event counts for the last 14 days, oldest first; omitted while loading. */
   trend?: number[];
   navigation: IssueNavigation;
@@ -116,9 +118,12 @@ function IssueDetailHeader({
         ) : null}
       </div>
 
-      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card shadow-xs sm:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.6fr)]">
+      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card shadow-xs sm:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.6fr)]">
         <IssueStat label="Events">
           <span className="tabular-nums">{totalEvents.toLocaleString()}</span>
+        </IssueStat>
+        <IssueStat label="Users">
+          <span className="tabular-nums">{userCount.toLocaleString()}</span>
         </IssueStat>
         <IssueStat label="Last seen" title={formatTimelineDate(lastSeenAt)}>
           {formatRelativeTime(lastSeenAt)}
@@ -263,7 +268,7 @@ function IssueStat({
 }) {
   return (
     <div
-      className="grid content-start gap-0.5 border-border px-4 py-3 not-last:border-r max-sm:nth-[2n]:border-r-0 max-sm:nth-[-n+2]:border-b"
+      className="grid content-start gap-0.5 border-border px-4 py-3 not-last:border-r max-sm:nth-[2n]:border-r-0 max-sm:not-last:border-b max-sm:last:col-span-2"
       title={title}
     >
       <dt className="text-xs text-muted-foreground">{label}</dt>

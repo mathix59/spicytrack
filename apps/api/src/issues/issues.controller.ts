@@ -56,6 +56,7 @@ import {
   IssueAssigneeUpdateBodyDto,
   IssueCommentDto,
   IssueDetailDto,
+  IssueTagsDto,
   IssuePriorityUpdateBodyDto,
   IssueDto,
   IssueStatusUpdateBodyDto,
@@ -186,6 +187,19 @@ export class IssuesController {
       issueId,
       ...pagination,
     });
+  }
+
+  @Get("issues/:issueId/tags")
+  @ApiOperation({ operationId: "getIssueTags" })
+  @ApiParam({ name: "issueId", type: String })
+  @ApiOkResponse({ type: IssueTagsDto })
+  @RequirePermissions("project.issues.read")
+  @UseGuards(PermissionGuard)
+  async getIssueTags(
+    @CurrentProject() project: ProjectRecord,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
+  ) {
+    return this.issuesService.getTagBreakdown(project.id, issueId);
   }
 
   @Post("issues/:issueId/triage")

@@ -267,6 +267,8 @@ export interface IssueDto {
   externalIssueUrl?: string | null;
   /** @nullable */
   mergedIntoIssueId?: string | null;
+  /** Distinct users affected, when the endpoint computes it. */
+  userCount?: number;
 }
 
 export interface ProjectReleaseDetailDto {
@@ -463,6 +465,26 @@ export interface PaginatedEventsDto {
 export interface IssueDetailDto {
   issue: IssueDto;
   events: PaginatedEventsDto;
+}
+
+export interface IssueTagValueDto {
+  value: string;
+  count: number;
+}
+
+export interface IssueTagKeyDto {
+  key: string;
+  /** Sampled events carrying this tag. */
+  total: number;
+  uniqueValues: number;
+  /** Most frequent values first. */
+  values: IssueTagValueDto[];
+}
+
+export interface IssueTagsDto {
+  /** Recent events the breakdown is computed from. */
+  sampledEvents: number;
+  keys: IssueTagKeyDto[];
 }
 
 export type IssueTriageDtoEvidence = { [key: string]: unknown };
@@ -6473,6 +6495,129 @@ export function useGetIssue<TData = Awaited<ReturnType<typeof getIssue>>, TError
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetIssueQueryOptions(orgSlug,projectSlug,issueId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type getIssueTagsResponse200 = {
+  data: IssueTagsDto
+  status: 200
+}
+
+export type getIssueTagsResponseSuccess = (getIssueTagsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getIssueTagsResponse = (getIssueTagsResponseSuccess)
+
+export const getGetIssueTagsUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/tags`
+}
+
+export const getIssueTags = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getIssueTagsResponse> => {
+
+  return orvalFetch<getIssueTagsResponse>(getGetIssueTagsUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIssueTagsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/tags`
+    ] as const;
+    }
+
+
+export const getGetIssueTagsQueryOptions = <TData = Awaited<ReturnType<typeof getIssueTags>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTags>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIssueTagsQueryKey(orgSlug,projectSlug,issueId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIssueTags>>> = ({ signal }) => getIssueTags(orgSlug,projectSlug,issueId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIssueTags>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetIssueTagsQueryResult = NonNullable<Awaited<ReturnType<typeof getIssueTags>>>
+export type GetIssueTagsQueryError = ErrorType<unknown>
+
+
+export function useGetIssueTags<TData = Awaited<ReturnType<typeof getIssueTags>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTags>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIssueTags>>,
+          TError,
+          Awaited<ReturnType<typeof getIssueTags>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssueTags<TData = Awaited<ReturnType<typeof getIssueTags>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTags>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIssueTags>>,
+          TError,
+          Awaited<ReturnType<typeof getIssueTags>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssueTags<TData = Awaited<ReturnType<typeof getIssueTags>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTags>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetIssueTags<TData = Awaited<ReturnType<typeof getIssueTags>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTags>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetIssueTagsQueryOptions(orgSlug,projectSlug,issueId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

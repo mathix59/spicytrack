@@ -18,6 +18,7 @@ import {
 
 import { IssuesHistoryService } from "./issues-history.service";
 import type { IssueSearchTerm } from "./issue-search";
+import { summarizeTagCounts, TAG_BREAKDOWN_SAMPLE } from "./issue-tags";
 import { buildIssueListFilters, eventSelect, resolveIssueSortOrder } from "./issues-query.utils";
 
 export const ISSUE_STATUSES = ["open", "resolved", "ignored"] as const;
@@ -73,12 +74,51 @@ export class IssuesService {
         .offset(offset),
     ]);
 
+    const userCounts = await this.countUsers(items.map((issue) => issue.id));
+
     return {
-      items,
+      items: items.map((issue) => ({ ...issue, userCount: userCounts.get(issue.id) ?? 0 })),
       total: totalRow[0]?.value ?? 0,
       page: input.page,
       pageSize: input.pageSize,
     };
+  }
+
+  /** Distinct users (id, email or username) seen in each issue's events. */
+  private async countUsers(issueIds: string[]): Promise<Map<string, number>> {
+    if (issueIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({
+        issueId: events.issueId,
+        users: sql<number>`count(distinct ${events.userIdentifier})::int`,
+      })
+      .from(events)
+      .where(inArray(events.issueId, issueIds))
+      .groupBy(events.issueId);
+    return new Map(rows.map((row) => [row.issueId, row.users]));
+  }
+
+  async getTagBreakdown(projectId: string, issueId: string) {
+    await this.assertIssueRecord(projectId, issueId);
+    const recent = this.db
+      .select({ tags: events.tags })
+      .from(events)
+      .where(eq(events.issueId, issueId))
+      .orderBy(desc(events.timestamp))
+      .limit(TAG_BREAKDOWN_SAMPLE)
+      .as("recent");
+    const [rows, [sampled]] = await Promise.all([
+      this.db
+        .select({
+          key: sql<string>`tag.key`,
+          value: sql<string>`tag.value`,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(sql`${recent}, jsonb_each_text(${recent.tags}) as tag`)
+        .groupBy(sql`tag.key`, sql`tag.value`),
+      this.db.select({ value: count() }).from(recent),
+    ]);
+    return summarizeTagCounts(rows, sampled?.value ?? 0);
   }
 
   async getIssue(input: {
@@ -111,8 +151,10 @@ export class IssuesService {
         .offset(eventOffset),
     ]);
 
+    const userCounts = await this.countUsers([issue.id]);
+
     return {
-      issue,
+      issue: { ...issue, userCount: userCounts.get(issue.id) ?? 0 },
       events: {
         items: relatedEvents.map((event) => ({
           ...event,

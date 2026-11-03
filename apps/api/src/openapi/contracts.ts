@@ -910,6 +910,39 @@ export class IssueDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   mergedIntoIssueId?: string | null;
+
+  @ApiPropertyOptional({ description: "Distinct users affected, when the endpoint computes it." })
+  userCount?: number;
+}
+
+export class IssueTagValueDto {
+  @ApiProperty()
+  value!: string;
+
+  @ApiProperty()
+  count!: number;
+}
+
+export class IssueTagKeyDto {
+  @ApiProperty()
+  key!: string;
+
+  @ApiProperty({ description: "Sampled events carrying this tag." })
+  total!: number;
+
+  @ApiProperty()
+  uniqueValues!: number;
+
+  @ApiProperty({ type: [IssueTagValueDto], description: "Most frequent values first." })
+  values!: IssueTagValueDto[];
+}
+
+export class IssueTagsDto {
+  @ApiProperty({ description: "Recent events the breakdown is computed from." })
+  sampledEvents!: number;
+
+  @ApiProperty({ type: [IssueTagKeyDto] })
+  keys!: IssueTagKeyDto[];
 }
 
 export class ProjectReleaseDetailDto {

@@ -59,6 +59,7 @@ function IssueDetailPage() {
         status={page.issue.status}
         title={page.issue.title}
         totalEvents={page.events.totalEvents}
+        userCount={page.issue.userCount ?? 0}
         trend={page.trend}
       />
 
