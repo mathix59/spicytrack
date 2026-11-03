@@ -42,11 +42,11 @@ import { PermissionGuard } from "../rbac/permission.guard";
 import { ProjectContextGuard } from "../rbac/project-context.guard";
 import { RequirePermissions } from "../rbac/permissions.decorator";
 import { AlertsService } from "./alerts.service";
+import { DESTINATION_TYPES } from "./alerts.types";
+import type { DestinationType } from "./alerts.types";
 import { parseWebhookUrl } from "./webhook-url-policy";
 
-const DESTINATION_TYPES = ["webhook", "email", "slack", "teams", "discord"] as const;
 const TRIGGER_TYPES = ["new_issue", "regression", "event_threshold", "daily_digest"] as const;
-type DestinationType = (typeof DESTINATION_TYPES)[number];
 type TriggerType = (typeof TRIGGER_TYPES)[number];
 
 function assertTriggerTypes(value: unknown, legacyValue?: unknown): TriggerType[] {
@@ -60,10 +60,45 @@ function assertTriggerTypes(value: unknown, legacyValue?: unknown): TriggerType[
   ];
 }
 
+const LIMITS = {
+  threshold: { min: 1, max: 1_000_000 },
+  thresholdWindowMinutes: { min: 1, max: 7 * 24 * 60 },
+  cooldownMinutes: { min: 1, max: 7 * 24 * 60 },
+} as const;
+
+function optionalBoundedInteger(value: unknown, field: keyof typeof LIMITS): number | undefined {
+  const number = optionalNumber(value, field);
+  if (number === undefined) return undefined;
+  const { min, max } = LIMITS[field];
+  if (!Number.isInteger(number) || number < min || number > max) {
+    throw new BadRequestException(`${field} must be an integer between ${min} and ${max}`);
+  }
+  return number;
+}
+
 function assertDestinationTarget(destinationType: DestinationType, value: unknown): string {
   return destinationType === "email"
     ? assertEmail(value)
     : parseWebhookUrl(assertString(value, "destinationTarget")).toString();
+}
+
+/**
+ * The target is validated against the type the rule will have after the update, so a type change
+ * can never keep a target of the old kind (e.g. a webhook URL stored as an email address).
+ */
+export function resolveDestinationUpdate(
+  currentType: DestinationType,
+  nextType: DestinationType | undefined,
+  target: unknown,
+): { destinationType: DestinationType; destinationTarget?: string } {
+  const destinationType = nextType ?? currentType;
+  if (target === undefined) {
+    if (destinationType !== currentType) {
+      throw new BadRequestException("destinationTarget is required when changing destinationType");
+    }
+    return { destinationType };
+  }
+  return { destinationType, destinationTarget: assertDestinationTarget(destinationType, target) };
 }
 
 @ApiTags("alerts")
@@ -104,8 +139,12 @@ export class AlertsController {
       actorUserId: user.id,
       name: assertString(body.name, "name"),
       triggerTypes: assertTriggerTypes(body.triggerTypes, body.triggerType),
-      threshold: optionalNumber(body.threshold, "threshold") ?? null,
-      cooldownMinutes: optionalNumber(body.cooldownMinutes, "cooldownMinutes") ?? undefined,
+      threshold: optionalBoundedInteger(body.threshold, "threshold") ?? null,
+      thresholdWindowMinutes: optionalBoundedInteger(
+        body.thresholdWindowMinutes,
+        "thresholdWindowMinutes",
+      ),
+      cooldownMinutes: optionalBoundedInteger(body.cooldownMinutes, "cooldownMinutes"),
       destinationType,
       destinationTarget: assertDestinationTarget(destinationType, body.destinationTarget),
     });
@@ -129,16 +168,10 @@ export class AlertsController {
       body.destinationType === undefined
         ? undefined
         : assertOneOf(body.destinationType, DESTINATION_TYPES, "destinationType");
-
-    // Strict email-format validation only applies when destinationType is
-    // changing in this same request; otherwise we can't know the rule's
-    // existing type without a fetch, so accept the raw string as-is.
     const destinationTarget =
-      body.destinationTarget === undefined
+      body.destinationTarget === undefined || body.destinationTarget === ""
         ? undefined
-        : destinationType
-          ? assertDestinationTarget(destinationType, body.destinationTarget)
-          : (optionalNullableString(body.destinationTarget) ?? undefined);
+        : body.destinationTarget;
 
     return this.alertsService.updateRule({
       organizationId: organization.id,
@@ -152,10 +185,17 @@ export class AlertsController {
           ? undefined
           : assertTriggerTypes(body.triggerTypes, body.triggerType),
       threshold:
-        body.threshold === null ? null : (optionalNumber(body.threshold, "threshold") ?? undefined),
-      cooldownMinutes: optionalNumber(body.cooldownMinutes, "cooldownMinutes") ?? undefined,
-      destinationType,
-      destinationTarget,
+        body.threshold === null ? null : optionalBoundedInteger(body.threshold, "threshold"),
+      thresholdWindowMinutes: optionalBoundedInteger(
+        body.thresholdWindowMinutes,
+        "thresholdWindowMinutes",
+      ),
+      cooldownMinutes: optionalBoundedInteger(body.cooldownMinutes, "cooldownMinutes"),
+      destination:
+        destinationType === undefined && destinationTarget === undefined
+          ? undefined
+          : (currentType: DestinationType) =>
+              resolveDestinationUpdate(currentType, destinationType, destinationTarget),
     });
   }
 

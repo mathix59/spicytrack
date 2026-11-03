@@ -12,7 +12,7 @@ export class AutofixWorkerRegistration implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.runner.registerSlowHandler("autofix", (job) => this.handler.run(job));
+    this.runner.registerSlowHandler("autofix", (job, signal) => this.handler.run(job, signal));
   }
 }
 

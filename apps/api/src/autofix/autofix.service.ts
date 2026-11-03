@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { AuditService } from "../audit/audit.service";
 import { decryptSecret, encryptSecret } from "../common/secrets";
 import { DATABASE } from "../database/database.provider";
@@ -30,6 +32,24 @@ const DEFAULT_CONFIG = {
   dailyCap: 5,
   targetBranch: null as string | null,
 };
+
+const DEFAULT_MANUAL_DAILY_CAP = 50;
+
+function manualDailyCap(): number {
+  const parsed = Number(process.env.AUTOFIX_MANUAL_DAILY_CAP ?? DEFAULT_MANUAL_DAILY_CAP);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_MANUAL_DAILY_CAP;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  const cause = error instanceof Error && "cause" in error ? error.cause : undefined;
+  return [error, cause].some(
+    (candidate) =>
+      typeof candidate === "object" &&
+      candidate !== null &&
+      "code" in candidate &&
+      candidate.code === "23505",
+  );
+}
 
 function maskKey(key: string): string {
   if (key.length <= 8) {
@@ -252,32 +272,50 @@ export class AutofixService {
       );
     }
 
-    const [inFlight] = await this.db
-      .select({ id: autofixRuns.id })
-      .from(autofixRuns)
-      .where(
-        and(
-          eq(autofixRuns.issueId, input.issueId),
-          inArray(autofixRuns.status, ["queued", "running"]),
-        ),
-      )
-      .limit(1);
+    const config = await this.getConfig(input.projectId);
 
-    if (inFlight) {
-      throw new ConflictException("An autofix run is already in progress for this issue.");
+    if (!config.enabled) {
+      throw new BadRequestException(
+        "Autofix is disabled for this project. Enable it in the project's Autofix settings first.",
+      );
     }
 
-    const [run] = await this.db
-      .insert(autofixRuns)
-      .values({
-        organizationId: input.organizationId,
-        projectId: input.projectId,
-        issueId: input.issueId,
-        status: "queued",
-        trigger: input.trigger,
-        triggeredByUserId: input.actorUserId ?? null,
-      })
-      .returning();
+    // Automatic runs follow the project's daily cap (checked by maybeAutoTrigger); manual runs,
+    // from the UI or MCP, get their own ceiling so a script cannot spend without bound.
+    if (input.trigger === "manual") {
+      const manualCap = manualDailyCap();
+      const runsToday = await this.countRunsToday(input.projectId, "manual");
+
+      if (runsToday >= manualCap) {
+        throw new HttpException(
+          `This project reached its limit of ${manualCap} manual autofix runs today. Try again tomorrow.`,
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    }
+
+    // The partial unique index on (issue_id) for queued/running runs makes this race-free.
+    let run: typeof autofixRuns.$inferSelect;
+
+    try {
+      [run] = await this.db
+        .insert(autofixRuns)
+        .values({
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          issueId: input.issueId,
+          status: "queued",
+          trigger: input.trigger,
+          triggeredByUserId: input.actorUserId ?? null,
+        })
+        .returning();
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException("An autofix run is already in progress for this issue.");
+      }
+
+      throw error;
+    }
 
     await this.jobsService.enqueue("autofix", { runId: run.id }, new Date(), {
       organizationId: input.organizationId,
@@ -308,18 +346,7 @@ export class AutofixService {
       return;
     }
 
-    const [{ count }] = await this.db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(autofixRuns)
-      .where(
-        and(
-          eq(autofixRuns.projectId, projectId),
-          eq(autofixRuns.trigger, "auto"),
-          gte(autofixRuns.createdAt, sql`date_trunc('day', now())`),
-        ),
-      );
-
-    if (count >= config.dailyCap) {
+    if ((await this.countRunsToday(projectId, "auto")) >= config.dailyCap) {
       return;
     }
 
@@ -333,6 +360,21 @@ export class AutofixService {
     } catch {
       // Missing connection/key or an in-flight run — auto-trigger is best effort.
     }
+  }
+
+  private async countRunsToday(projectId: string, trigger: "auto" | "manual"): Promise<number> {
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(autofixRuns)
+      .where(
+        and(
+          eq(autofixRuns.projectId, projectId),
+          eq(autofixRuns.trigger, trigger),
+          gte(autofixRuns.createdAt, sql`date_trunc('day', now())`),
+        ),
+      );
+
+    return count;
   }
 
   async listRunsForIssue(projectId: string, issueId: string) {

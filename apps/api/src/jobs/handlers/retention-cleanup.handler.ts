@@ -2,9 +2,17 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { and, eq, inArray, lt, notExists } from "drizzle-orm";
 import { DATABASE } from "../../database/database.provider";
 import type { DatabaseClient } from "../../database/database.provider";
-import { events, ingestRateCounters, issues, projects } from "../../database/schema";
+import {
+  alertIssueCooldowns,
+  events,
+  ingestRateCounters,
+  issues,
+  projects,
+} from "../../database/schema";
 
 const BATCH_SIZE = 500;
+/** Longest cooldown a rule accepts; an older cooldown row behaves exactly like a missing one. */
+const MAX_ALERT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Retention cuts on `ingestedAt` (server receipt time), not the client-supplied
 // `timestamp`, since the latter isn't trustworthy for a deletion policy.
@@ -18,6 +26,9 @@ export class RetentionCleanupHandler {
     await this.db
       .delete(ingestRateCounters)
       .where(lt(ingestRateCounters.updatedAt, new Date(Date.now() - 48 * 60 * 60 * 1000)));
+    await this.db
+      .delete(alertIssueCooldowns)
+      .where(lt(alertIssueCooldowns.lastTriggeredAt, new Date(Date.now() - MAX_ALERT_COOLDOWN_MS)));
 
     const projectRows = await this.db
       .select({ id: projects.id, retentionDays: projects.retentionDays })

@@ -24,10 +24,14 @@ import type { DestinationType, ProjectAlertsPanelData, ProjectAlertsPanelProps }
 const EMPTY_RULES: AlertRuleDto[] = [];
 const EMPTY_DELIVERIES: AlertDeliveryDto[] = [];
 
-/** Reads the trigger/threshold/cooldown/destination fields shared by create and edit forms. */
+/**
+ * Reads the trigger/threshold/cooldown/destination fields shared by create and edit forms.
+ * A blank target is left out so an edit keeps the saved (masked) URL.
+ */
 function readRuleConfig(formData: FormData, fallback?: AlertRuleDto) {
   const triggerTypes = formData.getAll("triggerTypes").map(String);
   const thresholdValue = String(formData.get("threshold") ?? "");
+  const destinationTarget = String(formData.get("destinationTarget") ?? "").trim();
 
   return {
     triggerTypes,
@@ -35,13 +39,12 @@ function readRuleConfig(formData: FormData, fallback?: AlertRuleDto) {
       triggerTypes.includes("event_threshold") && thresholdValue.length > 0
         ? Number(thresholdValue)
         : null,
+    thresholdWindowMinutes: Number(formData.get("thresholdWindowMinutes") ?? 60) || 60,
     cooldownMinutes: Number(formData.get("cooldownMinutes") ?? 30) || 30,
     destinationType: String(
       formData.get("destinationType") ?? fallback?.destinationType ?? "webhook",
     ),
-    destinationTarget: String(
-      formData.get("destinationTarget") ?? fallback?.destinationTarget ?? "",
-    ),
+    ...(destinationTarget ? { destinationTarget } : {}),
   };
 }
 
@@ -85,7 +88,11 @@ function useProjectAlertsPanel({
         createAlertMutation.mutateAsync({
           orgSlug,
           projectSlug,
-          data: { name: String(formData.get("name") ?? ""), ...readRuleConfig(formData) },
+          data: {
+            name: String(formData.get("name") ?? ""),
+            destinationTarget: "",
+            ...readRuleConfig(formData),
+          },
         }),
       onSuccess: () => {
         setCreateDestinationType("webhook");

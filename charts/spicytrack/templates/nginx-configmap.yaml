@@ -35,6 +35,11 @@ data:
       add_header Referrer-Policy "no-referrer" always;
       add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 
+      # Internal metrics are scraped from the pods directly, never through the public proxy.
+      location ~ ^/api/metrics/?$ {
+        return 404;
+      }
+
       location ~ ^/api/[^/]+/(store|envelope)/?$ {
         proxy_pass http://{{ include "spicytrack.fullname" . }}-api-ingest:3001;
         proxy_http_version 1.1;

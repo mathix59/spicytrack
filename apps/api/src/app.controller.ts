@@ -1,8 +1,22 @@
-import { Controller, Get, Header, ServiceUnavailableException } from "@nestjs/common";
+import { createHash, timingSafeEqual } from "node:crypto";
+import {
+  Controller,
+  Get,
+  Header,
+  Headers,
+  NotFoundException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AppService } from "./app.service";
 import { EndpointAccess } from "./auth/endpoint-access.decorator";
 import { HealthDto } from "./openapi/contracts";
+
+function bearerMatches(authorization: string | undefined, token: string): boolean {
+  const provided = authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? "";
+  const digest = (value: string) => createHash("sha256").update(value).digest();
+  return timingSafeEqual(digest(provided), digest(token));
+}
 
 @ApiTags("system")
 @EndpointAccess("public")
@@ -42,7 +56,11 @@ export class AppController {
   @Header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
   @ApiOperation({ operationId: "getMetrics" })
   @ApiOkResponse({ schema: { type: "string" } })
-  metrics() {
+  metrics(@Headers("authorization") authorization?: string) {
+    // The public proxies never forward /api/metrics. METRICS_TOKEN additionally guards the pods
+    // themselves; a mismatch answers 404 so the endpoint's existence is not revealed.
+    const token = process.env.METRICS_TOKEN;
+    if (token && !bearerMatches(authorization, token)) throw new NotFoundException();
     return this.appService.getMetrics();
   }
 }

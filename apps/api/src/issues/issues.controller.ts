@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiBody,
@@ -157,7 +167,7 @@ export class IssuesController {
   @UseGuards(PermissionGuard)
   async getIssue(
     @CurrentProject() project: ProjectRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
     @Query("eventPage") eventPage?: string,
     @Query("eventPageSize") eventPageSize?: string,
   ) {
@@ -180,7 +190,7 @@ export class IssuesController {
     @CurrentOrganization() organization: OrganizationRecord,
     @CurrentProject() project: ProjectRecord,
     @CurrentUser() user: UserRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
   ) {
     return this.issueTriageService.generate({
       organizationId: organization.id,
@@ -197,7 +207,7 @@ export class IssuesController {
   @UseGuards(PermissionGuard)
   async listTriageRuns(
     @CurrentProject() project: ProjectRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
   ) {
     return this.issueTriageService.list(project.id, issueId);
   }
@@ -208,7 +218,10 @@ export class IssuesController {
   @ApiOkResponse({ type: EventDto })
   @RequirePermissions("project.events.read")
   @UseGuards(PermissionGuard)
-  async getEvent(@CurrentProject() project: ProjectRecord, @Param("eventId") eventId: string) {
+  async getEvent(
+    @CurrentProject() project: ProjectRecord,
+    @Param("eventId", ParseUUIDPipe) eventId: string,
+  ) {
     return this.issuesService.getEvent(project.id, eventId);
   }
 
@@ -222,7 +235,7 @@ export class IssuesController {
   async updateStatus(
     @CurrentProject() project: ProjectRecord,
     @CurrentUser() user: UserRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
     @Body() body: Record<string, unknown>,
   ) {
     const payload = parseIssueStatusBody(body);
@@ -247,7 +260,7 @@ export class IssuesController {
     @CurrentOrganization() organization: OrganizationRecord,
     @CurrentProject() project: ProjectRecord,
     @CurrentUser() user: UserRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
     @Body() body: Record<string, unknown>,
   ) {
     const payload = parseIssueAssigneeBody(body);
@@ -271,7 +284,7 @@ export class IssuesController {
   async updatePriority(
     @CurrentProject() project: ProjectRecord,
     @CurrentUser() user: UserRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
     @Body() body: Record<string, unknown>,
   ) {
     const payload = parseIssuePriorityBody(body);
@@ -294,7 +307,7 @@ export class IssuesController {
   async updateExternalLink(
     @CurrentProject() project: ProjectRecord,
     @CurrentUser() user: UserRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
     @Body() body: Record<string, unknown>,
   ) {
     return this.issuesService.updateExternalLink({
@@ -315,7 +328,7 @@ export class IssuesController {
   async merge(
     @CurrentProject() project: ProjectRecord,
     @CurrentUser() user: UserRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
     @Body() body: Record<string, unknown>,
   ) {
     return this.issuesService.mergeIssue({
@@ -335,7 +348,7 @@ export class IssuesController {
   async unmerge(
     @CurrentProject() project: ProjectRecord,
     @CurrentUser() user: UserRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
   ) {
     return this.issuesService.unmergeIssue({
       organizationId: project.organizationId,
@@ -417,7 +430,10 @@ export class IssuesController {
   @ApiOkResponse({ type: [IssueCommentDto] })
   @RequirePermissions("project.issues.read")
   @UseGuards(PermissionGuard)
-  async listComments(@CurrentProject() project: ProjectRecord, @Param("issueId") issueId: string) {
+  async listComments(
+    @CurrentProject() project: ProjectRecord,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
+  ) {
     return this.issuesService.listComments(project.id, issueId);
   }
 
@@ -432,7 +448,7 @@ export class IssuesController {
     @CurrentOrganization() organization: OrganizationRecord,
     @CurrentProject() project: ProjectRecord,
     @CurrentUser() user: UserRecord,
-    @Param("issueId") issueId: string,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
     @Body() body: Record<string, unknown>,
   ) {
     const payload = parseCreateCommentBody(body);
@@ -452,7 +468,10 @@ export class IssuesController {
   @ApiOkResponse({ type: [IssueActivityDto] })
   @RequirePermissions("project.issues.read")
   @UseGuards(PermissionGuard)
-  async listActivity(@CurrentProject() project: ProjectRecord, @Param("issueId") issueId: string) {
+  async listActivity(
+    @CurrentProject() project: ProjectRecord,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
+  ) {
     return this.issuesService.listActivity(project.id, issueId);
   }
 }

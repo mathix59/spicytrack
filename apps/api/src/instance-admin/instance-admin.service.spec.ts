@@ -86,11 +86,11 @@ describe("manual SMTP connection test", () => {
   it("tests unsaved values with the stored password without writing settings", async () => {
     const { db, upsert } = database();
     const service = new InstanceAdminService(db as never);
-    await service.update("admin", { smtpHost: "old.test", smtpPass: "secret" });
+    await service.update("admin", { smtpHost: "smtp.test", smtpPort: 465, smtpPass: "secret" });
     upsert.mockClear();
     await expect(
       service.testSmtp("admin", {
-        smtpHost: "new.test",
+        smtpHost: "SMTP.test",
         smtpPort: 465,
         smtpSecure: true,
         smtpUser: "sender",
@@ -98,16 +98,29 @@ describe("manual SMTP connection test", () => {
     ).resolves.toEqual({ success: true });
     expect(createTransport).toHaveBeenCalledWith(
       expect.objectContaining({
-        host: "new.test",
+        host: "SMTP.test",
         port: 465,
         secure: true,
         auth: { user: "sender", pass: "secret" },
       }),
     );
     expect(upsert).not.toHaveBeenCalled();
-    expect(await service.get()).toMatchObject({ smtpHost: "old.test" });
+    expect(await service.get()).toMatchObject({ smtpHost: "smtp.test" });
     expect(verify).toHaveBeenCalledTimes(1);
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { smtpHost: "attacker.test", smtpPort: 465 },
+    { smtpHost: "smtp.test", smtpPort: 2525 },
+  ])("never sends the stored password to another server: %p", async (target) => {
+    const { db } = database();
+    const service = new InstanceAdminService(db as never);
+    await service.update("admin", { smtpHost: "smtp.test", smtpPort: 465, smtpPass: "secret" });
+    await expect(service.testSmtp("admin", { ...target, smtpUser: "sender" })).rejects.toThrow(
+      "Enter the SMTP password",
+    );
+    expect(createTransport).not.toHaveBeenCalled();
   });
 
   it("uses newly entered credentials and sanitizes provider errors", async () => {

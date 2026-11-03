@@ -37,8 +37,11 @@ export interface AlertRuleDto {
   triggerType?: string;
   /** @nullable */
   threshold?: number | null;
+  /** Window, in minutes, in which the event threshold is counted. */
+  thresholdWindowMinutes: number;
   cooldownMinutes: number;
   destinationType: string;
+  /** Email address, or a masked URL for webhook, Slack, Teams and Discord destinations, whose URLs act as secrets. */
   destinationTarget: string;
   /** @nullable */
   lastTriggeredAt?: string | null;
@@ -53,6 +56,8 @@ export interface CreateAlertRuleBodyDto {
   triggerType?: string;
   /** @nullable */
   threshold?: number | null;
+  /** Defaults to 60 minutes. */
+  thresholdWindowMinutes?: number;
   cooldownMinutes?: number;
   destinationType: string;
   destinationTarget: string;
@@ -66,8 +71,11 @@ export interface UpdateAlertRuleBodyDto {
   triggerType?: string;
   /** @nullable */
   threshold?: number | null;
+  /** Defaults to 60 minutes. */
+  thresholdWindowMinutes?: number;
   cooldownMinutes?: number;
   destinationType?: string;
+  /** Omit to keep the current target. Required when destinationType changes. */
   destinationTarget?: string;
 }
 

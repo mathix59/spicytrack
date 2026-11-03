@@ -14,6 +14,9 @@ export interface McpToolDefinition {
 
 const DEFAULT_COMMAND = "codebase-memory-mcp";
 const DEFAULT_INSTALL_PREFIX = "/tmp/codebase-memory-mcp";
+// Installed at runtime, so the version is pinned: a new upstream release must not reach
+// production without a deliberate bump.
+const DEFAULT_PACKAGE_VERSION = "0.12.1";
 const execFile = promisify(execFileCallback);
 
 function getMcpCommand(): string {
@@ -22,6 +25,11 @@ function getMcpCommand(): string {
 
 function getMcpPackage(): string {
   return process.env.CODEBASE_MEMORY_MCP_NPM_PACKAGE ?? getMcpCommand();
+}
+
+function getMcpPackageSpec(): string {
+  const version = process.env.CODEBASE_MEMORY_MCP_VERSION ?? DEFAULT_PACKAGE_VERSION;
+  return `${getMcpPackage()}@${version}`;
 }
 
 function getMcpInstallPrefix(): string {
@@ -66,7 +74,7 @@ async function installCodebaseMemoryMcp(): Promise<string | null> {
   try {
     await execFile(
       "npm",
-      ["install", "--global", getMcpPackage(), "--prefix", getMcpInstallPrefix()],
+      ["install", "--global", getMcpPackageSpec(), "--prefix", getMcpInstallPrefix()],
       {
         env: {
           ...process.env,

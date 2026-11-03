@@ -229,14 +229,25 @@ export class AiUsageService {
 
   async summary(organizationId: string, days = 30) {
     const since = new Date(Date.now() - days * 86_400_000);
+    // Sums are bigint: an int cast overflows past ~2.1 billion tokens or ~$2,147 in micros.
     const [totals] = await this.db
       .select({
         runs: sql<number>`count(*)::int`,
-        inputTokens: sql<number>`coalesce(sum(${aiUsageLedger.inputTokens}), 0)::int`,
-        outputTokens: sql<number>`coalesce(sum(${aiUsageLedger.outputTokens}), 0)::int`,
-        cacheReadTokens: sql<number>`coalesce(sum(${aiUsageLedger.cacheReadTokens}), 0)::int`,
-        cacheWriteTokens: sql<number>`coalesce(sum(${aiUsageLedger.cacheWriteTokens}), 0)::int`,
-        estimatedCostMicros: sql<number | null>`sum(${aiUsageLedger.estimatedCostMicros})::int`,
+        inputTokens: sql<number>`coalesce(sum(${aiUsageLedger.inputTokens}), 0)::bigint`.mapWith(
+          Number,
+        ),
+        outputTokens: sql<number>`coalesce(sum(${aiUsageLedger.outputTokens}), 0)::bigint`.mapWith(
+          Number,
+        ),
+        cacheReadTokens:
+          sql<number>`coalesce(sum(${aiUsageLedger.cacheReadTokens}), 0)::bigint`.mapWith(Number),
+        cacheWriteTokens:
+          sql<number>`coalesce(sum(${aiUsageLedger.cacheWriteTokens}), 0)::bigint`.mapWith(Number),
+        estimatedCostMicros: sql<
+          number | null
+        >`sum(${aiUsageLedger.estimatedCostMicros})::bigint`.mapWith((value: string | null) =>
+          value === null ? null : Number(value),
+        ),
       })
       .from(aiUsageLedger)
       .where(

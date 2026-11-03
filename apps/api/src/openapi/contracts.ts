@@ -628,13 +628,19 @@ export class AlertRuleDto {
   @ApiPropertyOptional({ type: Number, nullable: true })
   threshold?: number | null;
 
+  @ApiProperty({ description: "Window, in minutes, in which the event threshold is counted." })
+  thresholdWindowMinutes!: number;
+
   @ApiProperty()
   cooldownMinutes!: number;
 
   @ApiProperty()
   destinationType!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      "Email address, or a masked URL for webhook, Slack, Teams and Discord destinations, whose URLs act as secrets.",
+  })
   destinationTarget!: string;
 
   @ApiPropertyOptional({ type: String, nullable: true })
@@ -738,6 +744,9 @@ export class CreateAlertRuleBodyDto {
   @ApiPropertyOptional({ type: Number, nullable: true })
   threshold?: number | null;
 
+  @ApiPropertyOptional({ type: Number, description: "Defaults to 60 minutes." })
+  thresholdWindowMinutes?: number;
+
   @ApiPropertyOptional({ type: Number })
   cooldownMinutes?: number;
 
@@ -764,13 +773,18 @@ export class UpdateAlertRuleBodyDto {
   @ApiPropertyOptional({ type: Number, nullable: true })
   threshold?: number | null;
 
+  @ApiPropertyOptional({ type: Number, description: "Defaults to 60 minutes." })
+  thresholdWindowMinutes?: number;
+
   @ApiPropertyOptional({ type: Number })
   cooldownMinutes?: number;
 
   @ApiPropertyOptional()
   destinationType?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: "Omit to keep the current target. Required when destinationType changes.",
+  })
   destinationTarget?: string;
 }
 

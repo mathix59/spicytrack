@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { SourcemapResolverService } from "../artifacts/sourcemap-resolver.service";
 import { redactEventPayload } from "../common/event-payload-redaction";
@@ -18,6 +18,20 @@ import {
 
 import { IssuesHistoryService } from "./issues-history.service";
 import { buildIssueListFilters, eventSelect, resolveIssueSortOrder } from "./issues-query.utils";
+
+export const ISSUE_STATUSES = ["open", "resolved", "ignored"] as const;
+export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+
+/** Columns that change with the status; only a resolution records who resolved and when. */
+function statusChange(status: IssueStatus, actorUserId: string) {
+  const resolved = status === "resolved";
+  return {
+    status,
+    resolvedAt: resolved ? new Date() : null,
+    resolvedByUserId: resolved ? actorUserId : null,
+    updatedAt: new Date(),
+  };
+}
 
 @Injectable()
 export class IssuesService {
@@ -137,19 +151,19 @@ export class IssuesService {
     organizationId: string;
     projectId: string;
     issueId: string;
-    status: string;
+    status: IssueStatus;
     actorUserId: string;
     ignoredUntil?: Date | null;
   }) {
-    const resolved = input.status === "resolved" || input.status === "ignored";
+    const current = await this.assertIssueRecord(input.projectId, input.issueId);
+    if (current.mergedIntoIssueId) {
+      throw new BadRequestException("Unmerge this issue before changing its status");
+    }
     const [issue] = await this.db
       .update(issues)
       .set({
-        status: input.status,
-        resolvedAt: resolved ? new Date() : null,
-        resolvedByUserId: resolved ? input.actorUserId : null,
+        ...statusChange(input.status, input.actorUserId),
         ignoredUntil: input.status === "ignored" ? (input.ignoredUntil ?? null) : null,
-        updatedAt: new Date(),
       })
       .where(and(eq(issues.projectId, input.projectId), eq(issues.id, input.issueId)))
       .returning();
@@ -300,7 +314,21 @@ export class IssuesService {
       if (target.mergedIntoIssueId) {
         throw new BadRequestException("Target issue is already merged into another issue");
       }
-      await tx.update(events).set({ issueId: target.id }).where(eq(events.issueId, source.id));
+      // Each moved event remembers the issue it came from (unless an earlier merge already set it),
+      // which is what lets unmerge give it back.
+      await tx
+        .update(events)
+        .set({
+          issueId: target.id,
+          mergedFromIssueId: sql`coalesce(${events.mergedFromIssueId}, ${source.id})`,
+        })
+        .where(eq(events.issueId, source.id));
+      // Issues previously merged into the source now follow it into the target, so new events
+      // never land on an issue in "merged" status.
+      await tx
+        .update(issues)
+        .set({ mergedIntoIssueId: target.id, updatedAt: new Date() })
+        .where(eq(issues.mergedIntoIssueId, source.id));
       await tx
         .update(issues)
         .set({
@@ -347,11 +375,26 @@ export class IssuesService {
     if (!currentIssue.mergedIntoIssueId) {
       throw new BadRequestException("Issue is not merged");
     }
-    const [issue] = await this.db
-      .update(issues)
-      .set({ status: "open", mergedIntoIssueId: null, timesSeen: 0, updatedAt: new Date() })
-      .where(and(eq(issues.projectId, input.projectId), eq(issues.id, input.issueId)))
-      .returning();
+    const targetIssueId = currentIssue.mergedIntoIssueId;
+    const { issue, movedEventCount } = await this.db.transaction(async (tx) => {
+      // Give back the events that were grouped into this issue before (or after) the merge.
+      const moved = await tx
+        .update(events)
+        .set({ issueId: input.issueId, mergedFromIssueId: null })
+        .where(and(eq(events.issueId, targetIssueId), eq(events.mergedFromIssueId, input.issueId)))
+        .returning({ id: events.id });
+      const [restored] = await tx
+        .update(issues)
+        .set({ status: "open", mergedIntoIssueId: null, updatedAt: new Date() })
+        .where(and(eq(issues.projectId, input.projectId), eq(issues.id, input.issueId)))
+        .returning();
+      if (!restored) return { issue: undefined, movedEventCount: 0 };
+
+      await this.recomputeIssueStats(tx, input.issueId, { minimumTimesSeen: moved.length });
+      await this.recomputeIssueStats(tx, targetIssueId, { subtractTimesSeen: moved.length });
+      const [issue] = await tx.select().from(issues).where(eq(issues.id, input.issueId));
+      return { issue, movedEventCount: moved.length };
+    });
     if (!issue) throw new NotFoundException("Issue not found");
     await this.issuesHistoryService.recordIssueChange({
       organizationId: input.organizationId,
@@ -359,35 +402,80 @@ export class IssuesService {
       issueId: input.issueId,
       actorUserId: input.actorUserId,
       activityType: "issue.unmerged",
-      activityPayload: {},
+      activityPayload: { targetIssueId, movedEventCount },
       auditAction: "issue.unmerge",
-      auditPayload: {},
+      auditPayload: { targetIssueId, movedEventCount },
     });
     return issue;
+  }
+
+  /**
+   * Re-derives first/last seen and the last event from the events an issue holds after events
+   * moved between issues. timesSeen is adjusted, not recounted, because retention may already
+   * have deleted older events.
+   */
+  private async recomputeIssueStats(
+    tx: Parameters<Parameters<DatabaseClient["transaction"]>[0]>[0],
+    issueId: string,
+    adjust: { minimumTimesSeen?: number; subtractTimesSeen?: number },
+  ) {
+    const [stats] = await tx
+      .select({
+        eventCount: count(),
+        firstSeenAt: sql<Date | null>`min(${events.timestamp})`,
+        lastSeenAt: sql<Date | null>`max(${events.timestamp})`,
+      })
+      .from(events)
+      .where(eq(events.issueId, issueId));
+    const [lastEvent] = await tx
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.issueId, issueId))
+      .orderBy(desc(events.timestamp))
+      .limit(1);
+    const eventCount = stats?.eventCount ?? 0;
+    const timesSeen =
+      adjust.subtractTimesSeen !== undefined
+        ? sql`greatest(${issues.timesSeen} - ${adjust.subtractTimesSeen}, ${eventCount})`
+        : sql`greatest(${issues.timesSeen}, ${adjust.minimumTimesSeen ?? 0}, ${eventCount})`;
+
+    await tx
+      .update(issues)
+      .set({
+        timesSeen,
+        ...(stats?.firstSeenAt ? { firstSeenAt: new Date(stats.firstSeenAt) } : {}),
+        ...(stats?.lastSeenAt ? { lastSeenAt: new Date(stats.lastSeenAt) } : {}),
+        lastEventId: lastEvent?.id ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(issues.id, issueId));
   }
 
   async bulkUpdateStatus(input: {
     organizationId: string;
     projectId: string;
     issueIds: string[];
-    status: string;
+    status: IssueStatus;
     actorUserId: string;
   }) {
     if (input.issueIds.length === 0) {
       return { success: true, updatedCount: 0 };
     }
 
-    const resolved = input.status === "resolved" || input.status === "ignored";
     const updated = await this.db
       .update(issues)
       .set({
-        status: input.status,
-        resolvedAt: resolved ? new Date() : null,
-        resolvedByUserId: resolved ? input.actorUserId : null,
-        ignoredUntil: input.status === "ignored" ? new Date() : null,
-        updatedAt: new Date(),
+        ...statusChange(input.status, input.actorUserId),
+        // Bulk ignore has no end date: the issue stays ignored until someone reopens it.
+        ignoredUntil: null,
       })
-      .where(and(eq(issues.projectId, input.projectId), inArray(issues.id, input.issueIds)))
+      .where(
+        and(
+          eq(issues.projectId, input.projectId),
+          inArray(issues.id, input.issueIds),
+          isNull(issues.mergedIntoIssueId),
+        ),
+      )
       .returning({ id: issues.id });
 
     await this.issuesHistoryService.recordBulkIssueChange({

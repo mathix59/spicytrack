@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { jobs } from "../database/schema";
@@ -118,6 +118,31 @@ export class JobsService {
       .update(jobs)
       .set({ status: "failed", finishedAt: new Date(), lastError: error })
       .where(eq(jobs.id, jobId));
+  }
+
+  /**
+   * Jobs of the given types still "running" since before `startedBefore` were abandoned by a
+   * worker that stopped: retry them, or fail them once they used all their attempts.
+   */
+  async recoverStalled(types: string[], startedBefore: Date, maxAttempts: number): Promise<number> {
+    const stalled = and(
+      inArray(jobs.type, types),
+      eq(jobs.status, "running"),
+      lte(jobs.startedAt, startedBefore),
+    );
+    const lastError = "Worker stopped while the job was running";
+    const failed = await this.db
+      .update(jobs)
+      .set({ status: "failed", finishedAt: new Date(), lastError })
+      .where(and(stalled, gte(jobs.attempts, maxAttempts)))
+      .returning({ id: jobs.id });
+    const retried = await this.db
+      .update(jobs)
+      .set({ status: "pending", runAt: new Date(), startedAt: null, lastError })
+      .where(stalled)
+      .returning({ id: jobs.id });
+
+    return failed.length + retried.length;
   }
 
   async reschedule(jobId: string, error: string, runAt: Date): Promise<void> {

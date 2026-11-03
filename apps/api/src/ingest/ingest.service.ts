@@ -22,7 +22,7 @@ import {
 import type { IngestContext, IngestProjectAccess } from "./ingest.types";
 import { ingestLimits } from "./ingest-limits";
 import { recordIngestOutcome } from "./ingest-metrics";
-import { parseEnvelopeEvent, parseEventPayload } from "./ingest.utils";
+import { InvalidEnvelopeError, parseEnvelopeEvent, parseEventPayload } from "./ingest.utils";
 import { PostIngestPublisherService } from "./post-ingest-publisher.service";
 
 type TransactionClient = Parameters<Parameters<DatabaseClient["transaction"]>[0]>[0];
@@ -51,14 +51,23 @@ export class IngestService {
   async ingestEnvelope(projectId: string, envelope: string, sentryKey?: string) {
     const project = await this.assertProjectAccess(projectId, sentryKey);
     this.assertPayloadSize(Buffer.byteLength(envelope));
-    await this.consumeQuotas(project);
-    const payload = parseEnvelopeEvent(envelope);
+    // Parse before counting quotas: envelopes without an event and malformed ones are not stored,
+    // so they must not use up the project's event quota.
+    let payload: Record<string, unknown> | null;
+    try {
+      payload = parseEnvelopeEvent(envelope);
+    } catch (error) {
+      if (!(error instanceof InvalidEnvelopeError)) throw error;
+      recordIngestOutcome("rejected", "invalid_payload");
+      throw new BadRequestException(error.message);
+    }
 
     if (!payload) {
       recordIngestOutcome("dropped", "unsupported_envelope_item");
       return { accepted: true, dropped: true, reason: "unsupported_envelope_item" };
     }
 
+    await this.consumeQuotas(project);
     return this.trackResult(await this.persistEvent(project, payload));
   }
 
@@ -202,12 +211,15 @@ export class IngestService {
 
     try {
       const result = await this.db.transaction(async (tx) => {
-        const { issue, issueWasCreated, issueRegressed } = await this.upsertIssue(
+        const { issue, issueWasCreated, issueRegressed, mergedFromIssueId } =
+          await this.upsertIssue(tx, context, parsedPayload);
+        const event = await this.insertEvent(
           tx,
           context,
+          issue.id,
           parsedPayload,
+          mergedFromIssueId,
         );
-        const event = await this.insertEvent(tx, context, issue.id, parsedPayload);
 
         await this.linkLastEvent(tx, issue.id, event.id);
         await this.touchProject(tx, project.id, parsedPayload.timestamp);
@@ -334,7 +346,12 @@ export class IngestService {
         .where(eq(issues.id, currentIssue.mergedIntoIssueId))
         .returning();
       if (targetIssue) {
-        return { issue: targetIssue, issueWasCreated: false, issueRegressed: false };
+        return {
+          issue: targetIssue,
+          issueWasCreated: false,
+          issueRegressed: false,
+          mergedFromIssueId: currentIssue.id,
+        };
       }
     }
 
@@ -369,6 +386,7 @@ export class IngestService {
     context: IngestContext,
     issueId: string,
     payload: ReturnType<typeof parseEventPayload>,
+    mergedFromIssueId?: string,
   ) {
     const [event] = await tx
       .insert(events)
@@ -376,6 +394,7 @@ export class IngestService {
         organizationId: context.organizationId,
         projectId: context.projectId,
         issueId,
+        mergedFromIssueId: mergedFromIssueId ?? null,
         environmentId: context.environmentId,
         releaseId: context.releaseId,
         eventId: payload.eventExternalId,

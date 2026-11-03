@@ -43,6 +43,13 @@
       "when": 1793718307560,
       "tag": "0005_role_descriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793720646207,
+      "tag": "0006_lot0_hardening",
+      "breakpoints": true
     }
   ]
 }

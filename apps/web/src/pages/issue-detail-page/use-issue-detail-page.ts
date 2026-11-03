@@ -345,7 +345,7 @@ function useIssueDetailPage(): IssuePageData {
     setWorkflowError(null);
     try {
       await unmergeIssueMutation.mutateAsync({ orgSlug, projectSlug, issueId });
-      toast.success("Future events will be grouped separately");
+      toast.success("Issue split back out with its original events");
     } catch (error) {
       setWorkflowError(getErrorMessage(error));
     }

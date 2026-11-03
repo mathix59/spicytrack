@@ -4,6 +4,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { alertDeliveries, alertRules, events, issues } from "../database/schema";
+import { loadProjectLinks } from "./alert-links";
 import { AlertsDeliveryService } from "./alerts-delivery.service";
 import type { AlertPayload } from "./alerts.types";
 
@@ -27,7 +28,7 @@ export class DailyDigestService {
       );
 
     for (const rule of rules) {
-      if (rule.lastTriggeredAt && rule.lastTriggeredAt >= since) continue;
+      if (rule.lastDigestAt && rule.lastDigestAt >= since) continue;
       const [eventCountRows, newIssueCountRows, regressionCountRows, topRegressions] =
         await Promise.all([
           this.db
@@ -64,10 +65,13 @@ export class DailyDigestService {
             .limit(5),
         ]);
 
+      const links = await loadProjectLinks(this.db, rule.projectId);
       const payload: AlertPayload = {
         triggerType: "daily_digest",
         triggerTypes: ["daily_digest"],
         projectId: rule.projectId,
+        projectName: links.projectName,
+        projectUrl: links.projectUrl,
         eventCount24h: eventCountRows[0]?.count ?? 0,
         newIssueCount24h: newIssueCountRows[0]?.count ?? 0,
         openRegressionCount: regressionCountRows[0]?.count ?? 0,
@@ -85,7 +89,7 @@ export class DailyDigestService {
       });
       await this.db
         .update(alertRules)
-        .set({ lastTriggeredAt: now, updatedAt: now })
+        .set({ lastDigestAt: now, lastTriggeredAt: now, updatedAt: now })
         .where(eq(alertRules.id, rule.id));
     }
   }

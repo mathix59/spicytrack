@@ -653,7 +653,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await expect(
     alertRuleForm.locator("div.rounded-full").getByText("Regression", { exact: true }),
   ).toBeVisible();
-  await expect(alertRuleForm.getByText("Threshold 2", { exact: true })).toBeVisible();
+  await expect(alertRuleForm.getByText("2 events / 1h", { exact: true })).toBeVisible();
   await alertRuleForm.getByRole("button", { name: "Test", exact: true }).click();
   await expect(
     page.getByText("Test alert: E2E multi-trigger alert", { exact: true }),

@@ -1,3 +1,4 @@
+import { boundGroupingKey } from "../common/grouping";
 import type { IngestProjectAccess, ParsedEventPayload } from "./ingest.types";
 
 function policySearchText(payload: ParsedEventPayload) {
@@ -27,7 +28,7 @@ export function applyProjectPolicies(project: IngestProjectAccess, payload: Pars
     if (!pattern || !searchable.includes(pattern)) continue;
     if (rule.action === "ignore") return { ignored: true };
     if (rule.action === "fingerprint" && typeof rule.fingerprint === "string") {
-      payload.groupingKey = `custom:${rule.fingerprint.trim()}`;
+      payload.groupingKey = boundGroupingKey(`custom:${rule.fingerprint.trim()}`);
     }
   }
 

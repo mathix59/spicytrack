@@ -22,7 +22,7 @@ import { VcsFactory } from "../integrations/vcs/vcs.factory";
 import type { Job } from "../jobs/jobs.service";
 import { resolveModel, runAutofixAgent } from "./agent";
 import { AutofixService } from "./autofix.service";
-import { commitAll, hasChanges, pushBranch, scrubSecret, shallowClone } from "./git";
+import { commitFiles, pushBranch, scrubSecret, shallowClone } from "./git";
 import { CodebaseMemoryMcp } from "./mcp-client";
 import { buildTaskPrompt } from "./prompt";
 
@@ -42,7 +42,7 @@ export class AutofixJobHandler {
     private readonly aiUsageService: AiUsageService,
   ) {}
 
-  async run(job: Job): Promise<void> {
+  async run(job: Job, jobSignal?: AbortSignal): Promise<void> {
     const runId = (job.payload as { runId?: string }).runId;
 
     if (!runId) {
@@ -70,9 +70,14 @@ export class AutofixJobHandler {
       const timeoutMs = Number(process.env.AUTOFIX_JOB_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
 
       const result = await this.withTimeout(
-        this.execute(run, (usedToken) => {
-          token = usedToken;
-        }),
+        (signal) =>
+          this.execute(
+            run,
+            (usedToken) => {
+              token = usedToken;
+            },
+            jobSignal ? AbortSignal.any([signal, jobSignal]) : signal,
+          ),
         timeoutMs,
       );
 
@@ -136,6 +141,7 @@ export class AutofixJobHandler {
   private async execute(
     run: typeof autofixRuns.$inferSelect,
     onToken: (token: string) => void,
+    signal: AbortSignal,
   ): Promise<{
     branch: string;
     prUrl: string;
@@ -239,6 +245,7 @@ export class AutofixJobHandler {
         repoDir,
         mcp,
         taskPrompt,
+        abortSignal: signal,
       });
       const usage = await this.aiUsageService.record({
         organizationId: run.organizationId,
@@ -254,15 +261,19 @@ export class AutofixJobHandler {
         cacheWriteTokens: agentResult.cacheWriteTokens,
       });
 
-      if (!(await hasChanges(repoDir))) {
+      const branch = `autofix/issue-${run.issueId.slice(0, 8)}-${run.id.slice(0, 8)}`;
+      const committed = await commitFiles(
+        repoDir,
+        agentResult.filesChanged,
+        `fix: ${issue.title} (SpicyTrack autofix)`,
+      );
+
+      if (!committed) {
         throw new Error(
           `The agent made no code changes. Agent report: ${agentResult.summary.slice(0, 500)}`,
         );
       }
 
-      const branch = `autofix/issue-${run.issueId.slice(0, 8)}-${run.id.slice(0, 8)}`;
-
-      await commitAll(repoDir, `fix: ${issue.title} (SpicyTrack autofix)`);
       await pushBranch(repoDir, authenticatedUrl, branch);
 
       const summary = analysisCapabilityWarning
@@ -342,14 +353,20 @@ export class AutofixJobHandler {
     return `${base}/orgs/${org?.slug}/projects/${project?.slug}/issues/${run.issueId}`;
   }
 
-  private async withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  /** Rejects after `ms` and aborts the signal, which stops the model calls still in flight. */
+  private async withTimeout<T>(task: (signal: AbortSignal) => Promise<T>, ms: number): Promise<T> {
+    const controller = new AbortController();
     let timer: NodeJS.Timeout | undefined;
 
     try {
       return await Promise.race([
-        promise,
+        task(controller.signal),
         new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error(`Autofix timed out after ${ms}ms`)), ms);
+          timer = setTimeout(() => {
+            const error = new Error(`Autofix timed out after ${ms}ms`);
+            controller.abort(error);
+            reject(error);
+          }, ms);
         }),
       ]);
     } finally {

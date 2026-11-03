@@ -112,6 +112,14 @@ const betterAuth = createBetterAuth({
         window: authenticationConfiguration.rateLimitWindowSeconds,
         max: authenticationConfiguration.signInRateLimitMax,
       },
+      // The plugin default (3 per 10 s) still allows ~26k guesses a day on a 6-digit code.
+      "/two-factor/verify-totp": { window: 300, max: 5 },
+      "/two-factor/verify-otp": { window: 300, max: 5 },
+      "/two-factor/verify-backup-code": { window: 300, max: 5 },
+      "/two-factor/send-otp": { window: 300, max: 3 },
+      "/forget-password": { window: 300, max: 3 },
+      "/request-password-reset": { window: 300, max: 3 },
+      "/send-verification-email": { window: 300, max: 3 },
     },
   },
   account: {

@@ -3,11 +3,33 @@ import { and, desc, eq } from "drizzle-orm";
 import { AuditService } from "../audit/audit.service";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
-import { alertDeliveries, alertRules } from "../database/schema";
+import { alertDeliveries, alertIssueCooldowns, alertRules } from "../database/schema";
+import { loadProjectLinks } from "./alert-links";
+import type { DestinationType } from "./alerts.types";
 import { AlertsExecutionService } from "./alerts-execution.service";
 
+/**
+ * Webhook, Slack, Teams and Discord URLs carry their own credentials, so they are never sent
+ * back in full: only the host and the last characters, enough to recognise the destination.
+ */
+export function maskDestinationTarget(destinationType: string, target: string): string {
+  if (destinationType === "email") return target;
+  try {
+    const url = new URL(target);
+    const tail = target.length > 12 ? target.slice(-4) : "";
+    return `${url.protocol}//${url.host}/…${tail}`;
+  } catch {
+    return "…";
+  }
+}
+
 function serializeRule(rule: typeof alertRules.$inferSelect) {
-  return { ...rule, triggerType: rule.triggerTypes[0] };
+  const { lastDigestAt: _lastDigestAt, ...publicRule } = rule;
+  return {
+    ...publicRule,
+    destinationTarget: maskDestinationTarget(rule.destinationType, rule.destinationTarget),
+    triggerType: rule.triggerTypes[0],
+  };
 }
 
 @Injectable()
@@ -34,6 +56,7 @@ export class AlertsService {
     name: string;
     triggerTypes: string[];
     threshold?: number | null;
+    thresholdWindowMinutes?: number;
     cooldownMinutes?: number;
     destinationType: string;
     destinationTarget: string;
@@ -46,6 +69,7 @@ export class AlertsService {
         name: input.name,
         triggerTypes: input.triggerTypes,
         threshold: input.threshold ?? null,
+        thresholdWindowMinutes: input.thresholdWindowMinutes ?? 60,
         cooldownMinutes: input.cooldownMinutes ?? 30,
         destinationType: input.destinationType,
         destinationTarget: input.destinationTarget,
@@ -79,10 +103,35 @@ export class AlertsService {
     isActive?: boolean;
     triggerTypes?: string[];
     threshold?: number | null;
+    thresholdWindowMinutes?: number;
     cooldownMinutes?: number;
-    destinationType?: string;
-    destinationTarget?: string;
+    /** Resolves the new destination from the rule's current type. */
+    destination?: (currentType: DestinationType) => {
+      destinationType: DestinationType;
+      destinationTarget?: string;
+    };
   }) {
+    const ruleScope = and(
+      eq(alertRules.organizationId, input.organizationId),
+      eq(alertRules.projectId, input.projectId),
+      eq(alertRules.id, input.alertRuleId),
+    );
+    let destination: ReturnType<NonNullable<typeof input.destination>> | undefined;
+
+    if (input.destination) {
+      const [current] = await this.db
+        .select({ destinationType: alertRules.destinationType })
+        .from(alertRules)
+        .where(ruleScope)
+        .limit(1);
+
+      if (!current) {
+        throw new NotFoundException("Alert rule not found");
+      }
+
+      destination = input.destination(current.destinationType as DestinationType);
+    }
+
     const [rule] = await this.db
       .update(alertRules)
       .set({
@@ -90,23 +139,19 @@ export class AlertsService {
         isActive: input.isActive,
         triggerTypes: input.triggerTypes,
         threshold: input.threshold,
+        thresholdWindowMinutes: input.thresholdWindowMinutes,
         cooldownMinutes: input.cooldownMinutes,
-        destinationType: input.destinationType,
-        destinationTarget: input.destinationTarget,
+        destinationType: destination?.destinationType,
+        destinationTarget: destination?.destinationTarget,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(alertRules.organizationId, input.organizationId),
-          eq(alertRules.projectId, input.projectId),
-          eq(alertRules.id, input.alertRuleId),
-        ),
-      )
+      .where(ruleScope)
       .returning();
 
     if (!rule) {
       throw new NotFoundException("Alert rule not found");
     }
+    await this.db.delete(alertIssueCooldowns).where(eq(alertIssueCooldowns.alertRuleId, rule.id));
 
     await this.auditService.record({
       organizationId: input.organizationId,
@@ -120,8 +165,10 @@ export class AlertsService {
         isActive: input.isActive,
         triggerTypes: input.triggerTypes,
         threshold: input.threshold,
+        thresholdWindowMinutes: input.thresholdWindowMinutes,
         cooldownMinutes: input.cooldownMinutes,
-        destinationType: input.destinationType,
+        destinationType: destination?.destinationType,
+        destinationTargetChanged: destination?.destinationTarget !== undefined,
       },
     });
 
@@ -186,10 +233,13 @@ export class AlertsService {
       throw new NotFoundException("Alert rule not found");
     }
 
+    const links = await loadProjectLinks(this.db, input.projectId);
     const payload = {
       triggerType: "test",
       triggerTypes: ["test"],
       projectId: input.projectId,
+      projectName: links.projectName,
+      projectUrl: links.projectUrl,
       issueTitle: `Test alert: ${rule.name}`,
       issueStatus: "test",
       timesSeen: 1,

@@ -13,6 +13,28 @@ function numberValue(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function projectLabel(payload: AlertPayload): string {
+  return textValue(payload.projectName, payload.projectId);
+}
+
+function triggerLabel(payload: AlertPayload): string {
+  switch (payload.triggerType) {
+    case "new_issue":
+      return "New issue";
+    case "regression":
+      return "Regression";
+    case "event_threshold":
+      return typeof payload.recentEventCount === "number" &&
+        typeof payload.thresholdWindowMinutes === "number"
+        ? `${payload.recentEventCount}+ events in ${payload.thresholdWindowMinutes} min`
+        : "Event threshold reached";
+    case "test":
+      return "Test alert";
+    default:
+      return "Alert";
+  }
+}
+
 @Injectable()
 export class AlertsDeliveryService {
   constructor(private readonly emailService: EmailService) {}
@@ -78,11 +100,20 @@ export class AlertsDeliveryService {
 
   private async deliverEmail(to: string, payload: AlertPayload): Promise<DeliveryResult> {
     try {
-      await this.emailService.send({
+      const outcome = await this.emailService.send({
         to,
         subject: this.buildSubject(payload),
         text: this.buildMessage(payload),
       });
+
+      if (outcome === "logged") {
+        return {
+          status: "failed",
+          responseStatus: null,
+          responseBody:
+            "SMTP is not configured on this instance, so the email was not sent. Configure SMTP in instance settings.",
+        };
+      }
 
       return { status: "success", responseStatus: null, responseBody: null };
     } catch (error) {
@@ -96,11 +127,11 @@ export class AlertsDeliveryService {
 
   private buildSubject(payload: AlertPayload): string {
     return payload.triggerType === "daily_digest"
-      ? "[SpicyTrack] Daily error digest"
-      : `[SpicyTrack] ${payload.issueTitle}`;
+      ? `[SpicyTrack] Daily digest for ${projectLabel(payload)}`
+      : `[SpicyTrack] ${triggerLabel(payload)}: ${textValue(payload.issueTitle, "Unknown issue")}`;
   }
 
-  private buildMessage(payload: AlertPayload): string {
+  buildMessage(payload: AlertPayload): string {
     if (payload.triggerType === "daily_digest") {
       const topRegressions = Array.isArray(payload.topRegressions)
         ? payload.topRegressions
@@ -111,13 +142,23 @@ export class AlertsDeliveryService {
             .join("\n")
         : "";
       return [
-        `[SpicyTrack] Daily digest for project ${payload.projectId}`,
+        `[SpicyTrack] Daily digest for ${projectLabel(payload)}`,
         `${numberValue(payload.eventCount24h)} events in the last 24h`,
         `${numberValue(payload.newIssueCount24h)} new issues`,
         `${numberValue(payload.openRegressionCount)} open regressions`,
-        topRegressions ? `Top regressions:\n${topRegressions}` : "No open regression.",
-      ].join("\n");
+        topRegressions ? `Top regressions:\n${topRegressions}` : "No open regressions.",
+        typeof payload.projectUrl === "string" ? payload.projectUrl : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
     }
-    return `[SpicyTrack] ${payload.issueTitle} — ${payload.triggerType} (vu ${payload.timesSeen}x) sur le projet ${payload.projectId}`;
+
+    return [
+      `[SpicyTrack] ${triggerLabel(payload)}: ${textValue(payload.issueTitle, "Unknown issue")}`,
+      `Project: ${projectLabel(payload)} · seen ${numberValue(payload.timesSeen)} times`,
+      typeof payload.issueUrl === "string" ? payload.issueUrl : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
 }

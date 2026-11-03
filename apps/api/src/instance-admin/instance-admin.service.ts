@@ -12,6 +12,24 @@ import { decryptSecret, encryptSecret } from "../common/secrets";
 import { DATABASE, primaryDatabase, type DatabaseClient } from "../database/database.provider";
 import { instanceSettings, users } from "../database/schema";
 
+/**
+ * The stored password is only reused against the stored server, so a test cannot send it to an
+ * arbitrary host.
+ */
+export function storedPasswordFor(
+  stored: { host: string; port: number; pass?: string } | null,
+  host: string,
+  port: number,
+) {
+  if (!stored?.pass) return undefined;
+  if (stored.host.toLowerCase() !== host.toLowerCase() || stored.port !== port) {
+    throw new BadRequestException(
+      "Enter the SMTP password to test a different host or port than the saved one.",
+    );
+  }
+  return stored.pass;
+}
+
 @Injectable()
 export class InstanceAdminService {
   private readonly db: DatabaseClient;
@@ -165,14 +183,16 @@ export class InstanceAdminService {
     await this.assertSuperAdmin(userId);
     this.validateSettings(input);
     if (!input.smtpHost?.trim()) throw new BadRequestException("SMTP host is required.");
+    const host = input.smtpHost.trim();
+    const port = input.smtpPort ?? 587;
     const stored = input.smtpPass == null ? await this.smtpConfig() : null;
     const transporter = createTransport({
       ...smtpTransportOptions({
-        host: input.smtpHost.trim(),
-        port: input.smtpPort ?? 587,
+        host,
+        port,
         secure: input.smtpSecure,
         user: input.smtpUser ?? undefined,
-        pass: input.smtpPass ?? stored?.pass,
+        pass: input.smtpPass ?? storedPasswordFor(stored, host, port),
       }),
       connectionTimeout: 10_000,
       greetingTimeout: 10_000,

@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -450,13 +451,30 @@ export const alertRules = pgTable("alert_rules", {
   isActive: boolean("is_active").notNull().default(true),
   triggerTypes: text("trigger_types").array().notNull(),
   threshold: integer("threshold"),
+  /** The event threshold counts events of one issue within this many minutes. */
+  thresholdWindowMinutes: integer("threshold_window_minutes").notNull().default(60),
   cooldownMinutes: integer("cooldown_minutes").notNull().default(30),
   destinationType: varchar("destination_type", { length: 32 }).notNull().default("webhook"),
   destinationTarget: text("destination_target").notNull(),
   lastTriggeredAt: timestamp("last_triggered_at", { withTimezone: true }),
+  /** Kept apart from lastTriggeredAt so digests and instant alerts never silence each other. */
+  lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/** Cooldown of an alert rule for one issue, so one noisy issue never silences another. */
+export const alertIssueCooldowns = pgTable(
+  "alert_issue_cooldowns",
+  {
+    alertRuleId: uuid("alert_rule_id").notNull(),
+    issueId: uuid("issue_id").notNull(),
+    lastTriggeredAt: timestamp("last_triggered_at", { withTimezone: true }).notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.alertRuleId, table.issueId] }),
+  }),
+);
 
 export const alertDeliveries = pgTable("alert_deliveries", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -517,6 +535,8 @@ export const events = pgTable(
     organizationId: uuid("organization_id").notNull(),
     projectId: uuid("project_id").notNull(),
     issueId: uuid("issue_id").notNull(),
+    /** Issue this event was grouped into before a merge, so unmerge can give it back. */
+    mergedFromIssueId: uuid("merged_from_issue_id"),
     environmentId: uuid("environment_id"),
     releaseId: uuid("release_id"),
     eventId: varchar("event_id", { length: 64 }).notNull(),
@@ -778,6 +798,10 @@ export const autofixRuns = pgTable(
   },
   (table) => ({
     issueIdx: index("autofix_runs_issue_idx").on(table.issueId, table.createdAt),
+    // At most one queued or running run per issue, even when two triggers race.
+    inFlightIssueIdx: uniqueIndex("autofix_runs_in_flight_issue_idx")
+      .on(table.issueId)
+      .where(sql`${table.status} in ('queued', 'running')`),
     projectCreatedIdx: index("autofix_runs_project_created_idx").on(
       table.projectId,
       table.createdAt,

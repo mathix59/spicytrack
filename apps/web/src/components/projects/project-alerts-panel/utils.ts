@@ -28,9 +28,21 @@ function compactDate(value: string | null | undefined) {
   return formatLocalDateTime(value);
 }
 
-function triggerLabel(triggerType: string, threshold: number | null | undefined) {
+function formatWindow(minutes: number) {
+  if (minutes % 1440 === 0) return `${minutes / 1440}d`;
+  if (minutes % 60 === 0) return `${minutes / 60}h`;
+  return `${minutes} min`;
+}
+
+function triggerLabel(
+  triggerType: string,
+  threshold: number | null | undefined,
+  thresholdWindowMinutes = 60,
+) {
   if (triggerType === "event_threshold") {
-    return `Threshold ${threshold ?? "n/a"}`;
+    return threshold
+      ? `${threshold} events / ${formatWindow(thresholdWindowMinutes)}`
+      : "Threshold n/a";
   }
 
   if (triggerType === "regression") {

@@ -1507,7 +1507,16 @@
     "/metrics": {
       "get": {
         "operationId": "getMetrics",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -5379,6 +5388,10 @@
             "type": "number",
             "nullable": true
           },
+          "thresholdWindowMinutes": {
+            "type": "number",
+            "description": "Window, in minutes, in which the event threshold is counted."
+          },
           "cooldownMinutes": {
             "type": "number"
           },
@@ -5386,7 +5399,8 @@
             "type": "string"
           },
           "destinationTarget": {
-            "type": "string"
+            "type": "string",
+            "description": "Email address, or a masked URL for webhook, Slack, Teams and Discord destinations, whose URLs act as secrets."
           },
           "lastTriggeredAt": {
             "type": "string",
@@ -5406,6 +5420,7 @@
           "name",
           "isActive",
           "triggerTypes",
+          "thresholdWindowMinutes",
           "cooldownMinutes",
           "destinationType",
           "destinationTarget",
@@ -5432,6 +5447,10 @@
           "threshold": {
             "type": "number",
             "nullable": true
+          },
+          "thresholdWindowMinutes": {
+            "type": "number",
+            "description": "Defaults to 60 minutes."
           },
           "cooldownMinutes": {
             "type": "number"
@@ -5473,6 +5492,10 @@
             "type": "number",
             "nullable": true
           },
+          "thresholdWindowMinutes": {
+            "type": "number",
+            "description": "Defaults to 60 minutes."
+          },
           "cooldownMinutes": {
             "type": "number"
           },
@@ -5480,7 +5503,8 @@
             "type": "string"
           },
           "destinationTarget": {
-            "type": "string"
+            "type": "string",
+            "description": "Omit to keep the current target. Required when destinationType changes."
           }
         }
       },

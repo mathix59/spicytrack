@@ -2,13 +2,16 @@ import { BadRequestException } from "@nestjs/common";
 
 import { isEventTrendPeriod } from "../common/event-trends.utils";
 import type { EventTrendPeriod } from "../common/event-trends.utils";
-import { assertString } from "../common/validators";
+import { assertOneOf, assertString } from "../common/validators";
 
 type IssuePriority = "low" | "medium" | "high" | "critical";
 type IssueSortBy = "lastSeenAt" | "firstSeenAt" | "timesSeen";
 type IssueSortDir = "asc" | "desc";
 
 const MAX_ISSUE_TREND_IDS = 100;
+const MAX_BULK_ISSUE_IDS = 500;
+const MAX_COMMENT_LENGTH = 10_000;
+const ISSUE_STATUSES = ["open", "resolved", "ignored"] as const;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function parseIssueListQuery(input: {
@@ -103,8 +106,12 @@ function parseIssueStatusBody(body: Record<string, unknown>) {
   if (ignoredUntil instanceof Date && Number.isNaN(ignoredUntil.getTime())) {
     throw new BadRequestException("ignoredUntil must be an ISO date or null");
   }
+  // A past date would reopen the issue on its very next event.
+  if (ignoredUntil instanceof Date && ignoredUntil.getTime() <= Date.now()) {
+    throw new BadRequestException("ignoredUntil must be in the future");
+  }
   return {
-    status: assertString(body.status, "status"),
+    status: assertOneOf(body.status, ISSUE_STATUSES, "status"),
     ignoredUntil,
   };
 }
@@ -123,29 +130,31 @@ function parseIssueAssigneeBody(body: Record<string, unknown>) {
 
 function parseBulkIssueStatusBody(body: Record<string, unknown>) {
   return {
-    issueIds: assertStringArray(body.issueIds, "issueIds"),
-    status: assertString(body.status, "status"),
+    issueIds: assertIssueIds(body.issueIds),
+    status: assertOneOf(body.status, ISSUE_STATUSES, "status"),
   };
 }
 
 function parseBulkIssuePriorityBody(body: Record<string, unknown>) {
   return {
-    issueIds: assertStringArray(body.issueIds, "issueIds"),
+    issueIds: assertIssueIds(body.issueIds),
     priority: assertPriority(assertString(body.priority, "priority")),
   };
 }
 
 function parseBulkIssueAssigneeBody(body: Record<string, unknown>) {
   return {
-    issueIds: assertStringArray(body.issueIds, "issueIds"),
+    issueIds: assertIssueIds(body.issueIds),
     assignedUserId: parseNullableString(body.assignedUserId, "assignedUserId"),
   };
 }
 
 function parseCreateCommentBody(body: Record<string, unknown>) {
-  return {
-    body: assertString(body.body, "body"),
-  };
+  const comment = assertString(body.body, "body");
+  if (comment.length > MAX_COMMENT_LENGTH) {
+    throw new BadRequestException(`body must be at most ${MAX_COMMENT_LENGTH} characters`);
+  }
+  return { body: comment };
 }
 
 function parseIssueExternalLinkBody(body: Record<string, unknown>) {
@@ -162,7 +171,23 @@ function parseIssueExternalLinkBody(body: Record<string, unknown>) {
 }
 
 function parseMergeIssueBody(body: Record<string, unknown>) {
-  return { targetIssueId: assertString(body.targetIssueId, "targetIssueId") };
+  const targetIssueId = assertString(body.targetIssueId, "targetIssueId");
+  if (!UUID_REGEX.test(targetIssueId)) {
+    throw new BadRequestException("targetIssueId must be an issue ID");
+  }
+  return { targetIssueId };
+}
+
+/** Bulk actions take issue UUIDs, deduplicated and capped so one request stays bounded. */
+function assertIssueIds(value: unknown) {
+  const issueIds = [...new Set(assertStringArray(value, "issueIds"))];
+  if (issueIds.length > MAX_BULK_ISSUE_IDS) {
+    throw new BadRequestException(`issueIds accepts at most ${MAX_BULK_ISSUE_IDS} issues`);
+  }
+  if (issueIds.some((issueId) => !UUID_REGEX.test(issueId))) {
+    throw new BadRequestException("issueIds must contain issue IDs");
+  }
+  return issueIds;
 }
 
 function assertStringArray(value: unknown, fieldName: string) {

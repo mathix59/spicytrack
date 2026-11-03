@@ -9,6 +9,12 @@ import { redactEventPayload } from "../common/event-payload-redaction";
 
 import type { ParsedEventPayload } from "./ingest.types";
 
+export class InvalidEnvelopeError extends Error {}
+
+/**
+ * Returns the envelope's event item, or null when it carries none (sessions, transactions…).
+ * Throws InvalidEnvelopeError when the event item is not a JSON object.
+ */
 function parseEnvelopeEvent(envelope: string) {
   const lines = envelope.split("\n");
 
@@ -27,7 +33,16 @@ function parseEnvelopeEvent(envelope: string) {
 
     const payloadLine = lines[index + 1];
     if (itemHeader.type === "event" && payloadLine) {
-      return JSON.parse(payloadLine) as Record<string, unknown>;
+      let event: unknown;
+      try {
+        event = JSON.parse(payloadLine);
+      } catch {
+        throw new InvalidEnvelopeError("The envelope's event item is not valid JSON");
+      }
+      if (!event || typeof event !== "object" || Array.isArray(event)) {
+        throw new InvalidEnvelopeError("The envelope's event item must be a JSON object");
+      }
+      return event as Record<string, unknown>;
     }
   }
 

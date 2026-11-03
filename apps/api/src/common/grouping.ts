@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 export function normalizeMessage(value: string | null | undefined) {
   return (value ?? "").trim().replace(/\s+/g, " ");
@@ -19,7 +19,24 @@ export function computeIssueTitle(payload: Record<string, unknown>) {
   return message || "Unhandled event";
 }
 
+// The key sits in a unique btree index, whose rows cannot exceed ~2.7 KB. Longer keys (huge
+// exception messages, long fingerprints) are replaced by their hash; shorter ones are kept
+// verbatim so existing issues keep matching.
+const MAX_GROUPING_KEY_BYTES = 2_000;
+
+export function boundGroupingKey(key: string) {
+  if (Buffer.byteLength(key, "utf8") <= MAX_GROUPING_KEY_BYTES) {
+    return key;
+  }
+
+  return `sha256:${createHash("sha256").update(key).digest("hex")}`;
+}
+
 export function computeGroupingKey(payload: Record<string, unknown>) {
+  return boundGroupingKey(computeRawGroupingKey(payload));
+}
+
+function computeRawGroupingKey(payload: Record<string, unknown>) {
   const fingerprint = payload.fingerprint;
   if (Array.isArray(fingerprint) && fingerprint.length > 0) {
     return `fingerprint:${fingerprint.join("|")}`;

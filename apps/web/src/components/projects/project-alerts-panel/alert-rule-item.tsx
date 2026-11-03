@@ -83,7 +83,7 @@ function AlertRuleItem({
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {ruleTriggerTypes(rule).map((triggerType) => (
           <Badge key={triggerType} variant="muted">
-            {triggerLabel(triggerType, rule.threshold)}
+            {triggerLabel(triggerType, rule.threshold, rule.thresholdWindowMinutes)}
           </Badge>
         ))}
         <Badge variant="muted">{rule.cooldownMinutes}m cooldown</Badge>
@@ -119,10 +119,11 @@ function AlertRuleItem({
           </div>
           <AlertRuleConfigFields
             cooldownMinutes={rule.cooldownMinutes}
-            destinationTarget={rule.destinationTarget}
+            current={rule}
             destinationType={destinationType}
             onDestinationTypeChange={setDestinationType}
             threshold={rule.threshold}
+            thresholdWindowMinutes={rule.thresholdWindowMinutes}
             triggerTypes={ruleTriggerTypes(rule)}
           />
           {error ? (

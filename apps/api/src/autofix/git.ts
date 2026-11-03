@@ -49,9 +49,29 @@ export async function hasChanges(repoDir: string): Promise<boolean> {
   return status.trim().length > 0;
 }
 
-export async function commitAll(repoDir: string, message: string): Promise<void> {
-  await git(repoDir, ["add", "--all"]);
+/**
+ * Stages exactly the given files (those the agent wrote) and commits them. Anything else that
+ * changed in the clone, e.g. index files left by tools, stays out of the pull request.
+ * Returns false when the files do not differ from the branch.
+ */
+export async function commitFiles(
+  repoDir: string,
+  files: string[],
+  message: string,
+): Promise<boolean> {
+  if (files.length === 0) {
+    return false;
+  }
+
+  await git(repoDir, ["add", "--", ...files]);
+  const staged = await git(repoDir, ["diff", "--cached", "--name-only"]);
+
+  if (staged.trim().length === 0) {
+    return false;
+  }
+
   await git(repoDir, ["commit", "-m", message]);
+  return true;
 }
 
 export async function pushBranch(

@@ -31,39 +31,67 @@ function TriggerCheckboxes({ defaultValues }: { defaultValues: string[] }) {
   );
 }
 
-/** Trigger, threshold, cooldown and destination fields shared by the create and edit forms. */
+/**
+ * Trigger, threshold, cooldown and destination fields shared by the create and edit forms.
+ * `current` is the saved destination when editing: secret URLs come back masked, so the field
+ * stays blank and an empty value keeps the saved URL.
+ */
 function AlertRuleConfigFields({
   triggerTypes,
   threshold,
+  thresholdWindowMinutes = 60,
   cooldownMinutes,
   destinationType,
-  destinationTarget,
+  current,
   onDestinationTypeChange,
 }: {
   triggerTypes: string[];
   threshold?: number | null;
+  thresholdWindowMinutes?: number;
   cooldownMinutes: number;
   destinationType: DestinationType;
-  destinationTarget?: string;
+  current?: { destinationType: string; destinationTarget: string };
   onDestinationTypeChange: (value: DestinationType) => void;
 }) {
+  const keepsSecret = current?.destinationType === destinationType && destinationType !== "email";
+  const defaultTarget =
+    current?.destinationType === destinationType && destinationType === "email"
+      ? current.destinationTarget
+      : undefined;
+
   return (
     <>
       <Field label="Triggers">
         <TriggerCheckboxes defaultValues={triggerTypes} />
       </Field>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field hint="Used by the event threshold trigger." label="Threshold">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field hint="Events needed by the threshold trigger." label="Threshold">
           <Input
             defaultValue={threshold ?? ""}
+            max="1000000"
             min="1"
             name="threshold"
             placeholder="100"
             type="number"
           />
         </Field>
-        <Field hint="Minimum delay between two alerts." label="Cooldown (min)">
-          <Input defaultValue={cooldownMinutes} min="1" name="cooldownMinutes" type="number" />
+        <Field hint="Window the threshold counts over." label="Window (min)">
+          <Input
+            defaultValue={thresholdWindowMinutes}
+            max="10080"
+            min="1"
+            name="thresholdWindowMinutes"
+            type="number"
+          />
+        </Field>
+        <Field hint="Delay before the same issue alerts again." label="Cooldown (min)">
+          <Input
+            defaultValue={cooldownMinutes}
+            max="10080"
+            min="1"
+            name="cooldownMinutes"
+            type="number"
+          />
         </Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -74,13 +102,20 @@ function AlertRuleConfigFields({
             onChange={onDestinationTypeChange}
           />
         </Field>
-        <Field label={destinationTargetLabel(destinationType)}>
+        <Field
+          hint={keepsSecret ? "Leave blank to keep the current URL." : undefined}
+          label={destinationTargetLabel(destinationType)}
+        >
           <Input
-            defaultValue={destinationTarget}
-            key={destinationTarget === undefined ? destinationType : undefined}
+            defaultValue={defaultTarget}
+            key={destinationType}
             name="destinationTarget"
-            placeholder={destinationTargetPlaceholder(destinationType)}
-            required
+            placeholder={
+              keepsSecret
+                ? current?.destinationTarget
+                : destinationTargetPlaceholder(destinationType)
+            }
+            required={!keepsSecret}
             type={destinationTargetInputType(destinationType)}
           />
         </Field>

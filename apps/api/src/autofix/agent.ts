@@ -1,4 +1,4 @@
-import { readFile, readdir, writeFile, mkdir } from "node:fs/promises";
+import { mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -20,6 +20,24 @@ const MCP_QUERY_TOOLS = new Set(["search_graph", "trace_path", "get_code_snippet
 
 const MAX_STEPS = 40;
 const MAX_FILE_BYTES = 200_000;
+// Per model call; a step that rewrites a large file still fits.
+const MAX_OUTPUT_TOKENS = 32_000;
+
+/** Paths the agent may read but never write: CI, hooks, dependency locks. */
+const PROTECTED_WRITE_PATTERNS = [
+  /^\.github\//,
+  /^\.gitlab\//,
+  /^\.gitlab-ci\.ya?ml$/,
+  /^\.circleci\//,
+  /^\.buildkite\//,
+  /^\.husky\//,
+  /^\.gitmodules$/,
+  /^\.gitattributes$/,
+  /(^|\/)Jenkinsfile$/,
+  /(^|\/)azure-pipelines\.ya?ml$/,
+  /(^|\/)\.travis\.ya?ml$/,
+  /(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?|Cargo\.lock|Gemfile\.lock|poetry\.lock|composer\.lock|go\.sum|uv\.lock)$/,
+];
 
 export interface AgentResult {
   summary: string;
@@ -47,18 +65,65 @@ export function resolveModel(input: {
   }
 }
 
-function resolveInRepo(repoDir: string, relativePath: string): string {
-  const resolved = path.resolve(repoDir, relativePath);
+function isInside(root: string, candidate: string): boolean {
+  return candidate === root || candidate.startsWith(`${root}${path.sep}`);
+}
 
-  if (resolved !== repoDir && !resolved.startsWith(`${repoDir}${path.sep}`)) {
+/** Closest existing ancestor, so paths of files about to be created can be checked too. */
+async function realpathOfExisting(target: string): Promise<string> {
+  try {
+    return await realpath(target);
+  } catch (error) {
+    const parent = path.dirname(target);
+
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT" || parent === target) {
+      throw error;
+    }
+
+    return path.join(await realpathOfExisting(parent), path.basename(target));
+  }
+}
+
+/**
+ * Resolves a model-supplied path inside the clone. Symlinks are followed before the check, so a
+ * link committed in the repository cannot expose files of the host.
+ */
+export async function resolveInRepo(repoDir: string, relativePath: string): Promise<string> {
+  const root = await realpath(repoDir);
+  const resolved = path.resolve(root, relativePath);
+
+  if (!isInside(root, resolved)) {
     throw new Error(`Path escapes the repository: ${relativePath}`);
   }
 
-  if (resolved.split(path.sep).includes(".git")) {
+  const real = await realpathOfExisting(resolved);
+
+  if (!isInside(root, real)) {
+    throw new Error(`Path escapes the repository: ${relativePath}`);
+  }
+
+  if (path.relative(root, real).split(path.sep).includes(".git")) {
     throw new Error("Access to .git is not allowed");
   }
 
-  return resolved;
+  return real;
+}
+
+export async function resolveWritableInRepo(
+  repoDir: string,
+  relativePath: string,
+): Promise<{ absolute: string; relative: string }> {
+  const absolute = await resolveInRepo(repoDir, relativePath);
+  const relative = path
+    .relative(await realpath(repoDir), absolute)
+    .split(path.sep)
+    .join("/");
+
+  if (PROTECTED_WRITE_PATTERNS.some((pattern) => pattern.test(relative))) {
+    throw new Error(`Autofix cannot modify ${relative}: CI, hooks and lockfiles are protected.`);
+  }
+
+  return { absolute, relative };
 }
 
 export async function runAutofixAgent(input: {
@@ -66,10 +131,13 @@ export async function runAutofixAgent(input: {
   repoDir: string;
   mcp: CodebaseMemoryMcp;
   taskPrompt: string;
+  abortSignal?: AbortSignal;
 }): Promise<AgentResult> {
   const { repoDir, mcp } = input;
 
-  let reported: { summary: string; filesChanged: string[] } | null = null;
+  let reported: { summary: string } | null = null;
+  // The commit is built from what the agent actually wrote, not from what it reports.
+  const written = new Set<string>();
 
   const tools: ToolSet = {};
 
@@ -97,7 +165,7 @@ export async function runAutofixAgent(input: {
       additionalProperties: false,
     }),
     execute: async ({ path: relativePath }) => {
-      const content = await readFile(resolveInRepo(repoDir, relativePath), "utf8");
+      const content = await readFile(await resolveInRepo(repoDir, relativePath), "utf8");
 
       if (content.length > MAX_FILE_BYTES) {
         return `${content.slice(0, MAX_FILE_BYTES)}\n… [truncated]`;
@@ -120,10 +188,11 @@ export async function runAutofixAgent(input: {
       additionalProperties: false,
     }),
     execute: async ({ path: relativePath, content }) => {
-      const target = resolveInRepo(repoDir, relativePath);
-      await mkdir(path.dirname(target), { recursive: true });
-      await writeFile(target, content, "utf8");
-      return `Wrote ${relativePath}`;
+      const target = await resolveWritableInRepo(repoDir, relativePath);
+      await mkdir(path.dirname(target.absolute), { recursive: true });
+      await writeFile(target.absolute, content, "utf8");
+      written.add(target.relative);
+      return `Wrote ${target.relative}`;
     },
   });
 
@@ -138,7 +207,7 @@ export async function runAutofixAgent(input: {
       additionalProperties: false,
     }),
     execute: async ({ path: relativePath }) => {
-      const target = resolveInRepo(repoDir, relativePath ?? ".");
+      const target = await resolveInRepo(repoDir, relativePath ?? ".");
       const entries = await readdir(target, { withFileTypes: true });
 
       return entries
@@ -167,8 +236,8 @@ export async function runAutofixAgent(input: {
       required: ["summary", "files_changed"],
       additionalProperties: false,
     }),
-    execute: async ({ summary, files_changed }) => {
-      reported = { summary, filesChanged: files_changed };
+    execute: async ({ summary }) => {
+      reported = { summary };
       return "Fix recorded. You can stop now.";
     },
   });
@@ -179,20 +248,19 @@ export async function runAutofixAgent(input: {
     prompt: input.taskPrompt,
     tools,
     stopWhen: stepCountIs(MAX_STEPS),
+    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    abortSignal: input.abortSignal,
   });
 
   if (!reported) {
     throw new Error("The agent finished without calling report_fix; aborting the run.");
   }
 
-  const { summary, filesChanged } = reported as {
-    summary: string;
-    filesChanged: string[];
-  };
+  const { summary } = reported as { summary: string };
 
   return {
     summary,
-    filesChanged,
+    filesChanged: [...written],
     inputTokens: result.totalUsage.inputTokens ?? 0,
     outputTokens: result.totalUsage.outputTokens ?? 0,
     cacheReadTokens: result.totalUsage.inputTokenDetails.cacheReadTokens ?? 0,
