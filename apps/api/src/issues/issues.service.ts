@@ -19,11 +19,22 @@ import {
 import { IssuesHistoryService } from "./issues-history.service";
 import type { IssueSearchTerm } from "./issue-search";
 import { summarizeTagCounts, TAG_BREAKDOWN_SAMPLE } from "./issue-tags";
-import { buildIssueListFilters, eventSelect, resolveIssueSortOrder } from "./issues-query.utils";
+import {
+  buildIssueListFilters,
+  eventSelect,
+  issueSortColumn,
+  issuesAfterPosition,
+  resolveIssueSortOrder,
+} from "./issues-query.utils";
+import type { IssueListFilterInput, IssueSortInput } from "./issues-query.utils";
 
 export const ISSUE_STATUSES = ["open", "resolved", "ignored"] as const;
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 export type IssueResolution = "now" | "next_release";
+/** Most issues a bulk action can change when it targets every result of a search. */
+export const MAX_BULK_FILTER_ISSUES = 5_000;
+export type IssueListQuery = Omit<IssueListFilterInput, "projectId"> & IssueSortInput;
+export type BulkIssueSelection = { issueIds: string[] } | { filters: IssueListQuery };
 
 type ResolutionRelease = { id: string; version: string } | null;
 
@@ -73,7 +84,7 @@ export class IssuesService {
         .select()
         .from(issues)
         .where(whereClause)
-        .orderBy(sortOrder)
+        .orderBy(...sortOrder)
         .limit(input.pageSize)
         .offset(offset),
     ]);
@@ -86,6 +97,48 @@ export class IssuesService {
       page: input.page,
       pageSize: input.pageSize,
     };
+  }
+
+  /** The issues before and after this one in a filtered, sorted list (for j/k navigation). */
+  async getNeighbors(input: { projectId: string; issueId: string } & IssueListQuery) {
+    const [current] = await this.db
+      .select({ id: issues.id, sortValue: issueSortColumn(input) })
+      .from(issues)
+      .where(and(eq(issues.projectId, input.projectId), eq(issues.id, input.issueId)))
+      .limit(1);
+    if (!current) throw new NotFoundException("Issue not found");
+
+    const filters = buildIssueListFilters(this.db, input);
+    const neighbor = async (before: boolean) => {
+      const [row] = await this.db
+        .select({ id: issues.id })
+        .from(issues)
+        .where(and(...filters, issuesAfterPosition(input, current, { before })))
+        .orderBy(...resolveIssueSortOrder(input, { reverse: before }))
+        .limit(1);
+      return row?.id ?? null;
+    };
+    const [previousIssueId, nextIssueId] = await Promise.all([neighbor(true), neighbor(false)]);
+
+    return { previousIssueId, nextIssueId };
+  }
+
+  /** Issue ids for a bulk action: the explicit selection, or every issue matching a search. */
+  async selectIssueIds(projectId: string, selection: BulkIssueSelection) {
+    if ("issueIds" in selection) return selection.issueIds;
+
+    const rows = await this.db
+      .select({ id: issues.id })
+      .from(issues)
+      .where(and(...buildIssueListFilters(this.db, { ...selection.filters, projectId })))
+      .orderBy(...resolveIssueSortOrder(selection.filters))
+      .limit(MAX_BULK_FILTER_ISSUES + 1);
+    if (rows.length > MAX_BULK_FILTER_ISSUES) {
+      throw new BadRequestException(
+        `This search matches more than ${MAX_BULK_FILTER_ISSUES} issues; narrow it down first`,
+      );
+    }
+    return rows.map((row) => row.id);
   }
 
   /** Distinct users (id, email or username) seen in each issue's events. */

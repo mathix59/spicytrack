@@ -29,6 +29,7 @@ import { PermissionGuard } from "../rbac/permission.guard";
 import { ProjectContextGuard } from "../rbac/project-context.guard";
 import { RequirePermissions } from "../rbac/permissions.decorator";
 import { IssuesService } from "./issues.service";
+import type { BulkIssueSelection } from "./issues.service";
 import { IssueTriageService } from "./issue-triage.service";
 import { IssueTrendsService } from "./issue-trends.service";
 import {
@@ -38,6 +39,7 @@ import {
   parseCreateCommentBody,
   parseIssueAssigneeBody,
   parseIssueEventPagination,
+  parseIssueFilters,
   parseIssueListQuery,
   parseIssuePriorityBody,
   parseIssueStatusBody,
@@ -56,6 +58,7 @@ import {
   IssueAssigneeUpdateBodyDto,
   IssueCommentDto,
   IssueDetailDto,
+  IssueNeighborsDto,
   IssueTagsDto,
   IssuePriorityUpdateBodyDto,
   IssueDto,
@@ -186,6 +189,59 @@ export class IssuesController {
       projectId: project.id,
       issueId,
       ...pagination,
+    });
+  }
+
+  @Get("issues/:issueId/neighbors")
+  @ApiOperation({
+    operationId: "getIssueNeighbors",
+    summary: "Previous and next issue in the list for the same filters and sort",
+  })
+  @ApiParam({ name: "issueId", type: String })
+  @ApiQuery({ name: "q", required: false, type: String })
+  @ApiQuery({ name: "level", required: false, type: String })
+  @ApiQuery({ name: "priority", required: false, type: String })
+  @ApiQuery({ name: "status", required: false, type: String })
+  @ApiQuery({ name: "assignedUserId", required: false, type: String })
+  @ApiQuery({ name: "isRegressed", required: false, type: Boolean })
+  @ApiQuery({ name: "environment", required: false, type: String })
+  @ApiQuery({ name: "release", required: false, type: String })
+  @ApiQuery({ name: "sortBy", required: false, type: String })
+  @ApiQuery({ name: "sortDir", required: false, type: String })
+  @ApiOkResponse({ type: IssueNeighborsDto })
+  @RequirePermissions("project.issues.read")
+  @UseGuards(PermissionGuard)
+  async getNeighbors(
+    @CurrentProject() project: ProjectRecord,
+    @CurrentUser() user: UserRecord,
+    @Param("issueId", ParseUUIDPipe) issueId: string,
+    @Query("q") q?: string,
+    @Query("level") level?: string,
+    @Query("priority") priority?: string,
+    @Query("status") status?: string,
+    @Query("assignedUserId") assignedUserId?: string,
+    @Query("isRegressed") isRegressed?: string,
+    @Query("environment") environment?: string,
+    @Query("release") release?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortDir") sortDir?: string,
+  ) {
+    return this.issuesService.getNeighbors({
+      projectId: project.id,
+      issueId,
+      currentUserId: user.id,
+      ...parseIssueFilters({
+        q,
+        level,
+        priority,
+        status,
+        assignedUserId,
+        isRegressed,
+        environment,
+        release,
+        sortBy,
+        sortDir,
+      }),
     });
   }
 
@@ -392,12 +448,13 @@ export class IssuesController {
     @CurrentUser() user: UserRecord,
     @Body() body: Record<string, unknown>,
   ) {
-    const payload = parseBulkIssueStatusBody(body);
+    const { selection, ...payload } = parseBulkIssueStatusBody(body);
 
     return this.issuesService.bulkUpdateStatus({
       organizationId: organization.id,
       projectId: project.id,
       actorUserId: user.id,
+      issueIds: await this.selectIssueIds(project, user, selection),
       ...payload,
     });
   }
@@ -414,12 +471,13 @@ export class IssuesController {
     @CurrentUser() user: UserRecord,
     @Body() body: Record<string, unknown>,
   ) {
-    const payload = parseBulkIssuePriorityBody(body);
+    const { selection, ...payload } = parseBulkIssuePriorityBody(body);
 
     return this.issuesService.bulkUpdatePriority({
       organizationId: organization.id,
       projectId: project.id,
       actorUserId: user.id,
+      issueIds: await this.selectIssueIds(project, user, selection),
       ...payload,
     });
   }
@@ -436,12 +494,13 @@ export class IssuesController {
     @CurrentUser() user: UserRecord,
     @Body() body: Record<string, unknown>,
   ) {
-    const payload = parseBulkIssueAssigneeBody(body);
+    const { selection, ...payload } = parseBulkIssueAssigneeBody(body);
 
     return this.issuesService.bulkUpdateAssignee({
       organizationId: organization.id,
       projectId: project.id,
       actorUserId: user.id,
+      issueIds: await this.selectIssueIds(project, user, selection),
       ...payload,
     });
   }
@@ -495,5 +554,14 @@ export class IssuesController {
     @Param("issueId", ParseUUIDPipe) issueId: string,
   ) {
     return this.issuesService.listActivity(project.id, issueId);
+  }
+
+  private selectIssueIds(project: ProjectRecord, user: UserRecord, selection: BulkIssueSelection) {
+    return this.issuesService.selectIssueIds(
+      project.id,
+      "filters" in selection
+        ? { filters: { ...selection.filters, currentUserId: user.id } }
+        : selection,
+    );
   }
 }

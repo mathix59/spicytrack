@@ -17,9 +17,11 @@ type TimelineEntry = {
   body: string | null;
 };
 
+/** Links within the list the issue was opened from (same filters and sort). */
 type IssueNavigation = {
-  previousIssue: IssueDto | null;
-  nextIssue: IssueDto | null;
+  listHref: string;
+  previousIssueHref: string | null;
+  nextIssueHref: string | null;
 };
 
 type EventPagerState = {
@@ -51,7 +53,7 @@ type IssueSidebarState = {
   updateAssignee: (assignedUserId: string) => Promise<void>;
   updatePriority: (priority: string) => Promise<void>;
   updateExternalLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  mergeIssue: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  mergeIssue: (targetIssueId: string) => Promise<void>;
   unmergeIssue: () => Promise<void>;
   isUpdatingAssignee: boolean;
   isUpdatingPriority: boolean;

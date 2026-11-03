@@ -74,8 +74,8 @@ describe("issue status bodies", () => {
 
   it("bounds bulk requests to deduplicated issue UUIDs", () => {
     expect(
-      parseBulkIssueStatusBody({ issueIds: [issueId(1), issueId(1)], status: "open" }).issueIds,
-    ).toEqual([issueId(1)]);
+      parseBulkIssueStatusBody({ issueIds: [issueId(1), issueId(1)], status: "open" }).selection,
+    ).toEqual({ issueIds: [issueId(1)] });
     expect(() => parseBulkIssueStatusBody({ issueIds: ["nope"], status: "open" })).toThrow(
       "issueIds must contain issue IDs",
     );
@@ -85,6 +85,32 @@ describe("issue status bodies", () => {
         status: "open",
       }),
     ).toThrow("issueIds accepts at most 500 issues");
+  });
+
+  it("targets every issue matching the list filters", () => {
+    const { selection } = parseBulkIssueStatusBody({
+      filters: { q: "is:unresolved TypeError", status: "open", isRegressed: true },
+      status: "resolved",
+    });
+    expect(selection).toMatchObject({
+      filters: {
+        search: [
+          { kind: "is", value: "unresolved" },
+          { kind: "text", value: "TypeError" },
+        ],
+        status: "open",
+        isRegressed: true,
+      },
+    });
+    expect(() =>
+      parseBulkIssueStatusBody({ issueIds: [issueId(1)], filters: {}, status: "open" }),
+    ).toThrow("Send either issueIds or filters, not both");
+    expect(() => parseBulkIssueStatusBody({ filters: { q: 3 }, status: "open" })).toThrow(
+      "filters.q must be a string",
+    );
+    expect(() =>
+      parseBulkIssueStatusBody({ filters: { q: "timesSeen:many" }, status: "open" }),
+    ).toThrow("Invalid search");
   });
 });
 

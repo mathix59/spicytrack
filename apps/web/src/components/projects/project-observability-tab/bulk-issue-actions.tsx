@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 
 function BulkIssueActions({
-  selectedIssueIds,
+  selectedCount,
+  totalIssues,
+  allVisibleSelected,
+  allMatchingSelected,
+  canSelectAllMatching,
+  selectAllMatching,
   isUpdatingStatus,
   isUpdatingAssignee,
   bulkSetStatus,
@@ -16,7 +21,12 @@ function BulkIssueActions({
   members,
   clearSelection,
 }: {
-  selectedIssueIds: string[];
+  selectedCount: number;
+  totalIssues: number;
+  allVisibleSelected: boolean;
+  allMatchingSelected: boolean;
+  canSelectAllMatching: boolean;
+  selectAllMatching: () => void;
   isUpdatingStatus: boolean;
   isUpdatingAssignee: boolean;
   bulkSetStatus: (status: string) => Promise<void>;
@@ -26,7 +36,7 @@ function BulkIssueActions({
   members: OrganizationMemberDto[];
   clearSelection: () => void;
 }) {
-  if (selectedIssueIds.length === 0) {
+  if (selectedCount === 0) {
     return null;
   }
 
@@ -46,8 +56,27 @@ function BulkIssueActions({
         <X />
       </Button>
       <span className="text-sm font-medium" role="status">
-        {selectedIssueIds.length} selected
+        {allMatchingSelected
+          ? `All ${selectedCount} matching issues selected`
+          : `${selectedCount} selected`}
       </span>
+      {allVisibleSelected && !allMatchingSelected && totalIssues > selectedCount ? (
+        <Button
+          className="px-2 text-primary-accent"
+          disabled={!canSelectAllMatching}
+          onClick={selectAllMatching}
+          size="sm"
+          title={
+            canSelectAllMatching
+              ? undefined
+              : "Bulk actions apply to at most 5,000 issues; narrow the search first"
+          }
+          type="button"
+          variant="ghost"
+        >
+          Select all {totalIssues} matching issues
+        </Button>
+      ) : null}
       <Button
         disabled={isUpdatingStatus}
         onClick={() => void bulkSetStatus("resolved")}

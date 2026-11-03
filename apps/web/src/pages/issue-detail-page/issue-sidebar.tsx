@@ -12,6 +12,7 @@ import { Combobox } from "@/components/ui/combobox";
 import type { IssueDto } from "@/generated/api";
 import { formatRelativeTime, renderNullableText } from "@/lib/utils";
 
+import { IssueMergePicker } from "./issue-merge-picker";
 import { IssueTagsCard } from "./issue-tags-card";
 import type { IssueSidebarState } from "./types";
 import { formatTimelineDate } from "./utils";
@@ -131,27 +132,18 @@ function IssueSidebar({
                   Unmerge issue
                 </Button>
               ) : (
-                <form className="grid gap-1.5" onSubmit={sidebar.mergeIssue}>
-                  <label className="text-xs text-muted-foreground" htmlFor="issue-merge-target">
+                <div className="grid gap-1.5">
+                  <p className="text-xs text-muted-foreground">
                     Move this issue's events into another issue of this project.
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="issue-merge-target"
-                      name="targetIssueId"
-                      placeholder="Target issue ID"
-                      required
-                    />
-                    <Button
-                      disabled={sidebar.isUpdatingWorkflow}
-                      size="sm"
-                      type="submit"
-                      variant="secondary"
-                    >
-                      Merge
-                    </Button>
-                  </div>
-                </form>
+                  </p>
+                  <IssueMergePicker
+                    disabled={sidebar.isUpdatingWorkflow}
+                    issueId={issue.id}
+                    onMerge={sidebar.mergeIssue}
+                    orgSlug={orgSlug}
+                    projectSlug={projectSlug}
+                  />
+                </div>
               )}
             </div>
           </details>

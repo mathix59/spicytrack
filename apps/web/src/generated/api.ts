@@ -474,6 +474,13 @@ export interface IssueDetailDto {
   events: PaginatedEventsDto;
 }
 
+export interface IssueNeighborsDto {
+  /** @nullable */
+  previousIssueId: string | null;
+  /** @nullable */
+  nextIssueId: string | null;
+}
+
 export interface IssueTagValueDto {
   value: string;
   count: number;
@@ -550,6 +557,18 @@ export interface MergeIssueBodyDto {
   targetIssueId: string;
 }
 
+export interface IssueBulkFiltersDto {
+  /** Search, same syntax as the issue list q parameter */
+  q?: string;
+  level?: string;
+  priority?: string;
+  status?: string;
+  assignedUserId?: string;
+  isRegressed?: boolean;
+  environment?: string;
+  release?: string;
+}
+
 /**
  * With status "resolved": "now" (default) reopens the issue on its next event; "next_release" only on an event from a release created after the resolution.
  */
@@ -562,7 +581,10 @@ export const BulkIssueStatusUpdateBodyDtoResolution = {
 } as const;
 
 export interface BulkIssueStatusUpdateBodyDto {
-  issueIds: string[];
+  /** Issues to change (max 500). Send this or filters. */
+  issueIds?: string[];
+  /** Change every issue matching these list filters instead (max 5000). Send this or issueIds. */
+  filters?: IssueBulkFiltersDto;
   status: string;
   /** With status "resolved": "now" (default) reopens the issue on its next event; "next_release" only on an event from a release created after the resolution. */
   resolution?: BulkIssueStatusUpdateBodyDtoResolution;
@@ -584,12 +606,18 @@ export const BulkIssuePriorityUpdateBodyDtoPriority = {
 } as const;
 
 export interface BulkIssuePriorityUpdateBodyDto {
-  issueIds: string[];
+  /** Issues to change (max 500). Send this or filters. */
+  issueIds?: string[];
+  /** Change every issue matching these list filters instead (max 5000). Send this or issueIds. */
+  filters?: IssueBulkFiltersDto;
   priority: BulkIssuePriorityUpdateBodyDtoPriority;
 }
 
 export interface BulkIssueAssigneeUpdateBodyDto {
-  issueIds: string[];
+  /** Issues to change (max 500). Send this or filters. */
+  issueIds?: string[];
+  /** Change every issue matching these list filters instead (max 5000). Send this or issueIds. */
+  filters?: IssueBulkFiltersDto;
   /** @nullable */
   assignedUserId?: string | null;
 }
@@ -1365,6 +1393,19 @@ export const GetProjectIssueTrendsPeriod = {
 export type GetIssueParams = {
   eventPage?: number;
   eventPageSize?: number;
+};
+
+export type GetIssueNeighborsParams = {
+  q?: string;
+  level?: string;
+  priority?: string;
+  status?: string;
+  assignedUserId?: string;
+  isRegressed?: boolean;
+  environment?: string;
+  release?: string;
+  sortBy?: string;
+  sortDir?: string;
 };
 
 export type GetOrganizationJobQueueOverviewParams = {
@@ -6528,6 +6569,150 @@ export function useGetIssue<TData = Awaited<ReturnType<typeof getIssue>>, TError
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetIssueQueryOptions(orgSlug,projectSlug,issueId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type getIssueNeighborsResponse200 = {
+  data: IssueNeighborsDto
+  status: 200
+}
+
+export type getIssueNeighborsResponseSuccess = (getIssueNeighborsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getIssueNeighborsResponse = (getIssueNeighborsResponseSuccess)
+
+export const getGetIssueNeighborsUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueNeighborsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/neighbors?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/neighbors`
+}
+
+/**
+ * @summary Previous and next issue in the list for the same filters and sort
+ */
+export const getIssueNeighbors = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueNeighborsParams, options?: Parameters<typeof orvalFetch>[1]): Promise<getIssueNeighborsResponse> => {
+
+  return orvalFetch<getIssueNeighborsResponse>(getGetIssueNeighborsUrl(orgSlug,projectSlug,issueId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIssueNeighborsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueNeighborsParams,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/neighbors`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetIssueNeighborsQueryOptions = <TData = Awaited<ReturnType<typeof getIssueNeighbors>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueNeighborsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueNeighbors>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIssueNeighborsQueryKey(orgSlug,projectSlug,issueId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIssueNeighbors>>> = ({ signal }) => getIssueNeighbors(orgSlug,projectSlug,issueId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIssueNeighbors>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetIssueNeighborsQueryResult = NonNullable<Awaited<ReturnType<typeof getIssueNeighbors>>>
+export type GetIssueNeighborsQueryError = ErrorType<unknown>
+
+
+export function useGetIssueNeighbors<TData = Awaited<ReturnType<typeof getIssueNeighbors>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params: undefined |  GetIssueNeighborsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueNeighbors>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIssueNeighbors>>,
+          TError,
+          Awaited<ReturnType<typeof getIssueNeighbors>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssueNeighbors<TData = Awaited<ReturnType<typeof getIssueNeighbors>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueNeighborsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueNeighbors>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIssueNeighbors>>,
+          TError,
+          Awaited<ReturnType<typeof getIssueNeighbors>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssueNeighbors<TData = Awaited<ReturnType<typeof getIssueNeighbors>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueNeighborsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueNeighbors>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Previous and next issue in the list for the same filters and sort
+ */
+
+export function useGetIssueNeighbors<TData = Awaited<ReturnType<typeof getIssueNeighbors>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    params?: GetIssueNeighborsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueNeighbors>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetIssueNeighborsQueryOptions(orgSlug,projectSlug,issueId,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

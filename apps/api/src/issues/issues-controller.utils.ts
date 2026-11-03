@@ -15,9 +15,7 @@ const MAX_COMMENT_LENGTH = 10_000;
 const ISSUE_STATUSES = ["open", "resolved", "ignored"] as const;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function parseIssueListQuery(input: {
-  page?: string;
-  pageSize?: string;
+type IssueListQueryInput = {
   q?: string;
   level?: string;
   priority?: string;
@@ -28,10 +26,11 @@ function parseIssueListQuery(input: {
   release?: string;
   sortBy?: string;
   sortDir?: string;
-}) {
+};
+
+/** Filters and sort shared by the issue list, j/k neighbours and "select all" bulk actions. */
+function parseIssueFilters(input: IssueListQueryInput) {
   return {
-    page: normalizePositiveInt(input.page, 1, "page"),
-    pageSize: normalizePositiveInt(input.pageSize, 25, "pageSize", 100),
     search: parseIssueSearch(normalizeOptionalQuery(input.q) ?? ""),
     level: normalizeOptionalQuery(input.level),
     priority: normalizePriority(input.priority),
@@ -42,6 +41,14 @@ function parseIssueListQuery(input: {
     release: normalizeOptionalQuery(input.release),
     sortBy: normalizeSortBy(input.sortBy),
     sortDir: normalizeSortDir(input.sortDir),
+  };
+}
+
+function parseIssueListQuery(input: IssueListQueryInput & { page?: string; pageSize?: string }) {
+  return {
+    page: normalizePositiveInt(input.page, 1, "page"),
+    pageSize: normalizePositiveInt(input.pageSize, 25, "pageSize", 100),
+    ...parseIssueFilters(input),
   };
 }
 
@@ -141,7 +148,7 @@ function parseIssueAssigneeBody(body: Record<string, unknown>) {
 function parseBulkIssueStatusBody(body: Record<string, unknown>) {
   const status = assertOneOf(body.status, ISSUE_STATUSES, "status");
   return {
-    issueIds: assertIssueIds(body.issueIds),
+    selection: parseBulkSelection(body),
     status,
     resolution: parseResolution(body.resolution, status),
   };
@@ -149,14 +156,14 @@ function parseBulkIssueStatusBody(body: Record<string, unknown>) {
 
 function parseBulkIssuePriorityBody(body: Record<string, unknown>) {
   return {
-    issueIds: assertIssueIds(body.issueIds),
+    selection: parseBulkSelection(body),
     priority: assertPriority(assertString(body.priority, "priority")),
   };
 }
 
 function parseBulkIssueAssigneeBody(body: Record<string, unknown>) {
   return {
-    issueIds: assertIssueIds(body.issueIds),
+    selection: parseBulkSelection(body),
     assignedUserId: parseNullableString(body.assignedUserId, "assignedUserId"),
   };
 }
@@ -191,6 +198,42 @@ function parseMergeIssueBody(body: Record<string, unknown>) {
 }
 
 /** Bulk actions take issue UUIDs, deduplicated and capped so one request stays bounded. */
+const BULK_FILTER_KEYS = [
+  "q",
+  "level",
+  "priority",
+  "status",
+  "assignedUserId",
+  "isRegressed",
+  "environment",
+  "release",
+  "sortBy",
+  "sortDir",
+] as const;
+
+/** A bulk action targets either `issueIds` or every issue matching `filters`. */
+function parseBulkSelection(body: Record<string, unknown>) {
+  if (body.filters === undefined) return { issueIds: assertIssueIds(body.issueIds) };
+  if (body.issueIds !== undefined) {
+    throw new BadRequestException("Send either issueIds or filters, not both");
+  }
+  if (typeof body.filters !== "object" || body.filters === null || Array.isArray(body.filters)) {
+    throw new BadRequestException("filters must be an object");
+  }
+
+  const raw = body.filters as Record<string, unknown>;
+  const filters: IssueListQueryInput = {};
+  for (const key of BULK_FILTER_KEYS) {
+    const value = raw[key];
+    if (value === undefined || value === null) continue;
+    if (typeof value !== "string" && typeof value !== "boolean") {
+      throw new BadRequestException(`filters.${key} must be a string`);
+    }
+    filters[key] = String(value);
+  }
+  return { filters: parseIssueFilters(filters) };
+}
+
 function assertIssueIds(value: unknown) {
   const issueIds = [...new Set(assertStringArray(value, "issueIds"))];
   if (issueIds.length > MAX_BULK_ISSUE_IDS) {
@@ -312,6 +355,7 @@ export {
   parseCreateCommentBody,
   parseIssueAssigneeBody,
   parseIssueEventPagination,
+  parseIssueFilters,
   parseIssueListQuery,
   parseIssuePriorityBody,
   parseIssueStatusBody,

@@ -209,20 +209,50 @@ function buildIssueListFilters(db: DatabaseClient, input: IssueListFilterInput) 
   return filters;
 }
 
-function resolveIssueSortOrder(input?: {
+type IssueSortInput = {
   sortBy?: "lastSeenAt" | "firstSeenAt" | "timesSeen";
   sortDir?: "asc" | "desc";
-}) {
-  const sortBy = input?.sortBy ?? "lastSeenAt";
-  const sortDir = input?.sortDir ?? "desc";
-  const sortColumn =
-    sortBy === "firstSeenAt"
-      ? issues.firstSeenAt
-      : sortBy === "timesSeen"
-        ? issues.timesSeen
-        : issues.lastSeenAt;
+};
 
-  return sortDir === "asc" ? asc(sortColumn) : desc(sortColumn);
+function issueSortColumn(input?: IssueSortInput) {
+  const sortBy = input?.sortBy ?? "lastSeenAt";
+  return sortBy === "firstSeenAt"
+    ? issues.firstSeenAt
+    : sortBy === "timesSeen"
+      ? issues.timesSeen
+      : issues.lastSeenAt;
 }
 
-export { buildIssueListFilters, eventSelect, resolveIssueSortOrder };
+/** Sort order with the id as tie-breaker, so pages and neighbours are stable. */
+function resolveIssueSortOrder(input?: IssueSortInput, { reverse = false } = {}) {
+  const descending = ((input?.sortDir ?? "desc") === "desc") !== reverse;
+  const direction = descending ? desc : asc;
+  return [direction(issueSortColumn(input)), direction(issues.id)];
+}
+
+/**
+ * Issues after (or before) a given position in the sort order. Keyset rather than row numbers, so
+ * the neighbours of an issue that no longer matches the filters (just resolved, say) still exist.
+ */
+function issuesAfterPosition(
+  input: IssueSortInput,
+  position: { sortValue: Date | number; id: string },
+  { before = false } = {},
+) {
+  const descending = (input.sortDir ?? "desc") === "desc";
+  const operator = descending !== before ? sql.raw("<") : sql.raw(">");
+  const sortValue =
+    position.sortValue instanceof Date
+      ? sql`${position.sortValue.toISOString()}::timestamptz`
+      : sql`${position.sortValue}::integer`;
+  return sql`(${issueSortColumn(input)}, ${issues.id}) ${operator} (${sortValue}, ${position.id}::uuid)`;
+}
+
+export {
+  buildIssueListFilters,
+  eventSelect,
+  issueSortColumn,
+  issuesAfterPosition,
+  resolveIssueSortOrder,
+};
+export type { IssueListFilterInput, IssueSortInput };

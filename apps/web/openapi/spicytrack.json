@@ -2149,6 +2149,138 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/neighbors": {
+      "get": {
+        "operationId": "getIssueNeighbors",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priority",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assignedUserId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isRegressed",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "release",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortDir",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueNeighborsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Previous and next issue in the list for the same filters and sort",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
     "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/tags": {
       "get": {
         "operationId": "getIssueTags",
@@ -6637,6 +6769,23 @@
           "events"
         ]
       },
+      "IssueNeighborsDto": {
+        "type": "object",
+        "properties": {
+          "previousIssueId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextIssueId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "previousIssueId",
+          "nextIssueId"
+        ]
+      },
       "IssueTagValueDto": {
         "type": "object",
         "properties": {
@@ -6789,14 +6938,53 @@
           "targetIssueId"
         ]
       },
+      "IssueBulkFiltersDto": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Search, same syntax as the issue list q parameter"
+          },
+          "level": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "assignedUserId": {
+            "type": "string"
+          },
+          "isRegressed": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "release": {
+            "type": "string"
+          }
+        }
+      },
       "BulkIssueStatusUpdateBodyDto": {
         "type": "object",
         "properties": {
           "issueIds": {
+            "description": "Issues to change (max 500). Send this or filters.",
             "type": "array",
             "items": {
               "type": "string"
             }
+          },
+          "filters": {
+            "description": "Change every issue matching these list filters instead (max 5000). Send this or issueIds.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IssueBulkFiltersDto"
+              }
+            ]
           },
           "status": {
             "type": "string"
@@ -6811,7 +6999,6 @@
           }
         },
         "required": [
-          "issueIds",
           "status"
         ]
       },
@@ -6834,10 +7021,19 @@
         "type": "object",
         "properties": {
           "issueIds": {
+            "description": "Issues to change (max 500). Send this or filters.",
             "type": "array",
             "items": {
               "type": "string"
             }
+          },
+          "filters": {
+            "description": "Change every issue matching these list filters instead (max 5000). Send this or issueIds.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IssueBulkFiltersDto"
+              }
+            ]
           },
           "priority": {
             "type": "string",
@@ -6850,7 +7046,6 @@
           }
         },
         "required": [
-          "issueIds",
           "priority"
         ]
       },
@@ -6858,19 +7053,25 @@
         "type": "object",
         "properties": {
           "issueIds": {
+            "description": "Issues to change (max 500). Send this or filters.",
             "type": "array",
             "items": {
               "type": "string"
             }
           },
+          "filters": {
+            "description": "Change every issue matching these list filters instead (max 5000). Send this or issueIds.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IssueBulkFiltersDto"
+              }
+            ]
+          },
           "assignedUserId": {
             "type": "string",
             "nullable": true
           }
-        },
-        "required": [
-          "issueIds"
-        ]
+        }
       },
       "IssueCommentDto": {
         "type": "object",

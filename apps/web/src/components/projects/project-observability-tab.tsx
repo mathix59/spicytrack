@@ -66,8 +66,13 @@ function ProjectObservabilityTab({ orgSlug, projectSlug }: ProjectObservabilityT
           clearSelection={issues.clearSelection}
           isUpdatingAssignee={issues.bulkUpdateIssueAssigneeMutation.isPending}
           isUpdatingStatus={issues.bulkUpdateIssueStatusMutation.isPending}
+          allMatchingSelected={issues.allMatchingSelected}
+          allVisibleSelected={issues.allVisibleSelected}
+          canSelectAllMatching={issues.canSelectAllMatching}
           members={issues.members}
-          selectedIssueIds={issues.selectedIssueIds}
+          selectAllMatching={issues.selectAllMatching}
+          selectedCount={issues.selectedCount}
+          totalIssues={issues.totalIssues}
           setBulkAssigneeValue={issues.setBulkAssigneeValue}
         />
 
@@ -77,14 +82,12 @@ function ProjectObservabilityTab({ orgSlug, projectSlug }: ProjectObservabilityT
           hasActiveFilters={issues.hasActiveFilters}
           isFetching={issues.isFetchingIssues}
           isLoading={issues.isLoadingIssues}
-          issueHref={(issueId) => `/orgs/${orgSlug}/projects/${projectSlug}/issues/${issueId}`}
+          issueHref={issues.issueHref}
           issues={issues.issues}
           memberByUserId={issues.memberByUserId}
           trendByIssueId={trendByIssueId}
           onRetry={issues.retryIssues}
-          navigateToIssue={(issueId) =>
-            issues.navigate(`/orgs/${orgSlug}/projects/${projectSlug}/issues/${issueId}`)
-          }
+          navigateToIssue={(issueId) => issues.navigate(issues.issueHref(issueId))}
           safePage={issues.safePage}
           selectedIssueIdSet={issues.selectedIssueIdSet}
           setPage={issues.setPage}

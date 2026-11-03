@@ -53,9 +53,7 @@ function IssueDetailPage() {
         lastSeenAt={page.issue.lastSeenAt}
         level={page.issue.level}
         navigation={page.navigation}
-        orgSlug={page.orgSlug}
         projectName={page.projectName}
-        projectSlug={page.projectSlug}
         status={page.issue.status}
         title={page.issue.title}
         totalEvents={page.events.totalEvents}

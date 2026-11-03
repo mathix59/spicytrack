@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -20,7 +20,7 @@ import {
   useListIssueActivity,
   useListIssueAutofixRuns,
   useListIssueComments,
-  useListIssues,
+  useGetIssueNeighbors,
   useListOrganizationMembers,
   useTriggerAutofix,
   useUpdateIssueAssignee,
@@ -31,6 +31,11 @@ import {
   useUnmergeIssue,
 } from "@/generated/api";
 import { invalidateQueryKeys } from "@/lib/query-utils";
+import {
+  issueListContext,
+  issueListContextFilters,
+  withIssueListContext,
+} from "@/features/issues/issue-list-context";
 import { useIssueTrends } from "@/features/issues/use-issue-trends";
 import { useHotkeys } from "@/lib/use-hotkeys";
 import { getErrorMessage } from "@/lib/utils";
@@ -48,6 +53,9 @@ function useIssueDetailPage(): IssuePageData {
   const { orgSlug = "", projectSlug = "", issueId = "" } = useParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const listContextKey = issueListContext(searchParams).toString();
+  const listContext = useMemo(() => new URLSearchParams(listContextKey), [listContextKey]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [eventPage, setEventPage] = useState(1);
   const [commentError, setCommentError] = useState<string | null>(null);
@@ -59,12 +67,14 @@ function useIssueDetailPage(): IssuePageData {
     eventPage,
     eventPageSize: EVENT_PAGE_SIZE,
   });
-  const issueStreamQuery = useListIssues(orgSlug, projectSlug, {
-    page: 1,
-    pageSize: 100,
-    sortBy: "lastSeenAt",
-    sortDir: "desc",
-  } as never);
+  const neighborsQuery = useGetIssueNeighbors(
+    orgSlug,
+    projectSlug,
+    issueId,
+    issueListContextFilters(listContext),
+    // A malformed search only breaks j/k; the list itself reports the error.
+    { query: { retry: false } },
+  );
   const eventQuery = useGetEvent(orgSlug, projectSlug, selectedEventId ?? "", {
     query: { enabled: Boolean(selectedEventId) },
   });
@@ -150,13 +160,14 @@ function useIssueDetailPage(): IssuePageData {
   const safeEventPage = Math.min(eventPage, totalEventPages);
   const selectedEvent = eventQuery.data?.data;
   const firstEventId = events[0]?.id;
-  const issueStream = issueStreamQuery.data?.data.items ?? [];
-  const currentIssueIndex = issueStream.findIndex((entry) => entry.id === issueId);
-  const previousIssue = currentIssueIndex > 0 ? issueStream[currentIssueIndex - 1] : null;
-  const nextIssue =
-    currentIssueIndex >= 0 && currentIssueIndex < issueStream.length - 1
-      ? issueStream[currentIssueIndex + 1]
-      : null;
+  const projectPath = `/orgs/${orgSlug}/projects/${projectSlug}`;
+  const issuePath = (id: string) =>
+    withIssueListContext(`${projectPath}/issues/${id}`, listContext);
+  const neighbors = neighborsQuery.isSuccess ? neighborsQuery.data.data : null;
+  const previousIssueHref = neighbors?.previousIssueId
+    ? issuePath(neighbors.previousIssueId)
+    : null;
+  const nextIssueHref = neighbors?.nextIssueId ? issuePath(neighbors.nextIssueId) : null;
   const timelineEntries = useMemo(
     () => buildTimelineEntries(activity, comments, memberByUserId),
     [activity, comments, memberByUserId],
@@ -330,10 +341,8 @@ function useIssueDetailPage(): IssuePageData {
     }
   };
 
-  const mergeIssue = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const mergeIssue = async (targetIssueId: string) => {
     setWorkflowError(null);
-    const targetIssueId = String(new FormData(event.currentTarget).get("targetIssueId") ?? "");
     try {
       const response = await mergeIssueMutation.mutateAsync({
         orgSlug,
@@ -342,7 +351,7 @@ function useIssueDetailPage(): IssuePageData {
         data: { targetIssueId },
       });
       toast.success("Issues merged");
-      navigate(`/orgs/${orgSlug}/projects/${projectSlug}/issues/${response.data.id}`);
+      navigate(issuePath(response.data.id));
     } catch (error) {
       setWorkflowError(getErrorMessage(error));
     }
@@ -358,10 +367,9 @@ function useIssueDetailPage(): IssuePageData {
     }
   };
 
-  const issuePath = (id: string) => `/orgs/${orgSlug}/projects/${projectSlug}/issues/${id}`;
   useHotkeys({
-    j: () => nextIssue && navigate(issuePath(nextIssue.id)),
-    k: () => previousIssue && navigate(issuePath(previousIssue.id)),
+    j: () => nextIssueHref && navigate(nextIssueHref),
+    k: () => previousIssueHref && navigate(previousIssueHref),
     "[": goNewer,
     "]": goOlder,
   });
@@ -387,8 +395,9 @@ function useIssueDetailPage(): IssuePageData {
       refetch: () => void issueQuery.refetch(),
     },
     navigation: {
-      previousIssue,
-      nextIssue,
+      listHref: withIssueListContext(projectPath, listContext),
+      previousIssueHref,
+      nextIssueHref,
     },
     events: {
       selectedEvent,

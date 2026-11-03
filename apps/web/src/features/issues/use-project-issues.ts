@@ -17,19 +17,19 @@ import {
   useListProjectReleases,
   useListProjectSavedSearches,
 } from "@/generated/api";
+import type { IssueBulkFiltersDto } from "@/generated/api";
+import {
+  issueListContext,
+  issueListContextFilters,
+  withIssueListContext,
+} from "@/features/issues/issue-list-context";
 import type { IssueFilterSnapshot, SavedIssueSearch } from "@/features/issues/saved-searches";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { getErrorMessage } from "@/lib/utils";
 
 const SEARCH_DEBOUNCE_MS = 250;
-
-function useDebouncedValue<T>(value: T, delayMs: number) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timeout = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(timeout);
-  }, [value, delayMs]);
-  return debounced;
-}
+/** Same cap as the API for bulk actions on every result of a search. */
+const MAX_BULK_MATCHING_ISSUES = 5_000;
 
 function pluralizeIssues(count: number) {
   return `${count} ${count === 1 ? "issue" : "issues"}`;
@@ -67,6 +67,8 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     return Number.isFinite(value) && value > 0 ? value : 25;
   });
   const [selectedIssueIds, setSelectedIssueIds] = useState<string[]>([]);
+  // Filters (as a list context string) whose every result is selected, beyond the visible page.
+  const [allMatchingContext, setAllMatchingContext] = useState<string | null>(null);
   const [bulkAssigneeValue, setBulkAssigneeValue] = useState("__placeholder__");
   const environmentsQuery = useListProjectEnvironments(orgSlug, projectSlug);
   const releasesQuery = useListProjectReleases(orgSlug, projectSlug);
@@ -106,6 +108,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
           queryKey: getListProjectAuditQueryKey(orgSlug, projectSlug),
         });
         setSelectedIssueIds([]);
+        setAllMatchingContext(null);
         setBulkAssigneeValue("__placeholder__");
       },
     },
@@ -120,6 +123,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
           queryKey: getListProjectAuditQueryKey(orgSlug, projectSlug),
         });
         setSelectedIssueIds([]);
+        setAllMatchingContext(null);
         setBulkAssigneeValue("__placeholder__");
       },
     },
@@ -203,6 +207,18 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
       statusFilter,
     ],
   );
+
+  // Applied filters only: a half-typed search does not count until the list shows its results.
+  const listContext = issueListContext(searchParams);
+  if (deferredIssueSearch.trim()) listContext.set("q", deferredIssueSearch);
+  else listContext.delete("q");
+  const listContextKey = listContext.toString();
+  const allMatchingSelected = allMatchingContext === listContextKey && totalIssues > 0;
+  const effectiveSelectedIdSet = allMatchingSelected
+    ? new Set(visibleIssueIds)
+    : selectedIssueIdSet;
+  const issueHref = (issueId: string) =>
+    withIssueListContext(`/orgs/${orgSlug}/projects/${projectSlug}/issues/${issueId}`, listContext);
 
   useEffect(() => {
     if (page !== safePage) {
@@ -308,6 +324,11 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
   }, [visibleIssueIds]);
 
   const toggleIssueSelection = (issueId: string) => {
+    if (allMatchingSelected) {
+      setAllMatchingContext(null);
+      setSelectedIssueIds(visibleIssueIds.filter((id) => id !== issueId));
+      return;
+    }
     startTransition(() => {
       setSelectedIssueIds((current) =>
         current.includes(issueId) ? current.filter((id) => id !== issueId) : [...current, issueId],
@@ -315,9 +336,28 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     });
   };
 
-  const clearSelection = () => setSelectedIssueIds([]);
+  const clearSelection = () => {
+    setAllMatchingContext(null);
+    setSelectedIssueIds([]);
+  };
+
+  const selectAllMatching = () => setAllMatchingContext(listContextKey);
+
+  /** What a bulk action changes: the checked issues, or every issue matching the filters. */
+  const bulkTarget = (): { issueIds: string[] } | { filters: IssueBulkFiltersDto } => {
+    if (!allMatchingSelected) return { issueIds: selectedIssueIds };
+    const { sortBy: _sortBy, sortDir: _sortDir, ...filters } = issueListContextFilters(listContext);
+    return { filters };
+  };
+  const selectedCount = allMatchingSelected ? totalIssues : selectedIssueIds.length;
+  const allVisibleSelected =
+    visibleIssueIds.length > 0 && visibleIssueIds.every((id) => effectiveSelectedIdSet.has(id));
 
   const toggleVisibleIssues = () => {
+    if (allMatchingSelected) {
+      clearSelection();
+      return;
+    }
     const visibleIds = issues.map((issue) => issue.id);
     const allVisibleSelected =
       visibleIds.length > 0 && visibleIds.every((issueId) => selectedIssueIdSet.has(issueId));
@@ -334,20 +374,17 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
   };
 
   const bulkSetStatus = async (status: string) => {
-    if (selectedIssueIds.length === 0) {
+    if (selectedCount === 0) {
       return;
     }
 
-    const count = selectedIssueIds.length;
     try {
-      await bulkUpdateIssueStatusMutation.mutateAsync({
+      const response = await bulkUpdateIssueStatusMutation.mutateAsync({
         orgSlug,
         projectSlug,
-        data: {
-          issueIds: selectedIssueIds,
-          status,
-        },
+        data: { ...bulkTarget(), status },
       });
+      const count = response.data.updatedCount;
       const verb = status === "open" ? "reopened" : status;
       toast.success(`${pluralizeIssues(count)} ${verb}`);
     } catch (caughtError) {
@@ -358,20 +395,20 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
   };
 
   const bulkSetAssignee = async (assignedUserId: string) => {
-    if (selectedIssueIds.length === 0) {
+    if (selectedCount === 0) {
       return;
     }
 
-    const count = selectedIssueIds.length;
     try {
-      await bulkUpdateIssueAssigneeMutation.mutateAsync({
+      const response = await bulkUpdateIssueAssigneeMutation.mutateAsync({
         orgSlug,
         projectSlug,
         data: {
-          issueIds: selectedIssueIds,
+          ...bulkTarget(),
           assignedUserId: assignedUserId.length > 0 ? assignedUserId : null,
         },
       });
+      const count = response.data.updatedCount;
       toast.success(
         assignedUserId.length > 0
           ? `${pluralizeIssues(count)} assigned`
@@ -553,6 +590,8 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
 
   return {
     activeSecondaryFilterCount,
+    allMatchingSelected,
+    canSelectAllMatching: totalIssues <= MAX_BULK_MATCHING_ISSUES,
     applyInboxPreset,
     applySavedSearch,
     assignedUserFilter,
@@ -568,6 +607,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     hasActiveFilters,
     isFetchingIssues: issuesQuery.isFetching && issuesQuery.isPlaceholderData,
     isLoadingIssues: issuesQuery.isLoading,
+    issueHref,
     issueSearch,
     issues,
     issuesError: issuesQuery.isError && !issuesPage && !searchError ? issuesQuery.error : null,
@@ -589,7 +629,10 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     savedSearches,
     saveSearchOpen,
     selectedIssueIds,
-    selectedIssueIdSet,
+    allVisibleSelected,
+    selectAllMatching,
+    selectedCount,
+    selectedIssueIdSet: effectiveSelectedIdSet,
     setBulkAssigneeValue,
     setPage,
     setSavedSearchName,

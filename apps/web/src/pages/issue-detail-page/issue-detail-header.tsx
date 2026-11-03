@@ -36,8 +36,6 @@ const SNOOZE_OPTIONS = [
 ] as const;
 
 function IssueDetailHeader({
-  orgSlug,
-  projectSlug,
   projectName,
   title,
   culprit,
@@ -52,8 +50,6 @@ function IssueDetailHeader({
   navigation,
   actions,
 }: {
-  orgSlug: string;
-  projectSlug: string;
   projectName: string;
   title: string;
   culprit: string | null | undefined;
@@ -69,7 +65,6 @@ function IssueDetailHeader({
   navigation: IssueNavigation;
   actions: IssueActionsState;
 }) {
-  const issuesPath = `/orgs/${orgSlug}/projects/${projectSlug}`;
   const busy = actions.isUpdatingStatus;
   const autofixBusy = actions.autofixInFlight || actions.isTriggeringAutofix;
 
@@ -79,31 +74,21 @@ function IssueDetailHeader({
         <nav aria-label="Breadcrumb" className="min-w-0 text-sm text-muted-foreground">
           <ol className="flex min-w-0 items-center gap-1.5">
             <li className="min-w-0 truncate">
-              <Link className="hover:text-foreground" to={issuesPath}>
+              <Link className="hover:text-foreground" to={navigation.listHref}>
                 {projectName}
               </Link>
             </li>
             <li aria-hidden="true">/</li>
             <li>
-              <Link className="hover:text-foreground" to={issuesPath}>
+              <Link className="hover:text-foreground" to={navigation.listHref}>
                 Issues
               </Link>
             </li>
           </ol>
         </nav>
         <div className="flex shrink-0 items-center gap-1">
-          <IssueNavButton
-            direction="previous"
-            href={
-              navigation.previousIssue
-                ? `${issuesPath}/issues/${navigation.previousIssue.id}`
-                : null
-            }
-          />
-          <IssueNavButton
-            direction="next"
-            href={navigation.nextIssue ? `${issuesPath}/issues/${navigation.nextIssue.id}` : null}
-          />
+          <IssueNavButton direction="previous" href={navigation.previousIssueHref} />
+          <IssueNavButton direction="next" href={navigation.nextIssueHref} />
         </div>
       </div>
 

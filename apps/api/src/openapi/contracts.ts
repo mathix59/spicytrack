@@ -836,9 +836,50 @@ export class CreateIssueCommentBodyDto {
   body!: string;
 }
 
+export class IssueBulkFiltersDto {
+  @ApiPropertyOptional({ description: "Search, same syntax as the issue list q parameter" })
+  q?: string;
+
+  @ApiPropertyOptional()
+  level?: string;
+
+  @ApiPropertyOptional()
+  priority?: string;
+
+  @ApiPropertyOptional()
+  status?: string;
+
+  @ApiPropertyOptional()
+  assignedUserId?: string;
+
+  @ApiPropertyOptional()
+  isRegressed?: boolean;
+
+  @ApiPropertyOptional()
+  environment?: string;
+
+  @ApiPropertyOptional()
+  release?: string;
+}
+
+const BULK_ISSUE_IDS_DESCRIPTION = "Issues to change (max 500). Send this or filters.";
+const BULK_FILTERS_DESCRIPTION =
+  "Change every issue matching these list filters instead (max 5000). Send this or issueIds.";
+
+export class IssueNeighborsDto {
+  @ApiProperty({ type: String, nullable: true })
+  previousIssueId!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  nextIssueId!: string | null;
+}
+
 export class BulkIssueStatusUpdateBodyDto {
-  @ApiProperty({ type: [String] })
-  issueIds!: string[];
+  @ApiPropertyOptional({ type: [String], description: BULK_ISSUE_IDS_DESCRIPTION })
+  issueIds?: string[];
+
+  @ApiPropertyOptional({ type: IssueBulkFiltersDto, description: BULK_FILTERS_DESCRIPTION })
+  filters?: IssueBulkFiltersDto;
 
   @ApiProperty()
   status!: string;
@@ -848,16 +889,22 @@ export class BulkIssueStatusUpdateBodyDto {
 }
 
 export class BulkIssuePriorityUpdateBodyDto {
-  @ApiProperty({ type: [String] })
-  issueIds!: string[];
+  @ApiPropertyOptional({ type: [String], description: BULK_ISSUE_IDS_DESCRIPTION })
+  issueIds?: string[];
+
+  @ApiPropertyOptional({ type: IssueBulkFiltersDto, description: BULK_FILTERS_DESCRIPTION })
+  filters?: IssueBulkFiltersDto;
 
   @ApiProperty({ enum: ["low", "medium", "high", "critical"] })
   priority!: string;
 }
 
 export class BulkIssueAssigneeUpdateBodyDto {
-  @ApiProperty({ type: [String] })
-  issueIds!: string[];
+  @ApiPropertyOptional({ type: [String], description: BULK_ISSUE_IDS_DESCRIPTION })
+  issueIds?: string[];
+
+  @ApiPropertyOptional({ type: IssueBulkFiltersDto, description: BULK_FILTERS_DESCRIPTION })
+  filters?: IssueBulkFiltersDto;
 
   @ApiPropertyOptional({ type: String, nullable: true })
   assignedUserId?: string | null;
