@@ -46,6 +46,7 @@ const URL_SETTINGS: Record<string, string[]> = {
   APP_URL: [],
   AI_PRICING_CATALOG_URL: ["disabled"],
   SPICYTRACK_UPDATE_MANIFEST_URL: ["disabled"],
+  LINEAR_API_URL: [],
 };
 
 function text(environment: Environment, name: string): string | undefined {

@@ -1661,6 +1661,131 @@ export interface AddTeamMemberBodyDto {
   role?: string;
 }
 
+export type TicketTrackerDtoProvider = typeof TicketTrackerDtoProvider[keyof typeof TicketTrackerDtoProvider];
+
+
+export const TicketTrackerDtoProvider = {
+  github: 'github',
+  linear: 'linear',
+  jira: 'jira',
+} as const;
+
+export interface TicketTrackerDto {
+  id: string;
+  provider: TicketTrackerDtoProvider;
+  name: string;
+  /** Repository, Linear team or Jira project and issue type. */
+  target: string;
+  /** GitHub tracker using the project's repository connection. */
+  usesRepoConnection: boolean;
+  /** @nullable */
+  repository: string | null;
+  /** @nullable */
+  teamKey: string | null;
+  /** @nullable */
+  baseUrl: string | null;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  projectKey: string | null;
+  /** @nullable */
+  issueType: string | null;
+  createdAt: string;
+}
+
+export type CreateTicketTrackerBodyDtoProvider = typeof CreateTicketTrackerBodyDtoProvider[keyof typeof CreateTicketTrackerBodyDtoProvider];
+
+
+export const CreateTicketTrackerBodyDtoProvider = {
+  github: 'github',
+  linear: 'linear',
+  jira: 'jira',
+} as const;
+
+export interface CreateTicketTrackerBodyDto {
+  provider: CreateTicketTrackerBodyDtoProvider;
+  /** @maxLength 80 */
+  name: string;
+  /** API token. Optional for GitHub, which then uses the project's connected repository. */
+  token?: string;
+  /** GitHub `owner/name`, with a token. */
+  repository?: string;
+  /** Linear team key, like ENG. */
+  teamKey?: string;
+  /** Jira site, like https://acme.atlassian.net. */
+  baseUrl?: string;
+  /** Jira Cloud account email. Leave empty for a Data Center personal token. */
+  email?: string;
+  /** Jira project key, like OPS. */
+  projectKey?: string;
+  /** Jira issue type. Defaults to Bug. */
+  issueType?: string;
+}
+
+export type IssueTicketDtoProvider = typeof IssueTicketDtoProvider[keyof typeof IssueTicketDtoProvider];
+
+
+export const IssueTicketDtoProvider = {
+  github: 'github',
+  linear: 'linear',
+  jira: 'jira',
+} as const;
+
+export interface IssueTicketDto {
+  id: string;
+  /** @nullable */
+  trackerId: string | null;
+  provider: IssueTicketDtoProvider;
+  /** Key shown by the tracker: #12, ENG-34, OPS-5. */
+  externalKey: string;
+  url: string;
+  title: string;
+  /** @nullable */
+  createdByUserId: string | null;
+  createdAt: string;
+}
+
+export type TicketTrackerSummaryDtoProvider = typeof TicketTrackerSummaryDtoProvider[keyof typeof TicketTrackerSummaryDtoProvider];
+
+
+export const TicketTrackerSummaryDtoProvider = {
+  github: 'github',
+  linear: 'linear',
+  jira: 'jira',
+} as const;
+
+export interface TicketTrackerSummaryDto {
+  id: string;
+  provider: TicketTrackerSummaryDtoProvider;
+  name: string;
+  target: string;
+}
+
+export interface IssueTicketsDto {
+  tickets: IssueTicketDto[];
+  trackers: TicketTrackerSummaryDto[];
+}
+
+export interface IssueTicketDraftDto {
+  title: string;
+  /** Markdown. */
+  description: string;
+}
+
+export interface CreateIssueTicketBodyDto {
+  trackerId: string;
+  /**
+     * Defaults to the draft title.
+     * @maxLength 255
+     */
+  title?: string;
+  /**
+     * Markdown. Defaults to the draft.
+     * @maxLength 20000
+     */
+  description?: string;
+}
+
 export interface ProjectFirstEventDto {
   /** @nullable */
   firstEventAt: string | null;
@@ -15175,6 +15300,647 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRemoveTeamMemberMutationOptions(options), queryClient);
     }
+
+export type listTicketTrackersResponse200 = {
+  data: TicketTrackerDto[]
+  status: 200
+}
+
+export type listTicketTrackersResponseSuccess = (listTicketTrackersResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listTicketTrackersResponse = (listTicketTrackersResponseSuccess)
+
+export const getListTicketTrackersUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/ticket-trackers`
+}
+
+export const listTicketTrackers = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listTicketTrackersResponse> => {
+
+  return orvalFetch<listTicketTrackersResponse>(getListTicketTrackersUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTicketTrackersQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/ticket-trackers`
+    ] as const;
+    }
+
+
+export const getListTicketTrackersQueryOptions = <TData = Awaited<ReturnType<typeof listTicketTrackers>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTicketTrackers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTicketTrackersQueryKey(orgSlug,projectSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTicketTrackers>>> = ({ signal }) => listTicketTrackers(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTicketTrackers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListTicketTrackersQueryResult = NonNullable<Awaited<ReturnType<typeof listTicketTrackers>>>
+export type ListTicketTrackersQueryError = ErrorType<unknown>
+
+
+export function useListTicketTrackers<TData = Awaited<ReturnType<typeof listTicketTrackers>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTicketTrackers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listTicketTrackers>>,
+          TError,
+          Awaited<ReturnType<typeof listTicketTrackers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTicketTrackers<TData = Awaited<ReturnType<typeof listTicketTrackers>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTicketTrackers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listTicketTrackers>>,
+          TError,
+          Awaited<ReturnType<typeof listTicketTrackers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTicketTrackers<TData = Awaited<ReturnType<typeof listTicketTrackers>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTicketTrackers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListTicketTrackers<TData = Awaited<ReturnType<typeof listTicketTrackers>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTicketTrackers>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListTicketTrackersQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type createTicketTrackerResponse200 = {
+  data: TicketTrackerDto
+  status: 200
+}
+
+export type createTicketTrackerResponseSuccess = (createTicketTrackerResponse200) & {
+  headers: Headers;
+};
+;
+
+export type createTicketTrackerResponse = (createTicketTrackerResponseSuccess)
+
+export const getCreateTicketTrackerUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/ticket-trackers`
+}
+
+export const createTicketTracker = async (orgSlug: string,
+    projectSlug: string,
+    createTicketTrackerBodyDto: CreateTicketTrackerBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createTicketTrackerResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createTicketTrackerResponse>(getCreateTicketTrackerUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createTicketTrackerBodyDto)
+  }
+);}
+
+
+
+
+
+export const getCreateTicketTrackerMutationKey = () => ['createTicketTracker'] as const;
+
+export const getCreateTicketTrackerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTicketTracker>>, TError,CreateTicketTrackerMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTicketTracker>>, TError,CreateTicketTrackerMutationVariables, TContext> => {
+
+const mutationKey = getCreateTicketTrackerMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTicketTracker>>, CreateTicketTrackerMutationVariables> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  createTicketTracker(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateTicketTrackerMutationResult = NonNullable<Awaited<ReturnType<typeof createTicketTracker>>>
+    export type CreateTicketTrackerMutationBody = BodyType<CreateTicketTrackerBodyDto>
+    export type CreateTicketTrackerMutationError = ErrorType<unknown>
+    export type CreateTicketTrackerMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<CreateTicketTrackerBodyDto>}
+
+    export const useCreateTicketTracker = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTicketTracker>>, TError,CreateTicketTrackerMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createTicketTracker>>,
+        TError,
+        CreateTicketTrackerMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateTicketTrackerMutationOptions(options), queryClient);
+    }
+
+export type deleteTicketTrackerResponse200 = {
+  data: SuccessDto
+  status: 200
+}
+
+export type deleteTicketTrackerResponseSuccess = (deleteTicketTrackerResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteTicketTrackerResponse = (deleteTicketTrackerResponseSuccess)
+
+export const getDeleteTicketTrackerUrl = (orgSlug: string,
+    projectSlug: string,
+    trackerId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/ticket-trackers/${trackerId}`
+}
+
+export const deleteTicketTracker = async (orgSlug: string,
+    projectSlug: string,
+    trackerId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteTicketTrackerResponse> => {
+
+  return orvalFetch<deleteTicketTrackerResponse>(getDeleteTicketTrackerUrl(orgSlug,projectSlug,trackerId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteTicketTrackerMutationKey = () => ['deleteTicketTracker'] as const;
+
+export const getDeleteTicketTrackerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTicketTracker>>, TError,DeleteTicketTrackerMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteTicketTracker>>, TError,DeleteTicketTrackerMutationVariables, TContext> => {
+
+const mutationKey = getDeleteTicketTrackerMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTicketTracker>>, DeleteTicketTrackerMutationVariables> = (props) => {
+          const {orgSlug,projectSlug,trackerId} = props ?? {};
+
+          return  deleteTicketTracker(orgSlug,projectSlug,trackerId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteTicketTrackerMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTicketTracker>>>
+
+    export type DeleteTicketTrackerMutationError = ErrorType<unknown>
+    export type DeleteTicketTrackerMutationVariables = {orgSlug: string;projectSlug: string;trackerId: string}
+
+    export const useDeleteTicketTracker = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTicketTracker>>, TError,DeleteTicketTrackerMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteTicketTracker>>,
+        TError,
+        DeleteTicketTrackerMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteTicketTrackerMutationOptions(options), queryClient);
+    }
+
+export type listIssueTicketsResponse200 = {
+  data: IssueTicketsDto
+  status: 200
+}
+
+export type listIssueTicketsResponseSuccess = (listIssueTicketsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listIssueTicketsResponse = (listIssueTicketsResponseSuccess)
+
+export const getListIssueTicketsUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/tickets`
+}
+
+export const listIssueTickets = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listIssueTicketsResponse> => {
+
+  return orvalFetch<listIssueTicketsResponse>(getListIssueTicketsUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListIssueTicketsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/tickets`
+    ] as const;
+    }
+
+
+export const getListIssueTicketsQueryOptions = <TData = Awaited<ReturnType<typeof listIssueTickets>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTickets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListIssueTicketsQueryKey(orgSlug,projectSlug,issueId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssueTickets>>> = ({ signal }) => listIssueTickets(orgSlug,projectSlug,issueId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIssueTickets>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListIssueTicketsQueryResult = NonNullable<Awaited<ReturnType<typeof listIssueTickets>>>
+export type ListIssueTicketsQueryError = ErrorType<unknown>
+
+
+export function useListIssueTickets<TData = Awaited<ReturnType<typeof listIssueTickets>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTickets>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listIssueTickets>>,
+          TError,
+          Awaited<ReturnType<typeof listIssueTickets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueTickets<TData = Awaited<ReturnType<typeof listIssueTickets>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTickets>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listIssueTickets>>,
+          TError,
+          Awaited<ReturnType<typeof listIssueTickets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListIssueTickets<TData = Awaited<ReturnType<typeof listIssueTickets>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTickets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListIssueTickets<TData = Awaited<ReturnType<typeof listIssueTickets>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssueTickets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListIssueTicketsQueryOptions(orgSlug,projectSlug,issueId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type createIssueTicketResponse200 = {
+  data: IssueTicketDto
+  status: 200
+}
+
+export type createIssueTicketResponseSuccess = (createIssueTicketResponse200) & {
+  headers: Headers;
+};
+;
+
+export type createIssueTicketResponse = (createIssueTicketResponseSuccess)
+
+export const getCreateIssueTicketUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/tickets`
+}
+
+export const createIssueTicket = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string,
+    createIssueTicketBodyDto: CreateIssueTicketBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createIssueTicketResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createIssueTicketResponse>(getCreateIssueTicketUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createIssueTicketBodyDto)
+  }
+);}
+
+
+
+
+
+export const getCreateIssueTicketMutationKey = () => ['createIssueTicket'] as const;
+
+export const getCreateIssueTicketMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIssueTicket>>, TError,CreateIssueTicketMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createIssueTicket>>, TError,CreateIssueTicketMutationVariables, TContext> => {
+
+const mutationKey = getCreateIssueTicketMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createIssueTicket>>, CreateIssueTicketMutationVariables> = (props) => {
+          const {orgSlug,projectSlug,issueId,data} = props ?? {};
+
+          return  createIssueTicket(orgSlug,projectSlug,issueId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateIssueTicketMutationResult = NonNullable<Awaited<ReturnType<typeof createIssueTicket>>>
+    export type CreateIssueTicketMutationBody = BodyType<CreateIssueTicketBodyDto>
+    export type CreateIssueTicketMutationError = ErrorType<unknown>
+    export type CreateIssueTicketMutationVariables = {orgSlug: string;projectSlug: string;issueId: string;data: BodyType<CreateIssueTicketBodyDto>}
+
+    export const useCreateIssueTicket = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIssueTicket>>, TError,CreateIssueTicketMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createIssueTicket>>,
+        TError,
+        CreateIssueTicketMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateIssueTicketMutationOptions(options), queryClient);
+    }
+
+export type getIssueTicketDraftResponse200 = {
+  data: IssueTicketDraftDto
+  status: 200
+}
+
+export type getIssueTicketDraftResponseSuccess = (getIssueTicketDraftResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getIssueTicketDraftResponse = (getIssueTicketDraftResponseSuccess)
+
+export const getGetIssueTicketDraftUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/tickets/draft`
+}
+
+export const getIssueTicketDraft = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getIssueTicketDraftResponse> => {
+
+  return orvalFetch<getIssueTicketDraftResponse>(getGetIssueTicketDraftUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIssueTicketDraftQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/tickets/draft`
+    ] as const;
+    }
+
+
+export const getGetIssueTicketDraftQueryOptions = <TData = Awaited<ReturnType<typeof getIssueTicketDraft>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTicketDraft>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIssueTicketDraftQueryKey(orgSlug,projectSlug,issueId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIssueTicketDraft>>> = ({ signal }) => getIssueTicketDraft(orgSlug,projectSlug,issueId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIssueTicketDraft>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetIssueTicketDraftQueryResult = NonNullable<Awaited<ReturnType<typeof getIssueTicketDraft>>>
+export type GetIssueTicketDraftQueryError = ErrorType<unknown>
+
+
+export function useGetIssueTicketDraft<TData = Awaited<ReturnType<typeof getIssueTicketDraft>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTicketDraft>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIssueTicketDraft>>,
+          TError,
+          Awaited<ReturnType<typeof getIssueTicketDraft>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssueTicketDraft<TData = Awaited<ReturnType<typeof getIssueTicketDraft>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTicketDraft>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIssueTicketDraft>>,
+          TError,
+          Awaited<ReturnType<typeof getIssueTicketDraft>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssueTicketDraft<TData = Awaited<ReturnType<typeof getIssueTicketDraft>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTicketDraft>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetIssueTicketDraft<TData = Awaited<ReturnType<typeof getIssueTicketDraft>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueTicketDraft>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetIssueTicketDraftQueryOptions(orgSlug,projectSlug,issueId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export type getProjectFirstEventResponse200 = {
   data: ProjectFirstEventDto

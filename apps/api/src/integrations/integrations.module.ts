@@ -18,6 +18,6 @@ import { VcsFactory } from "./vcs/vcs.factory";
     GithubAppWebhooksController,
   ],
   providers: [IntegrationsService, GithubProvider, GitlabProvider, VcsFactory],
-  exports: [IntegrationsService, VcsFactory],
+  exports: [IntegrationsService, VcsFactory, GithubProvider],
 })
 export class IntegrationsModule {}

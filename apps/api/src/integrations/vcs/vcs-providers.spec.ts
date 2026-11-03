@@ -282,6 +282,36 @@ describe("VCS providers", () => {
     });
   });
 
+  describe("GitHub issues", () => {
+    const provider = new GithubProvider();
+    const connection = { baseUrl: null, repoIdentifier: "acme/web", token: "tok" };
+
+    it("creates an issue and reads whether issues are on", async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse({ has_issues: false }))
+        .mockResolvedValueOnce(
+          jsonResponse({ number: 12, html_url: "https://github.com/acme/web/issues/12" }, 201),
+        );
+      await expect(provider.issuesEnabled(connection)).resolves.toBe(false);
+      await expect(
+        provider.createIssue(connection, { title: "Boom", body: "**error**" }),
+      ).resolves.toEqual({ number: 12, url: "https://github.com/acme/web/issues/12" });
+      const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+      expect(url).toBe("https://api.github.com/repos/acme/web/issues");
+      expect(init.method).toBe("POST");
+      expect(JSON.parse(init.body as string)).toEqual({ title: "Boom", body: "**error**" });
+    });
+
+    it("surfaces a missing Issues permission as a 403", async () => {
+      fetchMock.mockResolvedValue(
+        jsonResponse({ message: "Resource not accessible by integration" }, 403),
+      );
+      await expect(
+        provider.createIssue(connection, { title: "t", body: "b" }),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+  });
+
   describe("listCommits", () => {
     const head = "a".repeat(40);
     const base = "b".repeat(40);

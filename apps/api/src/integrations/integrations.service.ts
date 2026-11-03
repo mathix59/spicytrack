@@ -687,6 +687,8 @@ export class IntegrationsService {
         default_permissions: {
           checks: "read",
           contents: "write",
+          // Tickets created from issues.
+          issues: "write",
           metadata: "read",
           pull_requests: "write",
           // Autofix opens a pull request only once CI passed on its branch.

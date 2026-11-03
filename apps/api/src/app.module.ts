@@ -8,6 +8,7 @@ import { AuthModule } from "./auth/auth.module";
 import { AutofixModule } from "./autofix/autofix.module";
 import { DatabaseModule } from "./database/database.module";
 import { IntegrationsModule } from "./integrations/integrations.module";
+import { TicketsModule } from "./tickets/tickets.module";
 import { InstanceAdminModule } from "./instance-admin/instance-admin.module";
 import { IssuesModule } from "./issues/issues.module";
 import { JobsModule } from "./jobs/jobs.module";
@@ -44,6 +45,7 @@ import { TeamsModule } from "./teams/teams.module";
     TeamsModule,
     IssuesModule,
     IntegrationsModule,
+    TicketsModule,
     OnboardingModule,
     InstanceAdminModule,
     AutofixModule,

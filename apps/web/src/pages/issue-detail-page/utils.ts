@@ -43,6 +43,10 @@ function describeActivity(entry: IssueActivityDto, memberByUserId: MemberByUserI
     return `Assigned to ${renderNullableText(member?.name, member?.email ?? "a member")}`;
   }
 
+  if (entry.type === "issue.ticket_created" && typeof payload.externalKey === "string") {
+    return `Ticket ${payload.externalKey} created`;
+  }
+
   return formatActivityLabel(entry.type);
 }
 

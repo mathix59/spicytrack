@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { AutofixConfigCard } from "@/components/integrations/autofix-config-card";
 import { RepoConnectionCard } from "@/components/integrations/repo-connection-card";
+import { TicketTrackersCard } from "@/components/tickets/ticket-trackers-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function ProjectIntegrationsPanel({
@@ -15,11 +16,18 @@ function ProjectIntegrationsPanel({
   canManage: boolean;
   hasRepoConnection: boolean;
 }) {
+  const [searchParams] = useSearchParams();
+  const requested = searchParams.get("integration");
+
   return (
-    <Tabs className="grid gap-4" defaultValue="repository">
+    <Tabs
+      className="grid gap-4"
+      defaultValue={requested === "tickets" || requested === "autofix" ? requested : "repository"}
+    >
       <TabsList>
         <TabsTrigger value="repository">Repository</TabsTrigger>
         <TabsTrigger value="autofix">Autofix</TabsTrigger>
+        <TabsTrigger value="tickets">Tickets</TabsTrigger>
       </TabsList>
 
       <TabsContent className="mt-0 grid gap-6" value="repository">
@@ -43,6 +51,10 @@ function ProjectIntegrationsPanel({
           orgSlug={orgSlug}
           projectSlug={projectSlug}
         />
+      </TabsContent>
+
+      <TabsContent className="mt-0" value="tickets">
+        <TicketTrackersCard canManage={canManage} orgSlug={orgSlug} projectSlug={projectSlug} />
       </TabsContent>
     </Tabs>
   );

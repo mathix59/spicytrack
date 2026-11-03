@@ -800,6 +800,67 @@ export const repoConnections = pgTable(
   }),
 );
 
+export type TicketTrackerConfig =
+  | {
+      provider: "github";
+      /** `owner/repo`. Null uses the project's connected GitHub repository. */
+      repository: string | null;
+    }
+  | { provider: "linear"; teamId: string; teamKey: string; teamName: string }
+  | {
+      provider: "jira";
+      baseUrl: string;
+      /** Jira Cloud signs in with email and API token; Data Center with a personal token. */
+      email: string | null;
+      projectKey: string;
+      issueType: string;
+    };
+
+/** Where a project's errors become tickets: a GitHub repository, a Linear team or a Jira project. */
+export const ticketTrackers = pgTable(
+  "ticket_trackers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    provider: varchar("provider", { length: 16 }).notNull(),
+    name: varchar("name", { length: 80 }).notNull(),
+    config: jsonb("config").$type<TicketTrackerConfig>().notNull(),
+    /** Null for GitHub trackers that use the project's repository connection. */
+    tokenCiphertext: text("token_ciphertext"),
+    createdByUserId: uuid("created_by_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    projectNameIdx: uniqueIndex("ticket_trackers_project_name_idx").on(table.projectId, table.name),
+  }),
+);
+
+/** Tickets created from an issue. The tracker may be deleted later; the link stays. */
+export const issueTickets = pgTable(
+  "issue_tickets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issues.id, { onDelete: "cascade" }),
+    trackerId: uuid("tracker_id").references(() => ticketTrackers.id, { onDelete: "set null" }),
+    provider: varchar("provider", { length: 16 }).notNull(),
+    /** Human key shown in the UI: `#12`, `ENG-34`, `OPS-5`. */
+    externalKey: varchar("external_key", { length: 128 }).notNull(),
+    url: text("url").notNull(),
+    title: text("title").notNull(),
+    createdByUserId: uuid("created_by_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    issueIdx: index("issue_tickets_issue_idx").on(table.issueId),
+  }),
+);
+
 export const organizationGithubAppRepositories = pgTable(
   "organization_github_app_repositories",
   {

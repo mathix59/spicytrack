@@ -264,6 +264,7 @@ describe("RBAC authorization matrix (e2e)", () => {
   afterAll(async () => {
     if (pool) {
       await pool.query(`DELETE FROM audit_logs WHERE organization_id = $1`, [organizationId]);
+      await pool.query(`DELETE FROM ticket_trackers WHERE organization_id = $1`, [organizationId]);
       await pool.query(`DELETE FROM alert_deliveries WHERE organization_id = $1`, [organizationId]);
       await pool.query(`DELETE FROM alert_rules WHERE organization_id = $1`, [organizationId]);
       await pool.query(`DELETE FROM autofix_runs WHERE organization_id = $1`, [organizationId]);
@@ -552,6 +553,66 @@ describe("RBAC authorization matrix (e2e)", () => {
     // A running worker may already have found that no repository is connected.
     expect(["pending", "unavailable"]).toContain(commits.json().status);
     expect(commits.json().commits).toEqual([]);
+  });
+
+  it("keeps ticket trackers and tickets inside their project and role", async () => {
+    const base = `/api/organizations/${organizationSlug}/projects/${projectSlug}`;
+    const siblingTrackerId = randomUUID();
+    await pool.query(
+      `INSERT INTO ticket_trackers (id, organization_id, project_id, provider, name, config)
+       VALUES ($1, $2, $3, 'github', 'Sibling GitHub', '{"provider":"github","repository":null}'::jsonb)`,
+      [siblingTrackerId, organizationId, siblingProjectId],
+    );
+    const inject = (
+      method: "GET" | "POST" | "DELETE",
+      url: string,
+      role: string,
+      payload?: Record<string, unknown>,
+    ) =>
+      app.inject({
+        method,
+        url: `${base}${url}`,
+        headers: {
+          ...authorization(role),
+          ...(payload ? { "content-type": "application/json" } : {}),
+        },
+        ...(payload ? { payload } : {}),
+      });
+
+    const list = await inject("GET", `/issues/${issueId}/tickets`, "viewer");
+    expect(list.statusCode).toBe(200);
+    expect(list.json()).toEqual({ tickets: [], trackers: [] });
+
+    expect(
+      (await inject("POST", "/ticket-trackers", "viewer", { provider: "github", name: "GitHub" }))
+        .statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await inject("POST", `/issues/${issueId}/tickets`, "viewer", {
+          trackerId: siblingTrackerId,
+        })
+      ).statusCode,
+    ).toBe(403);
+
+    const foreignTracker = await inject("POST", `/issues/${issueId}/tickets`, "owner", {
+      trackerId: siblingTrackerId,
+    });
+    expect(foreignTracker.statusCode).toBe(404);
+    expect(foreignTracker.json().message).toBe("Tracker not found");
+    expect((await inject("GET", `/issues/${siblingIssueId}/tickets`, "owner")).statusCode).toBe(
+      404,
+    );
+    expect(
+      (await inject("DELETE", `/ticket-trackers/${siblingTrackerId}`, "owner")).statusCode,
+    ).toBe(404);
+
+    const withoutRepository = await inject("POST", "/ticket-trackers", "owner", {
+      provider: "github",
+      name: "GitHub",
+    });
+    expect(withoutRepository.statusCode).toBe(400);
+    expect(withoutRepository.json().message).toContain("Connect a GitHub repository");
   });
 
   it("never reads commits or suspects through another project", async () => {

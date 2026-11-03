@@ -764,6 +764,147 @@ export class SuspectCommitsDto {
   suspects!: SuspectCommitDto[];
 }
 
+const TICKET_PROVIDER_ENUM = ["github", "linear", "jira"];
+
+export class TicketTrackerDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ enum: TICKET_PROVIDER_ENUM })
+  provider!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ description: "Repository, Linear team or Jira project and issue type." })
+  target!: string;
+
+  @ApiProperty({ description: "GitHub tracker using the project's repository connection." })
+  usesRepoConnection!: boolean;
+
+  @ApiProperty({ type: String, nullable: true })
+  repository!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  teamKey!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  baseUrl!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  email!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  projectKey!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  issueType!: string | null;
+
+  @ApiProperty({ type: String, format: "date-time" })
+  createdAt!: string;
+}
+
+export class CreateTicketTrackerBodyDto {
+  @ApiProperty({ enum: TICKET_PROVIDER_ENUM })
+  provider!: string;
+
+  @ApiProperty({ maxLength: 80 })
+  name!: string;
+
+  @ApiPropertyOptional({
+    description:
+      "API token. Optional for GitHub, which then uses the project's connected repository.",
+  })
+  token?: string;
+
+  @ApiPropertyOptional({ description: "GitHub `owner/name`, with a token." })
+  repository?: string;
+
+  @ApiPropertyOptional({ description: "Linear team key, like ENG." })
+  teamKey?: string;
+
+  @ApiPropertyOptional({ description: "Jira site, like https://acme.atlassian.net." })
+  baseUrl?: string;
+
+  @ApiPropertyOptional({
+    description: "Jira Cloud account email. Leave empty for a Data Center personal token.",
+  })
+  email?: string;
+
+  @ApiPropertyOptional({ description: "Jira project key, like OPS." })
+  projectKey?: string;
+
+  @ApiPropertyOptional({ description: "Jira issue type. Defaults to Bug." })
+  issueType?: string;
+}
+
+export class TicketTrackerSummaryDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ enum: TICKET_PROVIDER_ENUM })
+  provider!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  target!: string;
+}
+
+export class IssueTicketDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  trackerId!: string | null;
+
+  @ApiProperty({ enum: TICKET_PROVIDER_ENUM })
+  provider!: string;
+
+  @ApiProperty({ description: "Key shown by the tracker: #12, ENG-34, OPS-5." })
+  externalKey!: string;
+
+  @ApiProperty()
+  url!: string;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  createdByUserId!: string | null;
+
+  @ApiProperty({ type: String, format: "date-time" })
+  createdAt!: string;
+}
+
+export class IssueTicketsDto {
+  @ApiProperty({ type: [IssueTicketDto] })
+  tickets!: IssueTicketDto[];
+
+  @ApiProperty({ type: [TicketTrackerSummaryDto] })
+  trackers!: TicketTrackerSummaryDto[];
+}
+
+export class IssueTicketDraftDto {
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty({ description: "Markdown." })
+  description!: string;
+}
+
+export class CreateIssueTicketBodyDto {
+  @ApiProperty()
+  trackerId!: string;
+
+  @ApiPropertyOptional({ maxLength: 255, description: "Defaults to the draft title." })
+  title?: string;
+
+  @ApiPropertyOptional({ maxLength: 20000, description: "Markdown. Defaults to the draft." })
+  description?: string;
+}
+
 export class AlertRuleDto {
   @ApiProperty()
   id!: string;

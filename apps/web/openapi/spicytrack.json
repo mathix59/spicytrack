@@ -6078,6 +6078,321 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/projects/{projectSlug}/ticket-trackers": {
+      "get": {
+        "operationId": "listTicketTrackers",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TicketTrackerDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "tickets"
+        ]
+      },
+      "post": {
+        "operationId": "createTicketTracker",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketTrackerBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketTrackerDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "tickets"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/ticket-trackers/{trackerId}": {
+      "delete": {
+        "operationId": "deleteTicketTracker",
+        "parameters": [
+          {
+            "name": "trackerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "tickets"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/tickets": {
+      "get": {
+        "operationId": "listIssueTickets",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueTicketsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "tickets"
+        ]
+      },
+      "post": {
+        "operationId": "createIssueTicket",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIssueTicketBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueTicketDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "tickets"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/tickets/draft": {
+      "get": {
+        "operationId": "getIssueTicketDraft",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueTicketDraftDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "tickets"
+        ]
+      }
+    },
     "/organizations/{orgSlug}/projects/{projectSlug}/onboarding/first-event": {
       "get": {
         "operationId": "getProjectFirstEvent",
@@ -9824,6 +10139,258 @@
         },
         "required": [
           "userId"
+        ]
+      },
+      "TicketTrackerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "linear",
+              "jira"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string",
+            "description": "Repository, Linear team or Jira project and issue type."
+          },
+          "usesRepoConnection": {
+            "type": "boolean",
+            "description": "GitHub tracker using the project's repository connection."
+          },
+          "repository": {
+            "type": "string",
+            "nullable": true
+          },
+          "teamKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "baseUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "issueType": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "name",
+          "target",
+          "usesRepoConnection",
+          "repository",
+          "teamKey",
+          "baseUrl",
+          "email",
+          "projectKey",
+          "issueType",
+          "createdAt"
+        ]
+      },
+      "CreateTicketTrackerBodyDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "linear",
+              "jira"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "token": {
+            "type": "string",
+            "description": "API token. Optional for GitHub, which then uses the project's connected repository."
+          },
+          "repository": {
+            "type": "string",
+            "description": "GitHub `owner/name`, with a token."
+          },
+          "teamKey": {
+            "type": "string",
+            "description": "Linear team key, like ENG."
+          },
+          "baseUrl": {
+            "type": "string",
+            "description": "Jira site, like https://acme.atlassian.net."
+          },
+          "email": {
+            "type": "string",
+            "description": "Jira Cloud account email. Leave empty for a Data Center personal token."
+          },
+          "projectKey": {
+            "type": "string",
+            "description": "Jira project key, like OPS."
+          },
+          "issueType": {
+            "type": "string",
+            "description": "Jira issue type. Defaults to Bug."
+          }
+        },
+        "required": [
+          "provider",
+          "name"
+        ]
+      },
+      "IssueTicketDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "trackerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "linear",
+              "jira"
+            ]
+          },
+          "externalKey": {
+            "type": "string",
+            "description": "Key shown by the tracker: #12, ENG-34, OPS-5."
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "createdByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "trackerId",
+          "provider",
+          "externalKey",
+          "url",
+          "title",
+          "createdByUserId",
+          "createdAt"
+        ]
+      },
+      "TicketTrackerSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "linear",
+              "jira"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "name",
+          "target"
+        ]
+      },
+      "IssueTicketsDto": {
+        "type": "object",
+        "properties": {
+          "tickets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueTicketDto"
+            }
+          },
+          "trackers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TicketTrackerSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "tickets",
+          "trackers"
+        ]
+      },
+      "IssueTicketDraftDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Markdown."
+          }
+        },
+        "required": [
+          "title",
+          "description"
+        ]
+      },
+      "CreateIssueTicketBodyDto": {
+        "type": "object",
+        "properties": {
+          "trackerId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Defaults to the draft title."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "description": "Markdown. Defaults to the draft."
+          }
+        },
+        "required": [
+          "trackerId"
         ]
       },
       "ProjectFirstEventDto": {

@@ -103,6 +103,29 @@ export class GithubProvider implements VcsProvider {
     return { defaultBranch: repo.default_branch, webUrl: repo.html_url };
   }
 
+  /** False when the repository has GitHub Issues turned off. */
+  async issuesEnabled(connection: RepoConnectionInput): Promise<boolean> {
+    const repo = await this.request<{ has_issues?: boolean }>(
+      connection,
+      "GET",
+      `/repos/${connection.repoIdentifier}`,
+    );
+    return repo.has_issues !== false;
+  }
+
+  async createIssue(
+    connection: RepoConnectionInput,
+    issue: { title: string; body: string },
+  ): Promise<{ number: number; url: string }> {
+    const created = await this.request<{ number: number; html_url: string }>(
+      connection,
+      "POST",
+      `/repos/${connection.repoIdentifier}/issues`,
+      { title: issue.title, body: issue.body },
+    );
+    return { number: created.number, url: created.html_url };
+  }
+
   getAuthenticatedCloneUrl(connection: RepoConnectionInput): string {
     assertAllowedVcsEndpoints("github", connection);
     return `https://x-access-token:${connection.token}@${this.host(connection)}/${connection.repoIdentifier}.git`;
