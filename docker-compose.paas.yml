@@ -86,8 +86,9 @@ services:
     environment:
       <<: *api-environment
       DATABASE_READ_REPLICA_URL: ${DATABASE_READ_REPLICA_URL:-}
-      # api-web is only reachable through the web nginx: trust that one hop for client IPs.
-      TRUST_PROXY: ${TRUST_PROXY:-1}
+      # Clients reach api-web through the PaaS proxy (Traefik/Caddy), then the web nginx:
+      # trust those two hops for client IPs.
+      TRUST_PROXY: ${TRUST_PROXY:-2}
       PORT: 3000
     command:
       [
