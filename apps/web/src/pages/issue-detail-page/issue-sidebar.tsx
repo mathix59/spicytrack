@@ -127,7 +127,7 @@ function IssueSidebar({
                   type="button"
                   variant="secondary"
                 >
-                  Separate future events
+                  Unmerge issue
                 </Button>
               ) : (
                 <form className="grid gap-1.5" onSubmit={sidebar.mergeIssue}>
