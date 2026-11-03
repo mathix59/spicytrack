@@ -1,5 +1,6 @@
 import { Logger } from "@nestjs/common";
 
+import { LOG_FORMATS, LOG_LEVELS } from "./logger";
 import { validateProductionSecretConfiguration } from "./secrets";
 
 export type ServiceRole = "api" | "ingest" | "worker-admin";
@@ -107,6 +108,15 @@ export function inspectEnvironment(environment: Environment, role: ServiceRole) 
     if (origin && !isHttpUrl(origin)) {
       errors.push(`WEB_ORIGIN entries must be http(s) origins (got "${origin}").`);
     }
+  }
+
+  const logFormat = text(environment, "LOG_FORMAT");
+  if (logFormat !== undefined && !(LOG_FORMATS as string[]).includes(logFormat)) {
+    errors.push(`LOG_FORMAT must be one of ${LOG_FORMATS.join(", ")} (got "${logFormat}").`);
+  }
+  const logLevel = text(environment, "LOG_LEVEL");
+  if (logLevel !== undefined && !(LOG_LEVELS as readonly string[]).includes(logLevel)) {
+    errors.push(`LOG_LEVEL must be one of ${LOG_LEVELS.join(", ")} (got "${logLevel}").`);
   }
 
   const pricing = text(environment, "AI_PRICING_JSON");

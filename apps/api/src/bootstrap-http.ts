@@ -12,8 +12,13 @@ import { decodeSentryBody } from "./ingest/sentry-body";
 import { BrowserIngestCorsService } from "./ingest/browser-ingest-cors.service";
 import { setupSwagger } from "./openapi/swagger";
 import { artifactMaxUploadBytes } from "./artifacts/artifact-upload-limits";
+import { createServiceLogging } from "./common/logger";
 
 type HttpBootstrapOptions = {
+  /** Name stamped on every JSON log line. */
+  service: string;
+  /** Log one line per HTTP request (JSON mode only). */
+  logRequests?: boolean;
   registerAuthHandler?: boolean;
   registerMultipart?: boolean;
   registerRawBodyParsers?: boolean;
@@ -24,15 +29,22 @@ type HttpBootstrapOptions = {
 
 async function createHttpApplication(
   rootModule: Type<unknown>,
-  options: Pick<HttpBootstrapOptions, "bodyLimit" | "projectAwareIngestCors">,
+  options: Pick<
+    HttpBootstrapOptions,
+    "service" | "logRequests" | "bodyLimit" | "projectAwareIngestCors"
+  >,
 ): Promise<NestFastifyApplication> {
+  const logging = createServiceLogging(options.service, process.env, {
+    logRequests: options.logRequests,
+  });
   const app = await NestFactory.create<NestFastifyApplication>(
     rootModule,
     new FastifyAdapter({
       ignoreTrailingSlash: true,
       ...(options.bodyLimit ? { bodyLimit: options.bodyLimit } : {}),
+      ...(logging.http ? { loggerInstance: logging.http } : {}),
     }),
-    { rawBody: true },
+    { rawBody: true, logger: logging.nest },
   );
 
   app.setGlobalPrefix("api");
