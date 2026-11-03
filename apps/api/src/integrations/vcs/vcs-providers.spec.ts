@@ -118,6 +118,43 @@ describe("VCS providers", () => {
         provider.mergePullRequest({ baseUrl: null, repoIdentifier: "o/r", token: "tok" }, "12"),
       ).rejects.toMatchObject({ status: 409, message: "checks pending" });
     });
+    it("combines check runs and commit statuses", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          jsonResponse({
+            check_runs: [
+              { name: "test", status: "completed", conclusion: "success" },
+              { name: "docs", status: "completed", conclusion: "skipped" },
+              { name: "e2e", status: "in_progress", conclusion: null },
+            ],
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({ statuses: [{ context: "ci/legacy", state: "failure" }] }),
+        );
+
+      const checks = await provider.getCommitChecks(
+        { baseUrl: null, repoIdentifier: "o/r", token: "tok" },
+        "abc1234",
+      );
+
+      expect(checks).toEqual({
+        state: "failure",
+        total: 4,
+        failed: ["ci/legacy"],
+        pending: ["e2e"],
+      });
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://api.github.com/repos/o/r/commits/abc1234/check-runs?per_page=100",
+      );
+    });
+
+    it("rejects a malformed commit SHA before calling GitHub", async () => {
+      await expect(
+        provider.getCommitChecks({ baseUrl: null, repoIdentifier: "o/r", token: "tok" }, "../x"),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 
   describe("GitlabProvider", () => {
@@ -205,6 +242,31 @@ describe("VCS providers", () => {
       expect(url).toBe("https://gitlab.com/api/v4/projects/g%2Fp/merge_requests/8/merge");
       expect(init.method).toBe("PUT");
       expect(JSON.parse(init.body)).toEqual({ squash: true, should_remove_source_branch: true });
+    });
+
+    it("reads the latest pipeline of the commit", async () => {
+      fetchMock.mockResolvedValue(jsonResponse([{ id: 42, status: "running" }]));
+
+      const checks = await provider.getCommitChecks(
+        { baseUrl: null, repoIdentifier: "group/repo", token: "tok" },
+        "abc1234",
+      );
+
+      expect(checks).toEqual({ state: "pending", total: 1, failed: [], pending: ["Pipeline #42"] });
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        "https://gitlab.com/api/v4/projects/group%2Frepo/pipelines?sha=abc1234&order_by=id&sort=desc&per_page=1",
+      );
+    });
+
+    it("treats a commit without pipeline as unverified", async () => {
+      fetchMock.mockResolvedValue(jsonResponse([]));
+
+      await expect(
+        provider.getCommitChecks(
+          { baseUrl: null, repoIdentifier: "group/repo", token: "tok" },
+          "abc1234",
+        ),
+      ).resolves.toMatchObject({ state: "none", total: 0 });
     });
 
     it("maps errors to VcsRequestError", async () => {

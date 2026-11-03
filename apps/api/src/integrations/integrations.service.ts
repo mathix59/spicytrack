@@ -685,9 +685,12 @@ export class IntegrationsService {
           active: true,
         },
         default_permissions: {
+          checks: "read",
           contents: "write",
           metadata: "read",
           pull_requests: "write",
+          // Autofix opens a pull request only once CI passed on its branch.
+          statuses: "read",
         },
         default_events: ["repository"],
       }),

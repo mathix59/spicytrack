@@ -1724,8 +1724,18 @@ export class AutofixConfigDto {
   @ApiProperty()
   autoTriggerOnNewIssue!: boolean;
 
-  @ApiProperty()
+  @ApiProperty({ description: "Only ever after CI passed on the fix commit." })
   autoMerge!: boolean;
+
+  @ApiProperty({
+    description: "Generate the fix without waiting for a human when the analysis is confident.",
+  })
+  autoFixAfterAnalysis!: boolean;
+
+  @ApiProperty({
+    description: "Fail the run instead of opening a pull request when no CI check ran.",
+  })
+  requirePassingChecks!: boolean;
 
   @ApiProperty()
   dailyCap!: number;
@@ -1745,10 +1755,47 @@ export class UpdateAutofixConfigBodyDto {
   autoMerge?: boolean;
 
   @ApiPropertyOptional()
+  autoFixAfterAnalysis?: boolean;
+
+  @ApiPropertyOptional()
+  requirePassingChecks?: boolean;
+
+  @ApiPropertyOptional()
   dailyCap?: number;
 
   @ApiPropertyOptional({ nullable: true })
   targetBranch?: string | null;
+}
+
+export class AutofixAnalysisDto {
+  @ApiProperty({ description: "Markdown." })
+  rootCause!: string;
+
+  @ApiProperty({ description: "Markdown." })
+  proposedFix!: string;
+
+  @ApiProperty({ enum: ["low", "medium", "high"] })
+  confidence!: string;
+
+  @ApiProperty({ description: "False when the fix does not belong in the connected repository." })
+  fixable!: boolean;
+
+  @ApiProperty({ type: [String] })
+  files!: string[];
+}
+
+export class AutofixChecksDto {
+  @ApiProperty({ enum: ["pending", "success", "failure", "none"] })
+  state!: string;
+
+  @ApiProperty()
+  total!: number;
+
+  @ApiProperty({ type: [String] })
+  failed!: string[];
+
+  @ApiProperty({ type: [String] })
+  pending!: string[];
 }
 
 export class AutofixRunDto {
@@ -1758,28 +1805,49 @@ export class AutofixRunDto {
   @ApiProperty()
   issueId!: string;
 
-  @ApiProperty({ enum: ["queued", "running", "succeeded", "failed"] })
+  @ApiProperty({
+    enum: ["analysis", "fix"],
+    description: "analysis finds the root cause (read-only); fix writes it and waits for CI.",
+  })
+  phase!: string;
+
+  @ApiProperty({ enum: ["queued", "running", "analyzed", "checking", "succeeded", "failed"] })
   status!: string;
 
   @ApiProperty({ enum: ["manual", "auto"] })
   trigger!: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   branch?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: AutofixAnalysisDto, nullable: true })
+  analysis?: AutofixAnalysisDto | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  commitSha?: string | null;
+
+  @ApiPropertyOptional({ enum: ["pending", "success", "failure", "none"], nullable: true })
+  checksStatus?: string | null;
+
+  @ApiPropertyOptional({ type: AutofixChecksDto, nullable: true })
+  checksSummary?: AutofixChecksDto | null;
+
+  @ApiPropertyOptional({ type: String, format: "date-time", nullable: true })
+  checksDeadlineAt?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
   prUrl?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   error?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   summary?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   inputTokens?: number | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Number, nullable: true })
   outputTokens?: number | null;
 
   @ApiPropertyOptional()
@@ -1836,6 +1904,31 @@ export class OrganizationAiSettingsDto {
 
   @ApiPropertyOptional({ nullable: true })
   maskedKey?: string | null;
+
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    description: "Monthly AI spending limit for the organization, in USD. Null means none.",
+  })
+  monthlyBudgetUsd?: number | null;
+
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    description: "Most one Autofix run (analysis and fix together) may spend, in USD.",
+  })
+  runCostCapUsd?: number | null;
+
+  @ApiProperty({ description: "Estimated AI spend since the start of the month (UTC), in USD." })
+  spentThisMonthUsd!: number;
+
+  @ApiProperty({ format: "date-time" })
+  budgetResetsAt!: string;
+
+  @ApiProperty({
+    description: "False when the selected model has no price, so limits cannot be enforced.",
+  })
+  pricingKnown!: boolean;
 }
 
 export class OrganizationGithubAppSettingsDto {
@@ -1903,6 +1996,12 @@ export class UpdateOrganizationAiSettingsBodyDto {
     description: "Provider API key. Pass null to clear.",
   })
   apiKey?: string | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: "USD. Null removes it." })
+  monthlyBudgetUsd?: number | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, description: "USD. Null removes it." })
+  runCostCapUsd?: number | null;
 }
 
 export class UpdateOrganizationGithubAppSettingsBodyDto {

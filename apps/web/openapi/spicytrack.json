@@ -3523,6 +3523,58 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/projects/{projectSlug}/autofix/runs/{runId}/fix": {
+      "post": {
+        "operationId": "startAutofixFix",
+        "parameters": [
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutofixRunDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Generate the fix for an analyzed run, then open a pull request once CI passes",
+        "tags": [
+          "autofix"
+        ]
+      }
+    },
     "/organizations/{orgSlug}/projects/{projectSlug}/autofix/runs/{runId}/review": {
       "post": {
         "operationId": "reviewAutofixRun",
@@ -7673,7 +7725,16 @@
             "type": "boolean"
           },
           "autoMerge": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Only ever after CI passed on the fix commit."
+          },
+          "autoFixAfterAnalysis": {
+            "type": "boolean",
+            "description": "Generate the fix without waiting for a human when the analysis is confident."
+          },
+          "requirePassingChecks": {
+            "type": "boolean",
+            "description": "Fail the run instead of opening a pull request when no CI check ran."
           },
           "dailyCap": {
             "type": "number"
@@ -7687,6 +7748,8 @@
           "enabled",
           "autoTriggerOnNewIssue",
           "autoMerge",
+          "autoFixAfterAnalysis",
+          "requirePassingChecks",
           "dailyCap"
         ]
       },
@@ -7702,6 +7765,12 @@
           "autoMerge": {
             "type": "boolean"
           },
+          "autoFixAfterAnalysis": {
+            "type": "boolean"
+          },
+          "requirePassingChecks": {
+            "type": "boolean"
+          },
           "dailyCap": {
             "type": "number"
           },
@@ -7710,6 +7779,79 @@
             "nullable": true
           }
         }
+      },
+      "AutofixAnalysisDto": {
+        "type": "object",
+        "properties": {
+          "rootCause": {
+            "type": "string",
+            "description": "Markdown."
+          },
+          "proposedFix": {
+            "type": "string",
+            "description": "Markdown."
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "fixable": {
+            "type": "boolean",
+            "description": "False when the fix does not belong in the connected repository."
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "rootCause",
+          "proposedFix",
+          "confidence",
+          "fixable",
+          "files"
+        ]
+      },
+      "AutofixChecksDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failure",
+              "none"
+            ]
+          },
+          "total": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "state",
+          "total",
+          "failed",
+          "pending"
+        ]
       },
       "AutofixRunDto": {
         "type": "object",
@@ -7720,11 +7862,21 @@
           "issueId": {
             "type": "string"
           },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "analysis",
+              "fix"
+            ],
+            "description": "analysis finds the root cause (read-only); fix writes it and waits for CI."
+          },
           "status": {
             "type": "string",
             "enum": [
               "queued",
               "running",
+              "analyzed",
+              "checking",
               "succeeded",
               "failed"
             ]
@@ -7737,27 +7889,64 @@
             ]
           },
           "branch": {
+            "type": "string",
+            "nullable": true
+          },
+          "analysis": {
+            "nullable": true,
             "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AutofixAnalysisDto"
+              }
+            ]
+          },
+          "commitSha": {
+            "type": "string",
+            "nullable": true
+          },
+          "checksStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failure",
+              "none"
+            ],
+            "nullable": true
+          },
+          "checksSummary": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AutofixChecksDto"
+              }
+            ]
+          },
+          "checksDeadlineAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           },
           "prUrl": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "error": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "summary": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "inputTokens": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "outputTokens": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "cacheReadTokens": {
@@ -7801,6 +7990,7 @@
         "required": [
           "id",
           "issueId",
+          "phase",
           "status",
           "trigger",
           "reviewStatus",
@@ -7848,11 +8038,36 @@
           "maskedKey": {
             "type": "object",
             "nullable": true
+          },
+          "monthlyBudgetUsd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Monthly AI spending limit for the organization, in USD. Null means none."
+          },
+          "runCostCapUsd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Most one Autofix run (analysis and fix together) may spend, in USD."
+          },
+          "spentThisMonthUsd": {
+            "type": "number",
+            "description": "Estimated AI spend since the start of the month (UTC), in USD."
+          },
+          "budgetResetsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pricingKnown": {
+            "type": "boolean",
+            "description": "False when the selected model has no price, so limits cannot be enforced."
           }
         },
         "required": [
           "provider",
-          "apiKeySet"
+          "apiKeySet",
+          "spentThisMonthUsd",
+          "budgetResetsAt",
+          "pricingKnown"
         ]
       },
       "UpdateOrganizationAiSettingsBodyDto": {
@@ -7875,6 +8090,16 @@
             "type": "object",
             "nullable": true,
             "description": "Provider API key. Pass null to clear."
+          },
+          "monthlyBudgetUsd": {
+            "type": "number",
+            "nullable": true,
+            "description": "USD. Null removes it."
+          },
+          "runCostCapUsd": {
+            "type": "number",
+            "nullable": true,
+            "description": "USD. Null removes it."
           }
         }
       },

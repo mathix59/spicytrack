@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 
+import { type AiProvider, DEFAULT_MODELS } from "../autofix/agent";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { AuditService } from "../audit/audit.service";
@@ -169,24 +170,8 @@ export class AiUsageService {
     cacheWriteTokens?: number;
     billingContext?: BillingContext;
   }) {
-    const tokenUsage: UsageDimensions = { ...input.usage };
-    if (input.inputTokens !== undefined) tokenUsage.inputTokens = input.inputTokens;
-    if (input.outputTokens !== undefined) tokenUsage.outputTokens = input.outputTokens;
-    if (input.cacheReadTokens !== undefined) tokenUsage.cacheReadTokens = input.cacheReadTokens;
-    if (input.cacheWriteTokens !== undefined) tokenUsage.cacheWriteTokens = input.cacheWriteTokens;
-    const dimensions = normalizeUsage(tokenUsage);
-    const billingContext = input.billingContext ?? { processingMode: "standard" };
-    const pricing = await this.resolvePricing(
-      input.organizationId,
-      input.provider,
-      input.model,
-      billingContext,
-    );
-    const fallback = legacyRates(input.provider, input.model);
-    const rates = pricing
-      ? resolveRates(pricing.rates, pricing.config, dimensions, billingContext)
-      : fallback;
-    const estimatedCostMicros = rates ? estimate(dimensions, rates) : null;
+    const { model, dimensions, billingContext, pricing, rates, estimatedCostMicros } =
+      await this.price(input);
     const inputTokens =
       (dimensions.base_input_tokens ?? 0) +
       (dimensions.cache_read_input_tokens ?? 0) +
@@ -203,7 +188,7 @@ export class AiUsageService {
       issueId: input.issueId ?? null,
       operation: input.operation,
       provider: input.provider,
-      model: input.model,
+      model,
       inputTokens,
       outputTokens: dimensions.output_tokens ?? 0,
       cacheReadTokens: dimensions.cache_read_input_tokens ?? 0,
@@ -225,6 +210,53 @@ export class AiUsageService {
       billingContext,
       estimatedCostMicros,
     };
+  }
+
+  private async price(input: {
+    organizationId: string;
+    provider: string;
+    model: string | null;
+    usage?: UsageDimensions;
+    inputTokens?: number;
+    outputTokens?: number;
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+    billingContext?: BillingContext;
+  }) {
+    const tokenUsage: UsageDimensions = { ...input.usage };
+    if (input.inputTokens !== undefined) tokenUsage.inputTokens = input.inputTokens;
+    if (input.outputTokens !== undefined) tokenUsage.outputTokens = input.outputTokens;
+    if (input.cacheReadTokens !== undefined) tokenUsage.cacheReadTokens = input.cacheReadTokens;
+    if (input.cacheWriteTokens !== undefined) tokenUsage.cacheWriteTokens = input.cacheWriteTokens;
+    const dimensions = normalizeUsage(tokenUsage);
+    const billingContext = input.billingContext ?? { processingMode: "standard" };
+    // No model configured means the provider default: price (and record) that model.
+    const model = input.model ?? DEFAULT_MODELS[input.provider as AiProvider] ?? null;
+    const pricing = await this.resolvePricing(
+      input.organizationId,
+      input.provider,
+      model,
+      billingContext,
+    );
+    const fallback = legacyRates(input.provider, model) ?? legacyRates(input.provider, null);
+    const rates = pricing
+      ? resolveRates(pricing.rates, pricing.config, dimensions, billingContext)
+      : fallback;
+    const estimatedCostMicros = rates ? estimate(dimensions, rates) : null;
+    return { model, dimensions, billingContext, pricing, rates, estimatedCostMicros };
+  }
+
+  /** What this usage would cost, without recording it. Null when the model has no known price. */
+  async estimateCostMicros(input: {
+    organizationId: string;
+    provider: string;
+    model: string | null;
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens: number;
+    cacheWriteTokens: number;
+  }): Promise<number | null> {
+    return (await this.price(input)).estimatedCostMicros;
   }
 
   async summary(organizationId: string, days = 30) {

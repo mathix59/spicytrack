@@ -656,7 +656,7 @@ export class McpService {
       add({
         name: "run_autofix",
         description:
-          "Start a new Autofix investigation for an issue. This consumes AI provider capacity and may create a branch or pull request.",
+          "Start an Autofix root-cause analysis for an issue (read-only). It consumes AI provider capacity within the organization's AI budget; generating the fix is a separate step in SpicyTrack, and its pull request opens only once the repository's CI passes.",
         inputSchema: {
           type: "object",
           required: ["projectId", "issueId", "confirmed"],

@@ -9,6 +9,7 @@ import {
 } from "@nestjs/common";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { isUniqueViolation } from "../common/postgres-errors";
+import { AiBudgetService } from "../ai-usage/ai-budget.service";
 import { AuditService } from "../audit/audit.service";
 import { decryptSecret, encryptSecret } from "../common/secrets";
 import { DATABASE } from "../database/database.provider";
@@ -30,6 +31,8 @@ const DEFAULT_CONFIG = {
   enabled: false,
   autoTriggerOnNewIssue: false,
   autoMerge: false,
+  autoFixAfterAnalysis: false,
+  requirePassingChecks: true,
   dailyCap: 5,
   targetBranch: null as string | null,
 };
@@ -39,6 +42,14 @@ const DEFAULT_MANUAL_DAILY_CAP = 50;
 function manualDailyCap(): number {
   const parsed = Number(process.env.AUTOFIX_MANUAL_DAILY_CAP ?? DEFAULT_MANUAL_DAILY_CAP);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_MANUAL_DAILY_CAP;
+}
+
+function usdToMicros(usd: number | null): number | null {
+  return usd === null ? null : Math.round(usd * 1_000_000);
+}
+
+function microsToUsd(micros: number | null): number | null {
+  return micros === null ? null : micros / 1_000_000;
 }
 
 function maskKey(key: string): string {
@@ -56,6 +67,7 @@ export class AutofixService {
     private readonly integrationsService: IntegrationsService,
     private readonly jobsService: JobsService,
     private readonly auditService: AuditService,
+    private readonly aiBudgetService: AiBudgetService,
   ) {}
 
   async getConfig(projectId: string) {
@@ -73,6 +85,8 @@ export class AutofixService {
       enabled: config.enabled,
       autoTriggerOnNewIssue: config.autoTriggerOnNewIssue,
       autoMerge: config.autoMerge,
+      autoFixAfterAnalysis: config.autoFixAfterAnalysis,
+      requirePassingChecks: config.requirePassingChecks,
       dailyCap: config.dailyCap,
       targetBranch: config.targetBranch,
     };
@@ -85,6 +99,8 @@ export class AutofixService {
     enabled?: boolean;
     autoTriggerOnNewIssue?: boolean;
     autoMerge?: boolean;
+    autoFixAfterAnalysis?: boolean;
+    requirePassingChecks?: boolean;
     dailyCap?: number;
     targetBranch?: string | null;
   }) {
@@ -93,6 +109,8 @@ export class AutofixService {
       enabled: input.enabled ?? current.enabled,
       autoTriggerOnNewIssue: input.autoTriggerOnNewIssue ?? current.autoTriggerOnNewIssue,
       autoMerge: input.autoMerge ?? current.autoMerge,
+      autoFixAfterAnalysis: input.autoFixAfterAnalysis ?? current.autoFixAfterAnalysis,
+      requirePassingChecks: input.requirePassingChecks ?? current.requirePassingChecks,
       dailyCap: input.dailyCap ?? current.dailyCap,
       targetBranch: input.targetBranch === undefined ? current.targetBranch : input.targetBranch,
     };
@@ -136,11 +154,18 @@ export class AutofixService {
       .where(eq(organizationAiSettings.organizationId, organizationId))
       .limit(1);
 
+    const budget = await this.aiBudgetService.status(organizationId);
+
     return {
       provider: row?.provider ?? "anthropic",
       model: row?.model ?? null,
       apiKeySet: Boolean(row?.apiKeyCiphertext),
       maskedKey: row?.apiKeyCiphertext ? maskKey(decryptSecret(row.apiKeyCiphertext)) : null,
+      monthlyBudgetUsd: microsToUsd(budget.monthlyBudgetMicros),
+      runCostCapUsd: microsToUsd(budget.runCostCapMicros),
+      spentThisMonthUsd: microsToUsd(budget.spentThisMonthMicros),
+      budgetResetsAt: budget.resetsAt.toISOString(),
+      pricingKnown: budget.pricingKnown,
     };
   }
 
@@ -150,6 +175,9 @@ export class AutofixService {
     provider?: "anthropic" | "openai" | "google";
     model?: string | null;
     apiKey?: string | null;
+    /** Undefined keeps the current value; null removes the limit. */
+    monthlyBudgetUsd?: number | null;
+    runCostCapUsd?: number | null;
   }) {
     const [existing] = await this.db
       .select()
@@ -177,6 +205,14 @@ export class AutofixService {
           : input.apiKey
             ? encryptSecret(input.apiKey)
             : null,
+      monthlyBudgetMicros:
+        input.monthlyBudgetUsd === undefined
+          ? (existing?.monthlyBudgetMicros ?? null)
+          : usdToMicros(input.monthlyBudgetUsd),
+      runCostCapMicros:
+        input.runCostCapUsd === undefined
+          ? (existing?.runCostCapMicros ?? null)
+          : usdToMicros(input.runCostCapUsd),
     };
 
     await this.db
@@ -204,6 +240,8 @@ export class AutofixService {
         provider: next.provider,
         model: next.model,
         apiKeySet: Boolean(next.apiKeyCiphertext),
+        monthlyBudgetUsd: microsToUsd(next.monthlyBudgetMicros),
+        runCostCapUsd: microsToUsd(next.runCostCapMicros),
       },
     });
 
@@ -270,6 +308,8 @@ export class AutofixService {
       );
     }
 
+    await this.aiBudgetService.assertCanSpend(input.organizationId);
+
     // Automatic runs follow the project's daily cap (checked by maybeAutoTrigger); manual runs,
     // from the UI or MCP, get their own ceiling so a script cannot spend without bound.
     if (input.trigger === "manual") {
@@ -294,6 +334,8 @@ export class AutofixService {
           organizationId: input.organizationId,
           projectId: input.projectId,
           issueId: input.issueId,
+          // Every run starts with a read-only root-cause analysis; the fix is a second step.
+          phase: "analysis",
           status: "queued",
           trigger: input.trigger,
           triggeredByUserId: input.actorUserId ?? null,
@@ -350,6 +392,74 @@ export class AutofixService {
     } catch {
       // Missing connection/key or an in-flight run — auto-trigger is best effort.
     }
+  }
+
+  /**
+   * Second step: turns an analyzed run into a fix. The same row moves back to queued, so the
+   * in-flight index still allows a single active run per issue.
+   */
+  async startFix(input: {
+    organizationId: string;
+    projectId: string;
+    runId: string;
+    actorUserId: string | null;
+  }): Promise<AutofixRunRecord> {
+    const run = await this.getRun(input.projectId, input.runId);
+    // A failed fix can be retried from the same analysis.
+    const retryableFix = run.phase === "fix" && run.status === "failed";
+    if (!run.analysis || !(run.status === "analyzed" || retryableFix)) {
+      throw new ConflictException("Only an analyzed run can generate a fix.");
+    }
+    const config = await this.getConfig(input.projectId);
+    if (!config.enabled) {
+      throw new BadRequestException(
+        "Autofix is disabled for this project. Enable it in the project's Autofix settings first.",
+      );
+    }
+    await this.aiBudgetService.assertCanSpend(input.organizationId);
+
+    let updated: AutofixRunRecord | undefined;
+    try {
+      [updated] = await this.db
+        .update(autofixRuns)
+        .set({
+          phase: "fix",
+          status: "queued",
+          error: null,
+          fixRequestedByUserId: input.actorUserId,
+          finishedAt: null,
+          branch: null,
+          commitSha: null,
+          checksStatus: null,
+          checksSummary: null,
+          checksStartedAt: null,
+          checksDeadlineAt: null,
+          prUrl: null,
+        })
+        .where(and(eq(autofixRuns.id, run.id), eq(autofixRuns.status, run.status)))
+        .returning();
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException("An autofix run is already in progress for this issue.");
+      }
+      throw error;
+    }
+    if (!updated) throw new ConflictException("Only an analyzed run can generate a fix.");
+
+    await this.jobsService.enqueue("autofix", { runId: run.id }, new Date(), {
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+    });
+    await this.auditService.record({
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+      actorUserId: input.actorUserId,
+      action: "autofix.fix_requested",
+      targetType: "autofix_run",
+      targetId: run.id,
+      payload: { issueId: run.issueId, automatic: input.actorUserId === null },
+    });
+    return updated;
   }
 
   private async countRunsToday(projectId: string, trigger: "auto" | "manual"): Promise<number> {

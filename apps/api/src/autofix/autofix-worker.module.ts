@@ -1,7 +1,7 @@
 import { Injectable, Module, type OnModuleInit } from "@nestjs/common";
 import { JobsRunnerService } from "../jobs/jobs-runner.service";
 import { JobsWorkerModule } from "../jobs/jobs-worker.module";
-import { AutofixJobHandler } from "./autofix-job.handler";
+import { AutofixJobHandler, CHECKS_JOB } from "./autofix-job.handler";
 import { AutofixModule } from "./autofix.module";
 
 @Injectable()
@@ -13,6 +13,7 @@ export class AutofixWorkerRegistration implements OnModuleInit {
 
   onModuleInit(): void {
     this.runner.registerSlowHandler("autofix", (job, signal) => this.handler.run(job, signal));
+    this.runner.registerHandler(CHECKS_JOB, (job) => this.handler.checkRun(job));
   }
 }
 

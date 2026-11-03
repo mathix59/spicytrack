@@ -231,7 +231,7 @@ function IssueDetailHeader({
             disabled={autofixBusy}
             onClick={() => void actions.triggerAutofix()}
             size="sm"
-            title="Generate a proposed fix and pull request with AI"
+            title="Find the root cause with AI, then optionally generate a fix and pull request"
             type="button"
             variant="outline"
           >
@@ -240,7 +240,7 @@ function IssueDetailHeader({
               ? "Autofix running"
               : actions.isTriggeringAutofix
                 ? "Starting…"
-                : "Run Autofix"}
+                : "Find root cause"}
           </Button>
         </div>
       </div>

@@ -1,39 +1,123 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, ThumbsDown } from "lucide-react";
+import { Check, CircleCheck, CircleX, LoaderCircle, ThumbsDown, WandSparkles } from "lucide-react";
+import { toast } from "sonner";
 
-import { getListIssueAutofixRunsQueryKey, useListIssueAutofixRuns } from "@/generated/api";
+import {
+  getListIssueAutofixRunsQueryKey,
+  useListIssueAutofixRuns,
+  useStartAutofixFix,
+} from "@/generated/api";
 import type { AutofixRunDto } from "@/generated/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { orvalFetch } from "@/lib/orval-fetch";
-import { formatLocalDateTime } from "@/lib/utils";
+import { formatLocalDateTime, getErrorMessage } from "@/lib/utils";
 
-function asOptionalString(value: unknown) {
-  return typeof value === "string" ? value : null;
-}
+const ACTIVE_STATUSES = new Set(["queued", "running", "checking"]);
 
-function asOptionalNumber(value: unknown) {
-  return typeof value === "number" ? value : null;
-}
+const STATUS_LABELS: Record<string, string> = {
+  queued: "Queued",
+  running: "Running",
+  analyzed: "Root cause found",
+  checking: "Waiting for CI",
+  succeeded: "Pull request opened",
+  failed: "Failed",
+};
 
 function statusVariant(status: string) {
-  if (status === "failed") {
-    return "border-destructive/40 bg-destructive/10 text-destructive";
-  }
-
-  if (status === "succeeded") {
-    return "border-success/30 bg-success/10 text-success";
-  }
-
-  return "border-primary/30 bg-primary/10 text-primary-accent";
+  if (status === "failed") return "danger" as const;
+  if (status === "succeeded") return "success" as const;
+  if (status === "analyzed") return "info" as const;
+  return "accent" as const;
 }
 
-type ReviewableRun = AutofixRunDto & {
-  reviewStatus?: "pending" | "approved" | "rejected";
-  reviewComment?: string | null;
-  estimatedCostMicros?: number | null;
-};
+function statusLabel(run: AutofixRunDto) {
+  if (run.status === "running" || run.status === "queued") {
+    return run.phase === "analysis" ? "Analyzing" : "Writing the fix";
+  }
+  return STATUS_LABELS[run.status] ?? run.status;
+}
+
+const CONFIDENCE_VARIANT = { low: "warning", medium: "info", high: "success" } as const;
+
+function formatCost(micros: number | null | undefined) {
+  return micros == null ? null : `$${(micros / 1_000_000).toFixed(micros < 10_000 ? 4 : 2)}`;
+}
+
+function AnalysisPanel({ run }: { run: AutofixRunDto }) {
+  const analysis = run.analysis;
+  if (!analysis) return null;
+  const confidence = analysis.confidence as keyof typeof CONFIDENCE_VARIANT;
+
+  return (
+    <div className="grid min-w-0 gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Badge variant={CONFIDENCE_VARIANT[confidence] ?? "muted"}>{confidence} confidence</Badge>
+        {analysis.fixable ? null : <Badge variant="warning">Not fixable in this repository</Badge>}
+      </div>
+      <details className="min-w-0 text-xs text-muted-foreground" open={run.status === "analyzed"}>
+        <summary className="cursor-pointer">Root cause</summary>
+        <div className="mt-1 max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-muted/30 p-2 text-[11px] leading-5 text-foreground [overflow-wrap:anywhere]">
+          {analysis.rootCause}
+        </div>
+      </details>
+      <details className="min-w-0 text-xs text-muted-foreground">
+        <summary className="cursor-pointer">Proposed fix</summary>
+        <div className="mt-1 max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-muted/30 p-2 text-[11px] leading-5 text-foreground [overflow-wrap:anywhere]">
+          {analysis.proposedFix}
+        </div>
+        {analysis.files.length > 0 ? (
+          <ul className="mt-1 grid gap-0.5 font-mono text-[11px] [overflow-wrap:anywhere]">
+            {analysis.files.map((file) => (
+              <li key={file}>{file}</li>
+            ))}
+          </ul>
+        ) : null}
+      </details>
+    </div>
+  );
+}
+
+function ChecksPanel({ run }: { run: AutofixRunDto }) {
+  const checks = run.checksSummary;
+  if (run.status !== "checking" && !checks) return null;
+
+  if (run.status === "checking") {
+    return (
+      <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+        <LoaderCircle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 animate-spin" />
+        <span>
+          {checks && checks.total > 0
+            ? `CI is running on the fix branch (${checks.total - checks.pending.length}/${checks.total} done).`
+            : "Waiting for CI to start on the fix branch."}{" "}
+          The pull request opens only if it passes.
+        </span>
+      </p>
+    );
+  }
+  if (!checks) return null;
+  if (checks.state === "success") {
+    return (
+      <p className="flex items-center gap-1.5 text-xs text-success">
+        <CircleCheck aria-hidden="true" className="size-3.5" />
+        CI passed ({checks.total} check{checks.total === 1 ? "" : "s"})
+      </p>
+    );
+  }
+  if (checks.state === "failure") {
+    return (
+      <p className="flex items-start gap-1.5 text-xs text-destructive">
+        <CircleX aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+        <span className="[overflow-wrap:anywhere]">CI failed: {checks.failed.join(", ")}</span>
+      </p>
+    );
+  }
+  if (checks.state === "none") {
+    return <p className="text-xs text-warning">No CI ran on the fix branch: tests not verified.</p>;
+  }
+  return null;
+}
 
 function RunRow({
   run,
@@ -41,19 +125,19 @@ function RunRow({
   projectSlug,
   issueId,
 }: {
-  run: ReviewableRun;
+  run: AutofixRunDto;
   orgSlug: string;
   projectSlug: string;
   issueId: string;
 }) {
   const queryClient = useQueryClient();
-  const isActive = run.status === "queued" || run.status === "running";
-  const prUrl = asOptionalString(run.prUrl);
-  const error = asOptionalString(run.error);
-  const summary = asOptionalString(run.summary);
-  const outputTokens = asOptionalNumber(run.outputTokens);
+  const runsKey = getListIssueAutofixRunsQueryKey(orgSlug, projectSlug, issueId);
+  const isActive = ACTIVE_STATUSES.has(run.status);
   const reviewStatus = run.reviewStatus ?? "pending";
-  const cost = asOptionalNumber(run.estimatedCostMicros);
+  const cost = formatCost(run.estimatedCostMicros);
+  const canGenerateFix =
+    Boolean(run.analysis) &&
+    (run.status === "analyzed" || (run.phase === "fix" && run.status === "failed"));
   const review = useMutation({
     mutationFn: (status: "approved" | "rejected") =>
       orvalFetch(
@@ -64,50 +148,83 @@ function RunRow({
           headers: { "content-type": "application/json" },
         },
       ),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: getListIssueAutofixRunsQueryKey(orgSlug, projectSlug, issueId),
-      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: runsKey }),
+  });
+  const startFix = useStartAutofixFix({
+    mutation: {
+      onSuccess: () => {
+        toast.success("Generating the fix", {
+          description: "A pull request opens once the repository's CI passes on it.",
+        });
+        return queryClient.invalidateQueries({ queryKey: runsKey });
+      },
+      onError: (error) =>
+        toast.error("Could not generate the fix", { description: getErrorMessage(error) }),
+    },
   });
 
   return (
-    <div className="grid min-w-0 gap-1.5 rounded-lg border border-border p-3">
+    <div className="grid min-w-0 gap-2 rounded-lg border border-border p-3">
       <div className="flex min-w-0 items-center justify-between gap-2">
-        <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${statusVariant(run.status)} ${isActive ? "animate-pulse" : ""}`}
+        <Badge
+          className={isActive ? "animate-pulse" : undefined}
+          variant={statusVariant(run.status)}
         >
-          {run.status}
-        </span>
+          {statusLabel(run)}
+        </Badge>
         <span className="shrink-0 text-[11px] text-muted-foreground">
           {formatLocalDateTime(run.createdAt)}
         </span>
       </div>
-      {prUrl ? (
+
+      <AnalysisPanel run={run} />
+      <ChecksPanel run={run} />
+
+      {run.prUrl ? (
         <a
           className="min-w-0 truncate text-xs font-medium text-primary-accent underline underline-offset-2"
-          href={prUrl}
+          href={run.prUrl}
           rel="noreferrer"
           target="_blank"
         >
           View pull request
         </a>
       ) : null}
-      {run.status === "failed" && error ? (
+      {run.status === "failed" && run.error ? (
         <details className="min-w-0 max-w-full text-xs text-muted-foreground">
           <summary className="cursor-pointer">Error details</summary>
-          <pre className="mt-1 max-w-full overflow-x-auto whitespace-pre rounded-md bg-muted/30 p-2 text-[11px] leading-5 text-foreground">
-            {error}
+          <pre className="mt-1 max-w-full overflow-x-auto whitespace-pre-wrap rounded-md bg-muted/30 p-2 text-[11px] leading-5 text-foreground [overflow-wrap:anywhere]">
+            {run.error}
           </pre>
         </details>
       ) : null}
-      {run.status === "succeeded" && summary ? (
+      {run.phase === "fix" && run.summary && run.status !== "running" && run.status !== "queued" ? (
         <details className="min-w-0 max-w-full text-xs text-muted-foreground">
           <summary className="cursor-pointer">Fix summary</summary>
           <pre className="mt-1 max-w-full overflow-x-auto whitespace-pre-wrap rounded-md bg-muted/30 p-2 text-[11px] leading-5 text-foreground">
-            {summary}
+            {run.summary}
           </pre>
         </details>
       ) : null}
+
+      {canGenerateFix ? (
+        <div className="grid gap-1.5 border-t border-border pt-2">
+          <Button
+            disabled={startFix.isPending}
+            onClick={() => startFix.mutate({ orgSlug, projectSlug, runId: run.id })}
+            size="sm"
+            type="button"
+            variant={run.analysis?.fixable ? "default" : "outline"}
+          >
+            {startFix.isPending ? <LoaderCircle className="animate-spin" /> : <WandSparkles />}
+            {run.status === "failed" ? "Retry the fix" : "Generate fix"}
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            Pushes a branch, waits for your CI, then opens a pull request if it passes.
+          </p>
+        </div>
+      ) : null}
+
       {run.status === "succeeded" ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
           {reviewStatus === "pending" ? (
@@ -143,10 +260,12 @@ function RunRow({
           )}
         </div>
       ) : null}
-      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         <Badge variant="muted">{run.trigger}</Badge>
-        {outputTokens != null ? <span>{outputTokens.toLocaleString()} output tokens</span> : null}
-        {cost != null ? <span>· ${(cost / 1_000_000).toFixed(4)} est.</span> : null}
+        {run.outputTokens != null ? (
+          <span>{run.outputTokens.toLocaleString()} output tokens</span>
+        ) : null}
+        {cost ? <span>· {cost} est.</span> : null}
       </div>
     </div>
   );
@@ -164,9 +283,7 @@ function AutofixRunsCard({
   const runsQuery = useListIssueAutofixRuns(orgSlug, projectSlug, issueId, {
     query: {
       refetchInterval: (query) =>
-        query.state.data?.data.some((run) => run.status === "queued" || run.status === "running")
-          ? 5000
-          : false,
+        query.state.data?.data.some((run) => ACTIVE_STATUSES.has(run.status)) ? 5000 : false,
     },
   });
 

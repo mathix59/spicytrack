@@ -22,6 +22,21 @@ import { RequirePermissions } from "../rbac/permissions.decorator";
 import { AutofixService } from "./autofix.service";
 import { AiUsageService } from "../ai-usage/ai-usage.service";
 
+/** Undefined keeps the current limit, null removes it. */
+export function parseUsdLimit(
+  value: unknown,
+  field: string,
+  max: number,
+): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === "") return null;
+  const usd = Number(value);
+  if (!Number.isFinite(usd) || usd < 0.01 || usd > max) {
+    throw new BadRequestException(`${field} must be between 0.01 and ${max} USD, or null`);
+  }
+  return Math.round(usd * 100) / 100;
+}
+
 @ApiTags("organizations")
 @ApiBearerAuth()
 @ApiParam({ name: "orgSlug", type: String })
@@ -100,6 +115,8 @@ export class OrganizationAiSettingsController {
         : undefined,
       model: body.model === undefined ? undefined : optionalNullableString(body.model),
       apiKey: body.apiKey === undefined ? undefined : optionalNullableString(body.apiKey),
+      monthlyBudgetUsd: parseUsdLimit(body.monthlyBudgetUsd, "monthlyBudgetUsd", 1_000_000),
+      runCostCapUsd: parseUsdLimit(body.runCostCapUsd, "runCostCapUsd", 1_000),
     });
   }
 }

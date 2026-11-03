@@ -714,7 +714,12 @@ export type AutofixConfigDtoTargetBranch = { [key: string]: unknown } | null;
 export interface AutofixConfigDto {
   enabled: boolean;
   autoTriggerOnNewIssue: boolean;
+  /** Only ever after CI passed on the fix commit. */
   autoMerge: boolean;
+  /** Generate the fix without waiting for a human when the analysis is confident. */
+  autoFixAfterAnalysis: boolean;
+  /** Fail the run instead of opening a pull request when no CI check ran. */
+  requirePassingChecks: boolean;
   dailyCap: number;
   /** @nullable */
   targetBranch?: AutofixConfigDtoTargetBranch;
@@ -729,10 +734,60 @@ export interface UpdateAutofixConfigBodyDto {
   enabled?: boolean;
   autoTriggerOnNewIssue?: boolean;
   autoMerge?: boolean;
+  autoFixAfterAnalysis?: boolean;
+  requirePassingChecks?: boolean;
   dailyCap?: number;
   /** @nullable */
   targetBranch?: UpdateAutofixConfigBodyDtoTargetBranch;
 }
+
+export type AutofixAnalysisDtoConfidence = typeof AutofixAnalysisDtoConfidence[keyof typeof AutofixAnalysisDtoConfidence];
+
+
+export const AutofixAnalysisDtoConfidence = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export interface AutofixAnalysisDto {
+  /** Markdown. */
+  rootCause: string;
+  /** Markdown. */
+  proposedFix: string;
+  confidence: AutofixAnalysisDtoConfidence;
+  /** False when the fix does not belong in the connected repository. */
+  fixable: boolean;
+  files: string[];
+}
+
+export type AutofixChecksDtoState = typeof AutofixChecksDtoState[keyof typeof AutofixChecksDtoState];
+
+
+export const AutofixChecksDtoState = {
+  pending: 'pending',
+  success: 'success',
+  failure: 'failure',
+  none: 'none',
+} as const;
+
+export interface AutofixChecksDto {
+  state: AutofixChecksDtoState;
+  total: number;
+  failed: string[];
+  pending: string[];
+}
+
+/**
+ * analysis finds the root cause (read-only); fix writes it and waits for CI.
+ */
+export type AutofixRunDtoPhase = typeof AutofixRunDtoPhase[keyof typeof AutofixRunDtoPhase];
+
+
+export const AutofixRunDtoPhase = {
+  analysis: 'analysis',
+  fix: 'fix',
+} as const;
 
 export type AutofixRunDtoStatus = typeof AutofixRunDtoStatus[keyof typeof AutofixRunDtoStatus];
 
@@ -740,6 +795,8 @@ export type AutofixRunDtoStatus = typeof AutofixRunDtoStatus[keyof typeof Autofi
 export const AutofixRunDtoStatus = {
   queued: 'queued',
   running: 'running',
+  analyzed: 'analyzed',
+  checking: 'checking',
   succeeded: 'succeeded',
   failed: 'failed',
 } as const;
@@ -755,32 +812,15 @@ export const AutofixRunDtoTrigger = {
 /**
  * @nullable
  */
-export type AutofixRunDtoBranch = { [key: string]: unknown } | null;
+export type AutofixRunDtoChecksStatus = typeof AutofixRunDtoChecksStatus[keyof typeof AutofixRunDtoChecksStatus] | null;
 
-/**
- * @nullable
- */
-export type AutofixRunDtoPrUrl = { [key: string]: unknown } | null;
 
-/**
- * @nullable
- */
-export type AutofixRunDtoError = { [key: string]: unknown } | null;
-
-/**
- * @nullable
- */
-export type AutofixRunDtoSummary = { [key: string]: unknown } | null;
-
-/**
- * @nullable
- */
-export type AutofixRunDtoInputTokens = { [key: string]: unknown } | null;
-
-/**
- * @nullable
- */
-export type AutofixRunDtoOutputTokens = { [key: string]: unknown } | null;
+export const AutofixRunDtoChecksStatus = {
+  pending: 'pending',
+  success: 'success',
+  failure: 'failure',
+  none: 'none',
+} as const;
 
 export type AutofixRunDtoCacheReadTokens = { [key: string]: unknown };
 
@@ -813,20 +853,32 @@ export type AutofixRunDtoFinishedAt = { [key: string]: unknown } | null;
 export interface AutofixRunDto {
   id: string;
   issueId: string;
+  /** analysis finds the root cause (read-only); fix writes it and waits for CI. */
+  phase: AutofixRunDtoPhase;
   status: AutofixRunDtoStatus;
   trigger: AutofixRunDtoTrigger;
   /** @nullable */
-  branch?: AutofixRunDtoBranch;
+  branch?: string | null;
   /** @nullable */
-  prUrl?: AutofixRunDtoPrUrl;
+  analysis?: AutofixAnalysisDto | null;
   /** @nullable */
-  error?: AutofixRunDtoError;
+  commitSha?: string | null;
   /** @nullable */
-  summary?: AutofixRunDtoSummary;
+  checksStatus?: AutofixRunDtoChecksStatus;
   /** @nullable */
-  inputTokens?: AutofixRunDtoInputTokens;
+  checksSummary?: AutofixChecksDto | null;
   /** @nullable */
-  outputTokens?: AutofixRunDtoOutputTokens;
+  checksDeadlineAt?: string | null;
+  /** @nullable */
+  prUrl?: string | null;
+  /** @nullable */
+  error?: string | null;
+  /** @nullable */
+  summary?: string | null;
+  /** @nullable */
+  inputTokens?: number | null;
+  /** @nullable */
+  outputTokens?: number | null;
   cacheReadTokens?: AutofixRunDtoCacheReadTokens;
   cacheWriteTokens?: AutofixRunDtoCacheWriteTokens;
   /** Estimated USD cost in micros, when AI_PRICING_JSON is configured. */
@@ -887,6 +939,21 @@ export interface OrganizationAiSettingsDto {
   apiKeySet: boolean;
   /** @nullable */
   maskedKey?: OrganizationAiSettingsDtoMaskedKey;
+  /**
+     * Monthly AI spending limit for the organization, in USD. Null means none.
+     * @nullable
+     */
+  monthlyBudgetUsd?: number | null;
+  /**
+     * Most one Autofix run (analysis and fix together) may spend, in USD.
+     * @nullable
+     */
+  runCostCapUsd?: number | null;
+  /** Estimated AI spend since the start of the month (UTC), in USD. */
+  spentThisMonthUsd: number;
+  budgetResetsAt: string;
+  /** False when the selected model has no price, so limits cannot be enforced. */
+  pricingKnown: boolean;
 }
 
 export type UpdateOrganizationAiSettingsBodyDtoProvider = typeof UpdateOrganizationAiSettingsBodyDtoProvider[keyof typeof UpdateOrganizationAiSettingsBodyDtoProvider];
@@ -922,6 +989,16 @@ export interface UpdateOrganizationAiSettingsBodyDto {
      * @nullable
      */
   apiKey?: UpdateOrganizationAiSettingsBodyDtoApiKey;
+  /**
+     * USD. Null removes it.
+     * @nullable
+     */
+  monthlyBudgetUsd?: number | null;
+  /**
+     * USD. Null removes it.
+     * @nullable
+     */
+  runCostCapUsd?: number | null;
 }
 
 export type RepoConnectionDtoProvider = typeof RepoConnectionDtoProvider[keyof typeof RepoConnectionDtoProvider];
@@ -9507,6 +9584,96 @@ export function useGetAutofixRun<TData = Awaited<ReturnType<typeof getAutofixRun
 
 
 
+
+export type startAutofixFixResponse200 = {
+  data: AutofixRunDto
+  status: 200
+}
+
+export type startAutofixFixResponseSuccess = (startAutofixFixResponse200) & {
+  headers: Headers;
+};
+;
+
+export type startAutofixFixResponse = (startAutofixFixResponseSuccess)
+
+export const getStartAutofixFixUrl = (orgSlug: string,
+    projectSlug: string,
+    runId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/runs/${runId}/fix`
+}
+
+/**
+ * @summary Generate the fix for an analyzed run, then open a pull request once CI passes
+ */
+export const startAutofixFix = async (orgSlug: string,
+    projectSlug: string,
+    runId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<startAutofixFixResponse> => {
+
+  return orvalFetch<startAutofixFixResponse>(getStartAutofixFixUrl(orgSlug,projectSlug,runId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getStartAutofixFixMutationKey = () => ['startAutofixFix'] as const;
+
+export const getStartAutofixFixMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startAutofixFix>>, TError,StartAutofixFixMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startAutofixFix>>, TError,StartAutofixFixMutationVariables, TContext> => {
+
+const mutationKey = getStartAutofixFixMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startAutofixFix>>, StartAutofixFixMutationVariables> = (props) => {
+          const {orgSlug,projectSlug,runId} = props ?? {};
+
+          return  startAutofixFix(orgSlug,projectSlug,runId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartAutofixFixMutationResult = NonNullable<Awaited<ReturnType<typeof startAutofixFix>>>
+
+    export type StartAutofixFixMutationError = ErrorType<unknown>
+    export type StartAutofixFixMutationVariables = {orgSlug: string;projectSlug: string;runId: string}
+
+    /**
+ * @summary Generate the fix for an analyzed run, then open a pull request once CI passes
+ */
+export const useStartAutofixFix = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startAutofixFix>>, TError,StartAutofixFixMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof startAutofixFix>>,
+        TError,
+        StartAutofixFixMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStartAutofixFixMutationOptions(options), queryClient);
+    }
 
 export type reviewAutofixRunResponse200 = {
   data: AutofixRunDto

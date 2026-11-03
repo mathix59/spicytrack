@@ -199,9 +199,11 @@ describe("GitHub App settings (e2e)", () => {
           active: true,
         },
         default_permissions: {
+          checks: "read",
           contents: "write",
           metadata: "read",
           pull_requests: "write",
+          statuses: "read",
         },
         default_events: ["repository"],
       }),

@@ -796,6 +796,9 @@ export const organizationAiSettings = pgTable(
     // Column name predates multi-provider support; it stores the key of
     // whichever provider is selected.
     apiKeyCiphertext: text("anthropic_api_key_ciphertext"),
+    // USD micros. Null means no limit.
+    monthlyBudgetMicros: bigint("monthly_budget_micros", { mode: "number" }),
+    runCostCapMicros: bigint("run_cost_cap_micros", { mode: "number" }),
     updatedByUserId: uuid("updated_by_user_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -814,6 +817,8 @@ export const projectAutofixConfigs = pgTable(
     enabled: boolean("enabled").notNull().default(false),
     autoTriggerOnNewIssue: boolean("auto_trigger_on_new_issue").notNull().default(false),
     autoMerge: boolean("auto_merge").notNull().default(false),
+    autoFixAfterAnalysis: boolean("auto_fix_after_analysis").notNull().default(false),
+    requirePassingChecks: boolean("require_passing_checks").notNull().default(true),
     dailyCap: integer("daily_cap").notNull().default(5),
     targetBranch: varchar("target_branch", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -859,10 +864,19 @@ export const autofixRuns = pgTable(
     organizationId: uuid("organization_id").notNull(),
     projectId: uuid("project_id").notNull(),
     issueId: uuid("issue_id").notNull(),
+    // analysis: find the root cause, read-only. fix: write, push, wait for CI, open the PR.
+    phase: varchar("phase", { length: 16 }).notNull().default("fix"),
     status: varchar("status", { length: 16 }).notNull().default("queued"),
     trigger: varchar("trigger", { length: 16 }).notNull(),
     triggeredByUserId: uuid("triggered_by_user_id"),
+    fixRequestedByUserId: uuid("fix_requested_by_user_id"),
+    analysis: jsonb("analysis"),
     branch: text("branch"),
+    commitSha: varchar("commit_sha", { length: 64 }),
+    checksStatus: varchar("checks_status", { length: 16 }),
+    checksSummary: jsonb("checks_summary"),
+    checksStartedAt: timestamp("checks_started_at", { withTimezone: true }),
+    checksDeadlineAt: timestamp("checks_deadline_at", { withTimezone: true }),
     prUrl: text("pr_url"),
     error: text("error"),
     summary: text("summary"),
@@ -881,10 +895,11 @@ export const autofixRuns = pgTable(
   },
   (table) => ({
     issueIdx: index("autofix_runs_issue_idx").on(table.issueId, table.createdAt),
-    // At most one queued or running run per issue, even when two triggers race.
+    // At most one run per issue in flight (queued, running or waiting for CI), even when two
+    // triggers race.
     inFlightIssueIdx: uniqueIndex("autofix_runs_in_flight_issue_idx")
       .on(table.issueId)
-      .where(sql`${table.status} in ('queued', 'running')`),
+      .where(sql`${table.status} in ('queued', 'running', 'checking')`),
     projectCreatedIdx: index("autofix_runs_project_created_idx").on(
       table.projectId,
       table.createdAt,

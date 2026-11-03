@@ -3,6 +3,7 @@ import { generateText } from "ai";
 import { and, desc, eq } from "drizzle-orm";
 
 import { AuditService } from "../audit/audit.service";
+import { AiBudgetService } from "../ai-usage/ai-budget.service";
 import { AiUsageService } from "../ai-usage/ai-usage.service";
 import { AutofixService } from "../autofix/autofix.service";
 import { resolveModel } from "../autofix/agent";
@@ -22,6 +23,7 @@ export class IssueTriageService {
     private readonly autofixService: AutofixService,
     private readonly auditService: AuditService,
     private readonly aiUsageService: AiUsageService,
+    private readonly aiBudgetService: AiBudgetService,
   ) {}
 
   async generate(input: {
@@ -43,6 +45,7 @@ export class IssueTriageService {
       .where(and(eq(issues.id, input.issueId), eq(issues.projectId, input.projectId)))
       .limit(1);
     if (!issue) throw new NotFoundException("Issue not found");
+    await this.aiBudgetService.assertCanSpend(input.organizationId);
 
     const [recentEvents, release] = await Promise.all([
       this.db

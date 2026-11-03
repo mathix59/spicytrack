@@ -1,11 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import {
+  type CommitChecks,
   CreatePullRequestOptions,
   PullRequestResult,
   RepoConnectionInput,
   VcsProvider,
   VcsRepoInfo,
   VcsRequestError,
+  summarizeChecks,
 } from "./vcs-provider.interface";
 import { assertAllowedVcsEndpoints } from "./vcs-url-policy";
 
@@ -100,5 +102,29 @@ export class GitlabProvider implements VcsProvider {
         should_remove_source_branch: true,
       },
     );
+  }
+
+  /** The latest pipeline that ran on the commit. */
+  async getCommitChecks(connection: RepoConnectionInput, sha: string): Promise<CommitChecks> {
+    if (!/^[0-9a-f]{7,64}$/i.test(sha)) throw new VcsRequestError(400, "Commit SHA is invalid");
+    const pipelines = await this.request<Array<{ id: number; status: string }>>(
+      connection,
+      "GET",
+      `/projects/${this.projectPath(connection)}/pipelines?sha=${sha}&order_by=id&sort=desc&per_page=1`,
+    );
+    const latest = pipelines[0];
+    // A skipped pipeline ran no job: nothing was verified.
+    if (!latest || latest.status === "skipped") return summarizeChecks([]);
+    return summarizeChecks([
+      {
+        name: `Pipeline #${latest.id}`,
+        state:
+          latest.status === "success"
+            ? "success"
+            : latest.status === "failed" || latest.status === "canceled"
+              ? "failure"
+              : "pending",
+      },
+    ]);
   }
 }

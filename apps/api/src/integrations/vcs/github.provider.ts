@@ -1,13 +1,22 @@
 import { Injectable } from "@nestjs/common";
 import {
+  type CommitCheck,
+  type CommitChecks,
   CreatePullRequestOptions,
   PullRequestResult,
   RepoConnectionInput,
   VcsProvider,
   VcsRepoInfo,
   VcsRequestError,
+  summarizeChecks,
 } from "./vcs-provider.interface";
 import { assertAllowedVcsEndpoints } from "./vcs-url-policy";
+
+const PASSING_CONCLUSIONS = new Set(["success", "neutral", "skipped"]);
+
+function assertSha(sha: string) {
+  if (!/^[0-9a-f]{7,64}$/i.test(sha)) throw new VcsRequestError(400, "Commit SHA is invalid");
+}
 
 @Injectable()
 export class GithubProvider implements VcsProvider {
@@ -110,5 +119,42 @@ export class GithubProvider implements VcsProvider {
     if (!result.merged) {
       throw new VcsRequestError(409, result.message ?? "GitHub refused to merge the pull request");
     }
+  }
+
+  /** Check runs (GitHub Actions, apps) and legacy commit statuses, combined. */
+  async getCommitChecks(connection: RepoConnectionInput, sha: string): Promise<CommitChecks> {
+    assertSha(sha);
+    const commit = `/repos/${connection.repoIdentifier}/commits/${sha}`;
+    const [runs, combined] = await Promise.all([
+      this.request<{
+        check_runs: Array<{ name: string; status: string; conclusion: string | null }>;
+      }>(connection, "GET", `${commit}/check-runs?per_page=100`),
+      this.request<{ statuses: Array<{ context: string; state: string }> }>(
+        connection,
+        "GET",
+        `${commit}/status?per_page=100`,
+      ),
+    ]);
+    const checks: CommitCheck[] = [
+      ...runs.check_runs.map((run) => ({
+        name: run.name,
+        state:
+          run.status !== "completed"
+            ? ("pending" as const)
+            : PASSING_CONCLUSIONS.has(run.conclusion ?? "")
+              ? ("success" as const)
+              : ("failure" as const),
+      })),
+      ...combined.statuses.map((status) => ({
+        name: status.context,
+        state:
+          status.state === "success"
+            ? ("success" as const)
+            : status.state === "pending"
+              ? ("pending" as const)
+              : ("failure" as const),
+      })),
+    ];
+    return summarizeChecks(checks);
   }
 }

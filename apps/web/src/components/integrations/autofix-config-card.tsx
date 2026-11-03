@@ -21,6 +21,35 @@ function asOptionalString(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
+function ToggleRow({
+  label,
+  description,
+  checked,
+  disabled,
+  onCheckedChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  disabled: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <Switch
+        aria-label={label}
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+      />
+    </div>
+  );
+}
+
 function AutofixConfigCard({
   orgSlug,
   projectSlug,
@@ -37,6 +66,8 @@ function AutofixConfigCard({
   const [enabled, setEnabled] = useState(false);
   const [autoTrigger, setAutoTrigger] = useState(false);
   const [autoMerge, setAutoMerge] = useState(false);
+  const [autoFix, setAutoFix] = useState(false);
+  const [requireChecks, setRequireChecks] = useState(true);
 
   const configQuery = useGetAutofixConfig(orgSlug, projectSlug);
   const config = configQuery.data?.data;
@@ -46,6 +77,8 @@ function AutofixConfigCard({
       setEnabled(config.enabled);
       setAutoTrigger(config.autoTriggerOnNewIssue);
       setAutoMerge(config.autoMerge);
+      setAutoFix(config.autoFixAfterAnalysis);
+      setRequireChecks(config.requirePassingChecks);
     }
   }, [config]);
 
@@ -75,6 +108,8 @@ function AutofixConfigCard({
           enabled,
           autoTriggerOnNewIssue: autoTrigger,
           autoMerge,
+          autoFixAfterAnalysis: autoFix,
+          requirePassingChecks: requireChecks,
           dailyCap: Number.isFinite(dailyCap) ? dailyCap : 5,
           targetBranch: (targetBranch || null) as never,
         },
@@ -94,7 +129,9 @@ function AutofixConfigCard({
       <CardHeader>
         <CardTitle>AI autofix</CardTitle>
         <CardDescription>
-          Let SpicyTrack open pull requests that propose fixes for this project&apos;s issues.
+          SpicyTrack first finds an issue&apos;s root cause without touching your code. The fix is a
+          second, optional step: it is pushed to a branch, and the pull request opens only once your
+          CI passes on it.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -114,53 +151,43 @@ function AutofixConfigCard({
           />
         ) : (
           <form className="grid gap-4" onSubmit={save}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Enable autofix</p>
-                <p className="text-xs text-muted-foreground">
-                  Allow triggering AI fixes for issues in this project.
-                </p>
-              </div>
-              <Switch
-                aria-label="Enable autofix"
-                checked={enabled}
-                disabled={!canManage}
-                onCheckedChange={setEnabled}
-              />
-            </div>
+            <ToggleRow
+              checked={enabled}
+              description="Allow AI root-cause analyses and fixes for issues in this project."
+              disabled={!canManage}
+              label="Enable autofix"
+              onCheckedChange={setEnabled}
+            />
+            <ToggleRow
+              checked={autoTrigger}
+              description="Analyze the root cause of each new issue automatically. Analyses never change code."
+              disabled={!canManage || !enabled}
+              label="Analyze new issues automatically"
+              onCheckedChange={setAutoTrigger}
+            />
+            <ToggleRow
+              checked={autoFix}
+              description="Generate the fix without waiting for someone when the analysis is fixable with medium or high confidence."
+              disabled={!canManage || !enabled}
+              label="Generate fixes automatically"
+              onCheckedChange={setAutoFix}
+            />
+            <ToggleRow
+              checked={requireChecks}
+              description="Without any CI check on the fix branch, fail the run instead of opening an unverified pull request."
+              disabled={!canManage || !enabled}
+              label="Require passing CI checks"
+              onCheckedChange={setRequireChecks}
+            />
+            <ToggleRow
+              checked={autoMerge}
+              description="Squash the pull request into the explicit target branch, only after CI passed on it. Branch protections still apply."
+              disabled={!canManage || !enabled}
+              label="Merge automatically when CI passes"
+              onCheckedChange={setAutoMerge}
+            />
 
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Automatically merge successful fixes</p>
-                <p className="text-xs text-muted-foreground">
-                  Squash the generated pull request into the explicit target branch when the forge
-                  accepts it. Branch protections still apply.
-                </p>
-              </div>
-              <Switch
-                aria-label="Automatically merge successful fixes"
-                checked={autoMerge}
-                disabled={!canManage || !enabled}
-                onCheckedChange={setAutoMerge}
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Auto-trigger on new issues</p>
-                <p className="text-xs text-muted-foreground">
-                  Start an autofix automatically when a new issue is created.
-                </p>
-              </div>
-              <Switch
-                aria-label="Auto-trigger on new issues"
-                checked={autoTrigger}
-                disabled={!canManage || !enabled}
-                onCheckedChange={setAutoTrigger}
-              />
-            </div>
-
-            <Field hint="Maximum automatic runs per day for this project." label="Daily cap">
+            <Field hint="Maximum automatic analyses per day for this project." label="Daily cap">
               <Input
                 defaultValue={config?.dailyCap ?? 5}
                 disabled={!canManage}

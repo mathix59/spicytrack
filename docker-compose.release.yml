@@ -53,6 +53,7 @@ services:
       CODEBASE_MEMORY_MCP_BIN: ${CODEBASE_MEMORY_MCP_BIN:-codebase-memory-mcp}
       CODEBASE_MEMORY_MCP_AUTO_INSTALL: ${CODEBASE_MEMORY_MCP_AUTO_INSTALL:-true}
       AUTOFIX_JOB_TIMEOUT_MS: ${AUTOFIX_JOB_TIMEOUT_MS:-900000}
+      AUTOFIX_CHECKS_TIMEOUT_MINUTES: ${AUTOFIX_CHECKS_TIMEOUT_MINUTES:-60}
     working_dir: /app/apps/api
     command:
       ["node", "node_modules/drizzle-kit/bin.cjs", "migrate", "--config", "drizzle.config.ts"]
@@ -154,6 +155,7 @@ services:
       CODEBASE_MEMORY_MCP_BIN: ${CODEBASE_MEMORY_MCP_BIN:-codebase-memory-mcp}
       CODEBASE_MEMORY_MCP_AUTO_INSTALL: ${CODEBASE_MEMORY_MCP_AUTO_INSTALL:-true}
       AUTOFIX_JOB_TIMEOUT_MS: ${AUTOFIX_JOB_TIMEOUT_MS:-900000}
+      AUTOFIX_CHECKS_TIMEOUT_MINUTES: ${AUTOFIX_CHECKS_TIMEOUT_MINUTES:-60}
 
   web:
     image: ${IMAGE_REPOSITORY_PREFIX:-ghcr.io/mathix59/spicytrack}-web:${VERSION:-latest}

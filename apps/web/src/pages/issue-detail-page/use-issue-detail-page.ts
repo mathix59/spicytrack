@@ -182,7 +182,7 @@ function useIssueDetailPage(): IssuePageData {
     (selectedEventIndex >= 0 && selectedEventIndex < events.length - 1) ||
     safeEventPage < totalEventPages;
   const autofixInFlight = (autofixRunsQuery.data?.data ?? []).some(
-    (run) => run.status === "queued" || run.status === "running",
+    (run) => run.status === "queued" || run.status === "running" || run.status === "checking",
   );
 
   useEffect(() => {
@@ -234,8 +234,8 @@ function useIssueDetailPage(): IssuePageData {
         projectSlug,
         issueId,
       });
-      toast.success("Autofix started", {
-        description: "Progress appears in the Autofix card.",
+      toast.success("Root-cause analysis started", {
+        description: "It reads your code without changing it. You decide on the fix next.",
       });
     } catch (error) {
       toast.error("Could not start Autofix", { description: getErrorMessage(error) });

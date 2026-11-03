@@ -17,6 +17,7 @@ import { AI_PROVIDERS, type AiUsageSummary, asAiProvider } from "./ai-settings-c
 function useOrgAiSettings({ orgSlug, canManage }: { orgSlug: string; canManage: boolean }) {
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
   const [overridesError, setOverridesError] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] =
     useState<UpdateOrganizationAiSettingsBodyDtoProvider | null>(null);
@@ -99,6 +100,28 @@ function useOrgAiSettings({ orgSlug, canManage }: { orgSlug: string; canManage: 
     }
   };
 
+  const saveBudget = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBudgetError(null);
+    const formData = new FormData(event.currentTarget);
+    const limit = (name: string) => {
+      const value = String(formData.get(name) ?? "").trim();
+      return value ? Number(value) : null;
+    };
+    try {
+      await updateMutation.mutateAsync({
+        orgSlug,
+        data: {
+          monthlyBudgetUsd: limit("monthlyBudgetUsd") as never,
+          runCostCapUsd: limit("runCostCapUsd") as never,
+        },
+      });
+      toast.success("AI spending limits saved");
+    } catch (submitError) {
+      setBudgetError(getErrorMessage(submitError));
+    }
+  };
+
   /** Rethrows so the confirmation dialog can show the failure. */
   const clearKey = async () => {
     setFormError(null);
@@ -140,6 +163,7 @@ function useOrgAiSettings({ orgSlug, canManage }: { orgSlug: string; canManage: 
     provider,
     providerMeta,
     formError,
+    budgetError,
     overridesError,
     overridesText:
       pricingOverrides ||
@@ -150,6 +174,7 @@ function useOrgAiSettings({ orgSlug, canManage }: { orgSlug: string; canManage: 
     setProvider: (value: string) => setSelectedProvider(asAiProvider(value)),
     setPricingOverrides,
     submit,
+    saveBudget,
     clearKey,
     saveOverrides,
     clearOverrides,

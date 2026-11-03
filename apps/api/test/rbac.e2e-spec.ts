@@ -492,6 +492,25 @@ describe("RBAC authorization matrix (e2e)", () => {
     expect(response.statusCode).toBe(404);
   });
 
+  it("generates a fix only for an analyzed run of the same project", async () => {
+    const fixUrl = (runId: string) =>
+      `/api/organizations/${organizationSlug}/projects/${projectSlug}/autofix/runs/${runId}/fix`;
+    const post = (runId: string, role: string) =>
+      app.inject({
+        method: "POST",
+        url: fixUrl(runId),
+        headers: { ...authorization(role), "content-type": "application/json" },
+        payload: {},
+      });
+
+    expect((await post(siblingAutofixRunId, "owner")).statusCode).toBe(404);
+    expect((await post(autofixRunId, "viewer")).statusCode).toBe(403);
+    // The fixture run is queued, not analyzed.
+    const response = await post(autofixRunId, "owner");
+    expect(response.statusCode).toBe(409);
+    expect(response.json().message).toBe("Only an analyzed run can generate a fix.");
+  });
+
   it("rejects foreign resource ids across saved searches, keys, alerts, releases and artifacts", async () => {
     const cases: Array<{
       method: "GET" | "PATCH" | "DELETE";

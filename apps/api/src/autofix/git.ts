@@ -83,6 +83,10 @@ export async function pushBranch(
   await git(repoDir, ["push", authenticatedUrl, `HEAD:refs/heads/${branch}`]);
 }
 
+export async function headSha(repoDir: string): Promise<string> {
+  return (await git(repoDir, ["rev-parse", "HEAD"])).trim();
+}
+
 export function scrubSecret(text: string, secret: string): string {
   return secret ? text.replaceAll(secret, "***") : text;
 }

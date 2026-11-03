@@ -2,6 +2,7 @@ import { QueryError } from "@/components/common/query-error";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SkeletonRows } from "@/components/ui/skeleton";
 
+import { AiBudgetForm } from "./ai-settings/ai-budget-form";
 import { AiPricingOverrides } from "./ai-settings/ai-pricing-overrides";
 import { AiProviderForm } from "./ai-settings/ai-provider-form";
 import { asOptionalString } from "./ai-settings/ai-settings-constants";
@@ -32,7 +33,8 @@ function OrgAiSettingsCard({ orgSlug, canManage }: { orgSlug: string; canManage:
       <CardHeader>
         <CardTitle>AI settings</CardTitle>
         <CardDescription>
-          The AI provider used by the autofix feature for every project in this organization.
+          The AI provider, and spending limits, for Autofix and AI triage in every project of this
+          organization.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -57,6 +59,7 @@ function OrgAiSettingsCard({ orgSlug, canManage }: { orgSlug: string; canManage:
               <p className="text-sm text-muted-foreground">No API key configured.</p>
             )}
             {state.usage ? <AiUsageSummary usage={state.usage} /> : null}
+            <AiBudgetForm state={state} />
             <AiPricingOverrides state={state} />
             <AiProviderForm state={state} />
           </>

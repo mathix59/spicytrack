@@ -80,6 +80,8 @@ export class AutofixController {
       enabled: optionalBoolean(body.enabled),
       autoTriggerOnNewIssue: optionalBoolean(body.autoTriggerOnNewIssue),
       autoMerge: optionalBoolean(body.autoMerge),
+      autoFixAfterAnalysis: optionalBoolean(body.autoFixAfterAnalysis),
+      requirePassingChecks: optionalBoolean(body.requirePassingChecks),
       dailyCap: optionalNumber(body.dailyCap, "dailyCap"),
       targetBranch:
         body.targetBranch === undefined ? undefined : optionalNullableString(body.targetBranch),
@@ -131,6 +133,29 @@ export class AutofixController {
     @Param("runId", new ParseUUIDPipe()) runId: string,
   ) {
     return this.autofixService.getRun(project.id, runId);
+  }
+
+  @Post("autofix/runs/:runId/fix")
+  @ApiOperation({
+    operationId: "startAutofixFix",
+    summary: "Generate the fix for an analyzed run, then open a pull request once CI passes",
+  })
+  @ApiParam({ name: "runId", type: String })
+  @ApiOkResponse({ type: AutofixRunDto })
+  @RequirePermissions("project.autofix.run")
+  @UseGuards(PermissionGuard)
+  async startFix(
+    @CurrentOrganization() organization: OrganizationRecord,
+    @CurrentProject() project: ProjectRecord,
+    @CurrentUser() user: UserRecord,
+    @Param("runId", new ParseUUIDPipe()) runId: string,
+  ) {
+    return this.autofixService.startFix({
+      organizationId: organization.id,
+      projectId: project.id,
+      runId,
+      actorUserId: user.id,
+    });
   }
 
   @Post("autofix/runs/:runId/review")
