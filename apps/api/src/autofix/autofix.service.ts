@@ -8,6 +8,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { isUniqueViolation } from "../common/postgres-errors";
 import { AuditService } from "../audit/audit.service";
 import { decryptSecret, encryptSecret } from "../common/secrets";
 import { DATABASE } from "../database/database.provider";
@@ -38,17 +39,6 @@ const DEFAULT_MANUAL_DAILY_CAP = 50;
 function manualDailyCap(): number {
   const parsed = Number(process.env.AUTOFIX_MANUAL_DAILY_CAP ?? DEFAULT_MANUAL_DAILY_CAP);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_MANUAL_DAILY_CAP;
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  const cause = error instanceof Error && "cause" in error ? error.cause : undefined;
-  return [error, cause].some(
-    (candidate) =>
-      typeof candidate === "object" &&
-      candidate !== null &&
-      "code" in candidate &&
-      candidate.code === "23505",
-  );
 }
 
 function maskKey(key: string): string {

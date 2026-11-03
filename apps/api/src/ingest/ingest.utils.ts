@@ -1,6 +1,6 @@
 import {
   asString,
-  computeGroupingKey,
+  computeGroupingKeys,
   computeIssueTitle,
   createExternalEventId,
   normalizeMessage,
@@ -126,7 +126,7 @@ function parseEventPayload(payload: Record<string, unknown>): ParsedEventPayload
 
   return {
     sanitizedPayload,
-    groupingKey: computeGroupingKey(sanitizedPayload),
+    ...computeGroupingKeys(sanitizedPayload),
     title: computeIssueTitle(sanitizedPayload),
     level: asString(sanitizedPayload.level) ?? "error",
     message,

@@ -1,4 +1,4 @@
-import { boundGroupingKey, computeGroupingKey } from "../common/grouping";
+import { boundGroupingKey, computeGroupingKey, computeLegacyGroupingKey } from "../common/grouping";
 import { InvalidEnvelopeError, parseEnvelopeEvent } from "./ingest.utils";
 
 const header = JSON.stringify({ event_id: "abc", dsn: "https://key@example.com/1" });
@@ -26,8 +26,8 @@ describe("parseEnvelopeEvent", () => {
 });
 
 describe("grouping key bounds", () => {
-  it("keeps ordinary keys verbatim so existing issues keep matching", () => {
-    const key = computeGroupingKey({
+  it("keeps ordinary legacy keys verbatim so existing issues can be adopted", () => {
+    const key = computeLegacyGroupingKey({
       exception: { values: [{ type: "TypeError", value: "boom" }] },
     });
 

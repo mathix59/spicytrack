@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { isUniqueViolation } from "../common/postgres-errors";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { jobs } from "../database/schema";
@@ -60,7 +61,7 @@ export class JobsService {
         runAt,
       });
     } catch (error) {
-      if (options.dedupeKey && this.isDuplicateKeyError(error)) {
+      if (options.dedupeKey && isUniqueViolation(error)) {
         return;
       }
 
@@ -287,13 +288,5 @@ export class JobsService {
           ? (row.payload as Record<string, unknown>)
           : {},
     };
-  }
-
-  private isDuplicateKeyError(error: unknown): boolean {
-    if (!(error instanceof Error)) {
-      return false;
-    }
-
-    return "code" in error && error.code === "23505";
   }
 }

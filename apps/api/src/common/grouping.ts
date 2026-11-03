@@ -32,7 +32,125 @@ export function boundGroupingKey(key: string) {
   return `sha256:${createHash("sha256").update(key).digest("hex")}`;
 }
 
+export const GROUPING_VERSION = 2;
+
+export type GroupingKeys = {
+  /** Current (v2) key; issues are created and looked up with it. */
+  groupingKey: string;
+  /** v1 key of the same event, used once to adopt an issue created before v2. Null when equal. */
+  legacyGroupingKey: string | null;
+};
+
+export function computeGroupingKeys(payload: Record<string, unknown>): GroupingKeys {
+  const groupingKey = computeGroupingKey(payload);
+  const legacyGroupingKey = computeLegacyGroupingKey(payload);
+  return {
+    groupingKey,
+    legacyGroupingKey: legacyGroupingKey === groupingKey ? null : legacyGroupingKey,
+  };
+}
+
+/**
+ * v2 grouping. Stable across deploys and variable data: no line numbers, bundle hashes or
+ * deploy-specific path prefixes, and ids, numbers, URLs, emails and dates in the message are
+ * replaced by placeholders. The crash location is the innermost application (in-app) frame.
+ */
 export function computeGroupingKey(payload: Record<string, unknown>) {
+  const defaultKey = computeDefaultGroupingKey(payload);
+  const fingerprint = payload.fingerprint;
+  if (Array.isArray(fingerprint) && fingerprint.length > 0) {
+    const parts = fingerprint.map((part) =>
+      isDefaultFingerprintPart(part) ? defaultKey : String(part),
+    );
+    return boundGroupingKey(`fingerprint:${parts.join("|")}`);
+  }
+
+  return boundGroupingKey(defaultKey);
+}
+
+export function computeDefaultGroupingKey(payload: Record<string, unknown>) {
+  const exception = getPrimaryException(payload);
+  const message = normalizeMessage(asString(payload.message));
+  const value = normalizeVariableText((exception?.value ?? message) || "unknown");
+
+  return ["v2", exception?.type ?? "unknown", value, crashLocation(payload)].join("|");
+}
+
+function isDefaultFingerprintPart(part: unknown) {
+  return typeof part === "string" && /^\{\{\s*default\s*\}\}$/.test(part.trim());
+}
+
+const VARIABLE_PATTERNS: Array<[RegExp, string]> = [
+  [/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "<uuid>"],
+  [/\bhttps?:\/\/[^\s"'<>)]+/gi, "<url>"],
+  [/\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b/g, "<email>"],
+  [
+    /\b\d{4}-\d{2}-\d{2}(?:[t ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:z|[+-]\d{2}:?\d{2})?)?\b/gi,
+    "<date>",
+  ],
+  [/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, "<ip>"],
+  [/\b0x[0-9a-f]+\b/gi, "<hex>"],
+  [/\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{12,}\b/gi, "<hex>"],
+  // Short integers are kept: they are usually meaningful (HTTP statuses, error codes).
+  [/\b\d+\.\d+\b|\b\d{4,}\b/g, "<n>"],
+];
+
+export function normalizeVariableText(value: string) {
+  return VARIABLE_PATTERNS.reduce(
+    (text, [pattern, placeholder]) => text.replace(pattern, placeholder),
+    normalizeMessage(value),
+  );
+}
+
+function crashLocation(payload: Record<string, unknown>) {
+  const frames = getAllFrames(payload);
+  if (frames.length === 0) return "no-frame";
+
+  // Frames are ordered from the outermost call to the crashing one.
+  const frame =
+    frames.findLast((candidate) => candidate.inApp === true) ??
+    frames.findLast((candidate) => candidate.inApp !== false && !isLibraryFrame(candidate)) ??
+    frames.at(-1)!;
+
+  return `${frameLocation(frame)}:${frameFunction(frame)}`;
+}
+
+function isLibraryFrame(frame: RawStackFrame) {
+  const location = frame.absPath ?? frame.filename ?? "";
+  return /(?:^|[\\/])node_modules[\\/]|^node:|^internal[\\/]|^native$|<anonymous>/.test(location);
+}
+
+function frameLocation(frame: RawStackFrame) {
+  if (frame.module) return frame.module;
+  const location = frame.filename ?? frame.absPath;
+  if (!location) return "unknown";
+
+  const path = location
+    .replace(/[?#].*$/, "")
+    .replace(/^[a-z][\w+.-]*:\/\/[^/]*/i, "")
+    .replace(/\\/g, "/");
+  // The last two segments survive deploy directories (/srv/releases/<sha>/…) and CDN prefixes.
+  const segments = path.split("/").filter(Boolean).slice(-2);
+  return segments.map(stripContentHash).join("/") || "unknown";
+}
+
+/** app.3f2a1b9c.js → app.js, index-D6Sueoy0.js → index.js */
+function stripContentHash(segment: string) {
+  return segment.replace(
+    /[.-](?=[A-Za-z0-9_]*\d)(?=[A-Za-z0-9_]*[A-Za-z])[A-Za-z0-9_]{6,20}(?=\.[a-z0-9]+$)/,
+    "",
+  );
+}
+
+function frameFunction(frame: RawStackFrame) {
+  const name = frame.function?.trim();
+  // Minified names (`t`, `e`, `Xo`) change with every build.
+  if (!name || name.length <= 2 || name === "?" || name === "<anonymous>") return "?";
+  return name;
+}
+
+/** Grouping before v2, kept verbatim so issues created by it can be adopted. */
+export function computeLegacyGroupingKey(payload: Record<string, unknown>) {
   return boundGroupingKey(computeRawGroupingKey(payload));
 }
 
@@ -88,6 +206,7 @@ export interface RawStackFrame {
   function?: string | null;
   lineno?: number | null;
   colno?: number | null;
+  inApp?: boolean | null;
 }
 
 export function getAllFrames(payload: Record<string, unknown>): RawStackFrame[] {
@@ -104,6 +223,7 @@ export function getAllFrames(payload: Record<string, unknown>): RawStackFrame[] 
       function: asString(frame.function),
       lineno: asNumber(frame.lineno),
       colno: asNumber(frame.colno),
+      inApp: typeof frame.in_app === "boolean" ? frame.in_app : null,
     }));
 }
 

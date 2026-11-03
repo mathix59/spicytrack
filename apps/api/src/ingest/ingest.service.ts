@@ -9,6 +9,8 @@ import {
 } from "@nestjs/common";
 import { and, eq, sql } from "drizzle-orm";
 
+import { GROUPING_VERSION } from "../common/grouping";
+import { isUniqueViolation } from "../common/postgres-errors";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { events, ingestRateCounters, issues, projectKeys, projects } from "../database/schema";
@@ -293,11 +295,63 @@ export class IngestService {
     };
   }
 
+  private async findIssueByKey(
+    tx: TransactionClient,
+    projectId: string,
+    groupingKey: string,
+  ): Promise<typeof issues.$inferSelect | undefined> {
+    const [issue] = await tx
+      .select()
+      .from(issues)
+      .where(and(eq(issues.projectId, projectId), eq(issues.groupingKey, groupingKey)))
+      .limit(1);
+    return issue;
+  }
+
+  /**
+   * Moves an issue grouped before v2 onto the event's v2 key, so it keeps receiving events. Runs
+   * in a savepoint: when another event adopted or created the v2 issue first, the unique index
+   * rejects the update and the caller uses that issue instead.
+   */
+  private async adoptLegacyIssue(
+    tx: TransactionClient,
+    projectId: string,
+    keys: { groupingKey: string; legacyGroupingKey: string },
+  ) {
+    const legacyIssue = await this.findIssueByKey(tx, projectId, keys.legacyGroupingKey);
+    if (!legacyIssue || legacyIssue.groupingVersion >= GROUPING_VERSION) return undefined;
+
+    try {
+      return await tx.transaction(async (savepoint) => {
+        const [adopted] = await savepoint
+          .update(issues)
+          .set({ groupingKey: keys.groupingKey, groupingVersion: GROUPING_VERSION })
+          .where(eq(issues.id, legacyIssue.id))
+          .returning();
+        return adopted;
+      });
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+      return this.findIssueByKey(tx, projectId, keys.groupingKey);
+    }
+  }
+
   private async upsertIssue(
     tx: TransactionClient,
     context: IngestContext,
     payload: ReturnType<typeof parseEventPayload>,
   ) {
+    let currentIssue = await this.findIssueByKey(tx, context.projectId, payload.groupingKey);
+    if (!currentIssue && payload.legacyGroupingKey) {
+      currentIssue = await this.adoptLegacyIssue(tx, context.projectId, {
+        groupingKey: payload.groupingKey,
+        legacyGroupingKey: payload.legacyGroupingKey,
+      });
+    }
+    if (currentIssue) {
+      return this.updateExistingIssue(tx, context, payload, currentIssue);
+    }
+
     const [insertedIssue] = await tx
       .insert(issues)
       .values({
@@ -306,7 +360,7 @@ export class IngestService {
         environmentId: context.environmentId,
         releaseId: context.releaseId,
         groupingKey: payload.groupingKey,
-        groupingVersion: 1,
+        groupingVersion: GROUPING_VERSION,
         title: payload.title,
         culprit: payload.culprit,
         level: payload.level,
@@ -323,18 +377,26 @@ export class IngestService {
       return { issue: insertedIssue, issueWasCreated: true, issueRegressed: false };
     }
 
-    const [currentIssue] = await tx
-      .select()
-      .from(issues)
-      .where(
-        and(eq(issues.projectId, context.projectId), eq(issues.groupingKey, payload.groupingKey)),
-      )
-      .limit(1);
-
-    if (!currentIssue) {
+    // Another event created the issue between the lookup and the insert.
+    const concurrentIssue = await this.findIssueByKey(tx, context.projectId, payload.groupingKey);
+    if (!concurrentIssue) {
       throw new Error("Issue upsert failed: issue not found after conflict");
     }
 
+    return this.updateExistingIssue(tx, context, payload, concurrentIssue);
+  }
+
+  private async updateExistingIssue(
+    tx: TransactionClient,
+    context: IngestContext,
+    payload: ReturnType<typeof parseEventPayload>,
+    currentIssue: typeof issues.$inferSelect,
+  ): Promise<{
+    issue: typeof issues.$inferSelect;
+    issueWasCreated: boolean;
+    issueRegressed: boolean;
+    mergedFromIssueId?: string;
+  }> {
     if (currentIssue.mergedIntoIssueId) {
       const [targetIssue] = await tx
         .update(issues)
@@ -478,20 +540,6 @@ export class IngestService {
   }
 
   private isDuplicateEventError(error: unknown): boolean {
-    let current: unknown = error;
-    const visited = new Set<unknown>();
-    while (current && typeof current === "object" && !visited.has(current)) {
-      visited.add(current);
-      if (
-        "code" in current &&
-        current.code === "23505" &&
-        "constraint" in current &&
-        current.constraint === "events_project_event_id_idx"
-      ) {
-        return true;
-      }
-      current = "cause" in current ? current.cause : undefined;
-    }
-    return false;
+    return isUniqueViolation(error, "events_project_event_id_idx");
   }
 }

@@ -29,6 +29,8 @@ export function applyProjectPolicies(project: IngestProjectAccess, payload: Pars
     if (rule.action === "ignore") return { ignored: true };
     if (rule.action === "fingerprint" && typeof rule.fingerprint === "string") {
       payload.groupingKey = boundGroupingKey(`custom:${rule.fingerprint.trim()}`);
+      // Project fingerprints did not change with grouping v2.
+      payload.legacyGroupingKey = null;
     }
   }
 

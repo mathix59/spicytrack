@@ -20,6 +20,8 @@ type IngestContext = {
 type ParsedEventPayload = {
   sanitizedPayload: Record<string, unknown>;
   groupingKey: string;
+  /** Pre-v2 key of this event, to adopt an issue created by the old grouping. */
+  legacyGroupingKey: string | null;
   title: string;
   level: string;
   message: string | null;

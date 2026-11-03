@@ -8,6 +8,7 @@ import {
 const payload = (): ParsedEventPayload => ({
   sanitizedPayload: { request: { internalToken: "secret", safe: true } },
   groupingKey: "original",
+  legacyGroupingKey: "legacy",
   title: "Payment timeout",
   level: "error",
   message: "Timeout in src/payments/charge.ts",
