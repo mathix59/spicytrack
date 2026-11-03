@@ -25,21 +25,47 @@ function createDatabase(...selectRows: unknown[][]) {
   };
 }
 
+function activeToken(scopes: string[]) {
+  return {
+    id: "token-1",
+    userId: "user-1",
+    revokedAt: null,
+    expiresAt: null,
+    scopes,
+    organizationId: null,
+  };
+}
+
 describe("AuthGuard personal access tokens", () => {
   it("authenticates an active token, attaches its user, and records usage", async () => {
     const db = createDatabase(
-      [{ id: "token-1", userId: "user-1", revokedAt: null, expiresAt: null }],
+      [activeToken(["read"])],
       [{ id: "user-1", email: "user@example.test" }],
     );
     const guard = new AuthGuard(db as never);
-    const request = { headers: { authorization: "Bearer pat_valid" } };
+    const request = { method: "GET", headers: { authorization: "Bearer pat_valid" } };
     const executionContext = {
       switchToHttp: () => ({ getRequest: () => request }),
     } as never;
 
     await expect(guard.canActivate(executionContext)).resolves.toBe(true);
     expect(request).toHaveProperty("auth.user.id", "user-1");
+    expect(request).toHaveProperty("auth.token", {
+      id: "token-1",
+      scopes: ["read"],
+      organizationId: null,
+    });
     expect(db.updateWhere).toHaveBeenCalled();
+  });
+
+  it("keeps read-only tokens away from changes", async () => {
+    const db = createDatabase([activeToken(["read"])], [{ id: "user-1" }]);
+    const guard = new AuthGuard(db as never);
+    const request = { method: "POST", headers: { authorization: "Bearer pat_valid" } };
+
+    await expect(
+      guard.canActivate({ switchToHttp: () => ({ getRequest: () => request }) } as never),
+    ).rejects.toThrow("This personal access token is read-only");
   });
 
   it.each([

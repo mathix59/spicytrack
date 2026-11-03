@@ -6545,6 +6545,25 @@
           "tokenPreview": {
             "type": "string"
           },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write",
+                "admin"
+              ]
+            }
+          },
+          "organizationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "organizationName": {
+            "type": "string",
+            "nullable": true
+          },
           "expiresAt": {
             "type": "string",
             "nullable": true
@@ -6561,6 +6580,7 @@
           "id",
           "name",
           "tokenPreview",
+          "scopes",
           "createdAt"
         ]
       },
@@ -6570,13 +6590,31 @@
           "name": {
             "type": "string"
           },
+          "scopes": {
+            "type": "array",
+            "description": "read: GET requests; write: also project changes; admin: also organization administration.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write",
+                "admin"
+              ]
+            }
+          },
+          "organizationId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Limit the token to this organization; omit for every organization you belong to."
+          },
           "expiresInDays": {
             "type": "number",
-            "nullable": true
+            "description": "1 to 365 days; defaults to 90."
           }
         },
         "required": [
-          "name"
+          "name",
+          "scopes"
         ]
       },
       "CreatePersonalAccessTokenResponseDto": {

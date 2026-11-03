@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Inject,
   Injectable,
   UnauthorizedException,
@@ -11,6 +12,7 @@ import type { DatabaseClient } from "../database/database.provider";
 import { personalAccessTokens, users } from "../database/schema";
 import type { AuthenticatedRequest } from "../common/authenticated-request";
 import { hashOpaqueToken } from "../common/tokens";
+import { tokenAllowsMethod } from "../personal-tokens/token-scopes";
 import { getBetterAuthSession } from "./better-auth";
 import { fromNodeHeaders } from "better-auth/node";
 
@@ -85,7 +87,18 @@ export class AuthGuard implements CanActivate {
       .set({ lastUsedAt: new Date() })
       .where(eq(personalAccessTokens.id, patRecord.id));
 
-    request.auth = { user };
+    if (!tokenAllowsMethod(patRecord.scopes, request.method)) {
+      throw new ForbiddenException("This personal access token is read-only");
+    }
+
+    request.auth = {
+      user,
+      token: {
+        id: patRecord.id,
+        scopes: patRecord.scopes,
+        organizationId: patRecord.organizationId,
+      },
+    };
     return true;
   }
 }

@@ -1376,6 +1376,15 @@ export class PersonalAccessTokenDto {
   @ApiProperty()
   tokenPreview!: string;
 
+  @ApiProperty({ type: [String], enum: ["read", "write", "admin"] })
+  scopes!: string[];
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  organizationId?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  organizationName?: string | null;
+
   @ApiPropertyOptional({ type: String, nullable: true })
   expiresAt?: string | null;
 
@@ -1390,8 +1399,23 @@ export class CreatePersonalAccessTokenBodyDto {
   @ApiProperty()
   name!: string;
 
-  @ApiPropertyOptional({ type: Number, nullable: true })
-  expiresInDays?: number | null;
+  @ApiProperty({
+    type: [String],
+    enum: ["read", "write", "admin"],
+    description:
+      "read: GET requests; write: also project changes; admin: also organization administration.",
+  })
+  scopes!: string[];
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: "Limit the token to this organization; omit for every organization you belong to.",
+  })
+  organizationId?: string | null;
+
+  @ApiPropertyOptional({ type: Number, description: "1 to 365 days; defaults to 90." })
+  expiresInDays?: number;
 }
 
 export class CreatePersonalAccessTokenResponseDto {

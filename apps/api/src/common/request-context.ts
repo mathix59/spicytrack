@@ -8,6 +8,8 @@ export type TeamRecord = typeof teams.$inferSelect;
 
 export interface AuthContext {
   user: UserRecord;
+  /** Set when the request authenticated with a personal access token. */
+  token?: { id: string; scopes: string[]; organizationId: string | null };
 }
 
 export interface OrganizationContext {

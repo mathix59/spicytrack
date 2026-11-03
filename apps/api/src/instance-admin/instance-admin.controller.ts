@@ -12,11 +12,12 @@ import {
 } from "@nestjs/common";
 import { CurrentUser } from "../common/current-user.decorator";
 import { AuthGuard } from "../auth/auth.guard";
+import { InstanceAdminTokenGuard } from "../personal-tokens/personal-token.guards";
 import { EndpointAccess } from "../auth/endpoint-access.decorator";
 import { InstanceAdminService } from "./instance-admin.service";
 import { UpdateCheckService } from "./update-check.service";
 
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, InstanceAdminTokenGuard)
 @EndpointAccess("instance-admin")
 @Controller("instance-admin")
 export class InstanceAdminController {

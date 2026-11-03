@@ -1,0 +1,2 @@
+ALTER TABLE "personal_access_tokens" ADD COLUMN "scopes" text[] DEFAULT '{"read","write","admin"}' NOT NULL;--> statement-breakpoint
+ALTER TABLE "personal_access_tokens" ADD COLUMN "organization_id" uuid;

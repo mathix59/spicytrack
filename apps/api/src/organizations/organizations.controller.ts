@@ -103,8 +103,13 @@ export class OrganizationsController {
   @Get()
   @ApiOperation({ operationId: "listOrganizations" })
   @ApiOkResponse({ type: [OrganizationListItemDto] })
-  async list(@CurrentUser() user: UserRecord) {
-    return this.organizationsService.listForUser(user.id);
+  async list(@CurrentUser() user: UserRecord, @Req() request: AuthenticatedRequest) {
+    const organizations = await this.organizationsService.listForUser(user.id);
+    // A token limited to one organization only sees that one.
+    const tokenOrganizationId = request.auth?.token?.organizationId;
+    return tokenOrganizationId
+      ? organizations.filter((organization) => organization.id === tokenOrganizationId)
+      : organizations;
   }
 
   @Post()

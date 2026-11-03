@@ -92,6 +92,13 @@
       "when": 1793730359841,
       "tag": "0012_alert_signing_secret",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793730826070,
+      "tag": "0013_personal_token_scopes",
+      "breakpoints": true
     }
   ]
 }

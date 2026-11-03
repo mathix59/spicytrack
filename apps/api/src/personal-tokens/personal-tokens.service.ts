@@ -1,9 +1,10 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { generateOpaqueToken } from "../common/tokens";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
-import { personalAccessTokens } from "../database/schema";
+import { organizationMembers, organizations, personalAccessTokens } from "../database/schema";
+import type { TokenScope } from "./token-scopes";
 
 const TOKEN_PREFIX = "pat";
 
@@ -17,21 +18,48 @@ export class PersonalTokensService {
         id: personalAccessTokens.id,
         name: personalAccessTokens.name,
         tokenPreview: personalAccessTokens.tokenPreview,
+        scopes: personalAccessTokens.scopes,
+        organizationId: personalAccessTokens.organizationId,
+        organizationName: organizations.name,
         expiresAt: personalAccessTokens.expiresAt,
         lastUsedAt: personalAccessTokens.lastUsedAt,
         createdAt: personalAccessTokens.createdAt,
       })
       .from(personalAccessTokens)
+      .leftJoin(organizations, eq(organizations.id, personalAccessTokens.organizationId))
       .where(and(eq(personalAccessTokens.userId, userId), isNull(personalAccessTokens.revokedAt)))
       .orderBy(desc(personalAccessTokens.createdAt));
   }
 
-  async create(input: { userId: string; name: string; expiresInDays?: number }) {
+  async create(input: {
+    userId: string;
+    name: string;
+    scopes: TokenScope[];
+    organizationId: string | null;
+    expiresInDays: number;
+  }) {
+    let organizationName: string | null = null;
+    if (input.organizationId) {
+      const [membership] = await this.db
+        .select({ name: organizations.name })
+        .from(organizationMembers)
+        .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
+        .where(
+          and(
+            eq(organizationMembers.organizationId, input.organizationId),
+            eq(organizationMembers.userId, input.userId),
+          ),
+        )
+        .limit(1);
+      if (!membership) {
+        throw new BadRequestException("organizationId must be an organization you belong to");
+      }
+      organizationName = membership.name;
+    }
+
     const { token, hash } = generateOpaqueToken(TOKEN_PREFIX);
     const preview = token.slice(0, 12);
-    const expiresAt = input.expiresInDays
-      ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
-      : null;
+    const expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000);
 
     const [record] = await this.db
       .insert(personalAccessTokens)
@@ -40,6 +68,8 @@ export class PersonalTokensService {
         name: input.name,
         tokenHash: hash,
         tokenPreview: preview,
+        scopes: input.scopes,
+        organizationId: input.organizationId,
         expiresAt,
       })
       .returning();
@@ -49,6 +79,9 @@ export class PersonalTokensService {
         id: record.id,
         name: record.name,
         tokenPreview: record.tokenPreview,
+        scopes: record.scopes,
+        organizationId: record.organizationId,
+        organizationName,
         expiresAt: record.expiresAt,
         lastUsedAt: record.lastUsedAt,
         createdAt: record.createdAt,

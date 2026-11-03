@@ -807,7 +807,7 @@ test("symbolicates real HTTP events for popular frontend build layouts", async (
   expect(keys[0]).toBeTruthy();
   const cliToken = await json<{ secret: string }>(
     await api.post("/api/auth/tokens", {
-      data: { name: `Source map E2E ${Date.now()}`, expiresInDays: 1 },
+      data: { name: `Source map E2E ${Date.now()}`, scopes: ["write"], expiresInDays: 1 },
     }),
   );
   expect(cliToken.secret).toMatch(/^pat_/);

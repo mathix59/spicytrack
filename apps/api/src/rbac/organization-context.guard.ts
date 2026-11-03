@@ -46,7 +46,8 @@ export class OrganizationContextGuard implements CanActivate {
       .where(eq(organizations.slug, orgSlug))
       .limit(1);
 
-    if (!row) {
+    const tokenOrganizationId = request.auth?.token?.organizationId;
+    if (!row || (tokenOrganizationId && tokenOrganizationId !== row.organization.id)) {
       throw new NotFoundException("Organization not found");
     }
 

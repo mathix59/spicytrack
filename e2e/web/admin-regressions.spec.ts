@@ -77,6 +77,9 @@ test("PAT creation displays its secret and resets the form without an error", as
         id: "pat-id",
         name: "CI test",
         tokenPreview: "pat_test",
+        scopes: route.request().postDataJSON().scopes,
+        organizationId: null,
+        organizationName: null,
         createdAt: new Date().toISOString(),
       };
       tokens.push(token);
@@ -90,6 +93,7 @@ test("PAT creation displays its secret and resets the form without an error", as
   await expect(page.getByText("pat_regression_secret", { exact: true })).toBeVisible();
   await expect(page.getByPlaceholder("CI pipeline")).toHaveValue("");
   await expect(page.getByText(/Cannot read|reset.*null|reset.*undefined/)).toHaveCount(0);
+  await expect(page.getByText("Read only", { exact: true }).last()).toBeVisible();
 });
 
 test("invitation opens signup with password when public registration is closed", async ({

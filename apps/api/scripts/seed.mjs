@@ -343,9 +343,15 @@ async function authenticateUser(user) {
     throw new Error(`Could not register or sign in ${user.email}`);
   }
 
-  const { secret } = await api("POST", "/auth/tokens", { name: "seed", expiresInDays: 1 }, null, {
-    headers: { Cookie: cookie, Origin: WEB_ORIGIN },
-  });
+  const { secret } = await api(
+    "POST",
+    "/auth/tokens",
+    { name: "seed", scopes: ["admin"], expiresInDays: 1 },
+    null,
+    {
+      headers: { Cookie: cookie, Origin: WEB_ORIGIN },
+    },
+  );
   return secret;
 }
 

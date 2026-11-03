@@ -36,7 +36,9 @@ function useAccountTokens() {
     const form = event.currentTarget;
     const formData = new FormData(form);
     const name = String(formData.get("name") ?? "").trim();
-    const expiresInDaysRaw = String(formData.get("expiresInDays") ?? "");
+    const expiresInDays = Number(formData.get("expiresInDays") ?? 90);
+    const access = String(formData.get("access") ?? "read");
+    const organizationId = String(formData.get("organizationId") ?? "");
     if (!name) {
       setCreateError("Give the token a name so you can recognise it later.");
       return;
@@ -47,7 +49,13 @@ function useAccountTokens() {
       action: () =>
         withReadableApiError(() =>
           createMutation.mutateAsync({
-            data: { name, expiresInDays: expiresInDaysRaw ? Number(expiresInDaysRaw) : null },
+            data: {
+              name,
+              // Scopes are cumulative: the highest one is enough.
+              scopes: [access as "read" | "write" | "admin"],
+              organizationId: organizationId || null,
+              expiresInDays,
+            },
           }),
         ),
       onSuccess: (response) => {

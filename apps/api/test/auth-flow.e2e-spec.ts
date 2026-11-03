@@ -272,7 +272,7 @@ describe("Auth flow (e2e)", () => {
       method: "POST",
       url: "/api/auth/tokens",
       headers: { origin: ORIGIN, cookie: authenticatedCookie, "content-type": "application/json" },
-      payload: { name: "Auth flow PAT" },
+      payload: { name: "Auth flow PAT", scopes: ["read"] },
     });
     expect(create.statusCode).toBe(201);
     const { secret, token } = create.json() as { secret: string; token: { id: string } };
@@ -304,7 +304,7 @@ describe("Auth flow (e2e)", () => {
       method: "POST",
       url: "/api/auth/tokens",
       headers: { origin: ORIGIN, cookie: authenticatedCookie, "content-type": "application/json" },
-      payload: { name: "Expired PAT" },
+      payload: { name: "Expired PAT", scopes: ["read"] },
     });
     const expiredPayload = expiring.json() as { secret: string; token: { id: string } };
     await db

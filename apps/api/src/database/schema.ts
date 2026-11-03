@@ -133,6 +133,10 @@ export const personalAccessTokens = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     tokenPreview: varchar("token_preview", { length: 12 }).notNull(),
+    /** read, write and/or admin; tokens created before scopes existed keep full access. */
+    scopes: text("scopes").array().notNull().default(["read", "write", "admin"]),
+    /** When set, the token only works in this organization. */
+    organizationId: uuid("organization_id"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),

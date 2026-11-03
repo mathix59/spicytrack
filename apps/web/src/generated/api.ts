@@ -376,10 +376,24 @@ export interface MeResponseDto {
   memberships: OrganizationListItemDto[];
 }
 
+export type PersonalAccessTokenDtoScopesItem = typeof PersonalAccessTokenDtoScopesItem[keyof typeof PersonalAccessTokenDtoScopesItem];
+
+
+export const PersonalAccessTokenDtoScopesItem = {
+  read: 'read',
+  write: 'write',
+  admin: 'admin',
+} as const;
+
 export interface PersonalAccessTokenDto {
   id: string;
   name: string;
   tokenPreview: string;
+  scopes: PersonalAccessTokenDtoScopesItem[];
+  /** @nullable */
+  organizationId?: string | null;
+  /** @nullable */
+  organizationName?: string | null;
   /** @nullable */
   expiresAt?: string | null;
   /** @nullable */
@@ -387,10 +401,26 @@ export interface PersonalAccessTokenDto {
   createdAt: string;
 }
 
+export type CreatePersonalAccessTokenBodyDtoScopesItem = typeof CreatePersonalAccessTokenBodyDtoScopesItem[keyof typeof CreatePersonalAccessTokenBodyDtoScopesItem];
+
+
+export const CreatePersonalAccessTokenBodyDtoScopesItem = {
+  read: 'read',
+  write: 'write',
+  admin: 'admin',
+} as const;
+
 export interface CreatePersonalAccessTokenBodyDto {
   name: string;
-  /** @nullable */
-  expiresInDays?: number | null;
+  /** read: GET requests; write: also project changes; admin: also organization administration. */
+  scopes: CreatePersonalAccessTokenBodyDtoScopesItem[];
+  /**
+     * Limit the token to this organization; omit for every organization you belong to.
+     * @nullable
+     */
+  organizationId?: string | null;
+  /** 1 to 365 days; defaults to 90. */
+  expiresInDays?: number;
 }
 
 export interface CreatePersonalAccessTokenResponseDto {

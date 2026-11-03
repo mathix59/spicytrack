@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Inject, Injectable } from "@nestjs/common";
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Inject,
+  Injectable,
+} from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { and, eq } from "drizzle-orm";
 import { AuthenticatedRequest } from "../common/authenticated-request";
@@ -9,6 +15,7 @@ import { PermissionService } from "./permission.service";
 import { ROLE_PERMISSIONS } from "./permissions.constants";
 import { REQUIRED_PERMISSIONS_KEY } from "./permissions.decorator";
 import { Permission } from "./permissions.types";
+import { scopeForPermission, tokenAllows } from "../personal-tokens/token-scopes";
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -34,6 +41,14 @@ export class PermissionGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const tokenScopes = request.auth?.token?.scopes;
+    if (tokenScopes) {
+      const needed = requiredPermissions.map(scopeForPermission);
+      const missing = needed.find((scope) => !tokenAllows(tokenScopes, scope));
+      if (missing) {
+        throw new ForbiddenException(`This personal access token needs the ${missing} scope`);
+      }
+    }
     const membership = request.organization?.membership;
 
     if (!membership) {

@@ -9,19 +9,20 @@ import {
 } from "@nestjs/swagger";
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../common/current-user.decorator";
-import { assertString, optionalNumber } from "../common/validators";
 import {
   CreatePersonalAccessTokenBodyDto,
   CreatePersonalAccessTokenResponseDto,
   PersonalAccessTokenDto,
   SuccessDto,
 } from "../openapi/contracts";
+import { SessionOnlyGuard } from "./personal-token.guards";
+import { parseCreateTokenBody } from "./personal-tokens.utils";
 import { PersonalTokensService } from "./personal-tokens.service";
 
 @ApiTags("personal-tokens")
 @ApiBearerAuth()
 @Controller("auth/tokens")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, SessionOnlyGuard)
 export class PersonalTokensController {
   constructor(private readonly personalTokensService: PersonalTokensService) {}
 
@@ -37,11 +38,7 @@ export class PersonalTokensController {
   @ApiBody({ type: CreatePersonalAccessTokenBodyDto })
   @ApiOkResponse({ type: CreatePersonalAccessTokenResponseDto })
   async create(@CurrentUser() user: { id: string }, @Body() body: Record<string, unknown>) {
-    return this.personalTokensService.create({
-      userId: user.id,
-      name: assertString(body.name, "name"),
-      expiresInDays: optionalNumber(body.expiresInDays, "expiresInDays") ?? undefined,
-    });
+    return this.personalTokensService.create({ userId: user.id, ...parseCreateTokenBody(body) });
   }
 
   @Delete(":tokenId")
