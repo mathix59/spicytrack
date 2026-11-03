@@ -1280,6 +1280,7 @@ export type UploadReleaseArtifactBody = {
 export type ListIssuesParams = {
   page?: number;
   pageSize?: number;
+  /** Search: words match the title; filters is:, level:, priority:, assigned:, environment:, release:, has:, age:, lastSeen:, timesSeen:, user.email: and any tag key:value; prefix ! to negate. */
   q?: string;
   level?: string;
   priority?: string;

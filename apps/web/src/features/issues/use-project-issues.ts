@@ -92,6 +92,9 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     } as never,
     { query: { placeholderData: keepPreviousData } },
   );
+  const issuesErrorMessage = issuesQuery.isError ? getErrorMessage(issuesQuery.error) : null;
+  // The API rejects a malformed search with a message meant for the person typing it.
+  const searchError = issuesErrorMessage?.startsWith("Invalid search") ? issuesErrorMessage : null;
   const membersQuery = useListOrganizationMembers(orgSlug);
   const bulkUpdateIssueStatusMutation = useBulkUpdateIssueStatus({
     mutation: {
@@ -567,7 +570,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     isLoadingIssues: issuesQuery.isLoading,
     issueSearch,
     issues,
-    issuesError: issuesQuery.isError && !issuesPage ? issuesQuery.error : null,
+    issuesError: issuesQuery.isError && !issuesPage && !searchError ? issuesQuery.error : null,
     levelFilter,
     memberByUserId,
     members,
@@ -576,6 +579,7 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     projectEnvironments,
     projectReleases,
     regressedFilter,
+    searchError,
     releaseFilter,
     removeSavedSearch,
     retryIssues: () => void issuesQuery.refetch(),

@@ -71,6 +71,13 @@
       "when": 1793726374802,
       "tag": "0009_retention_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793728943285,
+      "tag": "0010_event_tags_index",
+      "breakpoints": true
     }
   ]
 }

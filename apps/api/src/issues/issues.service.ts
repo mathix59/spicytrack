@@ -17,6 +17,7 @@ import {
 } from "../database/schema";
 
 import { IssuesHistoryService } from "./issues-history.service";
+import type { IssueSearchTerm } from "./issue-search";
 import { buildIssueListFilters, eventSelect, resolveIssueSortOrder } from "./issues-query.utils";
 
 export const ISSUE_STATUSES = ["open", "resolved", "ignored"] as const;
@@ -45,7 +46,8 @@ export class IssuesService {
     projectId: string;
     page: number;
     pageSize: number;
-    q?: string;
+    search?: IssueSearchTerm[];
+    currentUserId?: string;
     level?: string;
     priority?: string;
     status?: string;

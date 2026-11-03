@@ -3,6 +3,7 @@ import { BadRequestException } from "@nestjs/common";
 import { isEventTrendPeriod } from "../common/event-trends.utils";
 import type { EventTrendPeriod } from "../common/event-trends.utils";
 import { assertOneOf, assertString } from "../common/validators";
+import { parseIssueSearch } from "./issue-search";
 
 type IssuePriority = "low" | "medium" | "high" | "critical";
 type IssueSortBy = "lastSeenAt" | "firstSeenAt" | "timesSeen";
@@ -31,7 +32,7 @@ function parseIssueListQuery(input: {
   return {
     page: normalizePositiveInt(input.page, 1, "page"),
     pageSize: normalizePositiveInt(input.pageSize, 25, "pageSize", 100),
-    q: normalizeOptionalQuery(input.q),
+    search: parseIssueSearch(normalizeOptionalQuery(input.q) ?? ""),
     level: normalizeOptionalQuery(input.level),
     priority: normalizePriority(input.priority),
     status: normalizeOptionalQuery(input.status),

@@ -605,6 +605,8 @@ export const events = pgTable(
     mergedFromIdx: index("events_merged_from_idx")
       .on(table.mergedFromIssueId)
       .where(sql`${table.mergedFromIssueId} is not null`),
+    // Issue search by tag (`key:value`, `has:key`).
+    tagsIdx: index("events_tags_idx").using("gin", table.tags),
   }),
 );
 

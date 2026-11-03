@@ -9,9 +9,26 @@ export function renderNullableText(value: unknown, fallback: string) {
   return typeof value === "string" && value.length > 0 ? value : fallback;
 }
 
+/** The `message` of an API error body such as `{"message":"…","statusCode":400}`. */
+function apiPayloadMessage(text: string) {
+  if (!text.startsWith("{")) return null;
+  try {
+    const payload: unknown = JSON.parse(text);
+    if (payload && typeof payload === "object" && "message" in payload) {
+      const value = payload.message;
+      if (typeof value === "string" && value) return value;
+      if (Array.isArray(value) && value.length) return value.map(String).join(" ");
+    }
+  } catch {
+    // Not JSON: the raw message is already human readable.
+  }
+  return null;
+}
+
 export function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
-    return error.message;
+    // `orvalFetch` throws the raw response body, usually a JSON payload with a `message` field.
+    return apiPayloadMessage(error.message) ?? error.message;
   }
 
   return "An unknown error occurred";

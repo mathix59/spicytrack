@@ -83,7 +83,13 @@ export class IssuesController {
   @ApiOperation({ operationId: "listIssues" })
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "pageSize", required: false, type: Number })
-  @ApiQuery({ name: "q", required: false, type: String })
+  @ApiQuery({
+    name: "q",
+    required: false,
+    type: String,
+    description:
+      "Search: words match the title; filters is:, level:, priority:, assigned:, environment:, release:, has:, age:, lastSeen:, timesSeen:, user.email: and any tag key:value; prefix ! to negate.",
+  })
   @ApiQuery({ name: "level", required: false, type: String })
   @ApiQuery({ name: "priority", required: false, type: String })
   @ApiQuery({ name: "status", required: false, type: String })
@@ -98,6 +104,7 @@ export class IssuesController {
   @UseGuards(PermissionGuard)
   async list(
     @CurrentProject() project: ProjectRecord,
+    @CurrentUser() user: UserRecord,
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string,
     @Query("q") q?: string,
@@ -128,6 +135,7 @@ export class IssuesController {
 
     return this.issuesService.listByProject({
       projectId: project.id,
+      currentUserId: user.id,
       ...query,
     });
   }

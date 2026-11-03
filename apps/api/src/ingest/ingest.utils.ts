@@ -6,6 +6,7 @@ import {
   normalizeMessage,
 } from "../common/grouping";
 import { redactEventPayload } from "../common/event-payload-redaction";
+import { buildEventTags } from "./event-tags";
 
 import type { ParsedEventPayload } from "./ingest.types";
 
@@ -82,21 +83,6 @@ function normalizeRecord(value: unknown) {
     : {};
 }
 
-function normalizeTags(value: unknown) {
-  if (Array.isArray(value)) {
-    return Object.fromEntries(
-      value
-        .filter(
-          (entry): entry is [string, string] =>
-            Array.isArray(entry) && typeof entry[0] === "string" && typeof entry[1] === "string",
-        )
-        .map(([key, tagValue]) => [key, tagValue]),
-    );
-  }
-
-  return normalizeRecord(value);
-}
-
 function getNestedString(value: unknown, path: string[]) {
   let current = value;
 
@@ -149,7 +135,7 @@ function parseEventPayload(payload: Record<string, unknown>): ParsedEventPayload
     fingerprintOverride: Array.isArray(sanitizedPayload.fingerprint)
       ? sanitizedPayload.fingerprint
       : null,
-    tags: normalizeTags(sanitizedPayload.tags),
+    tags: buildEventTags(sanitizedPayload),
     contexts: normalizeRecord(sanitizedPayload.contexts),
     extra: normalizeRecord(sanitizedPayload.extra),
   };

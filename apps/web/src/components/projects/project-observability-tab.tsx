@@ -38,6 +38,7 @@ function ProjectObservabilityTab({ orgSlug, projectSlug }: ProjectObservabilityT
           releaseFilter={issues.releaseFilter}
           removeSavedSearch={issues.removeSavedSearch}
           saveCurrentSearch={issues.saveCurrentSearch}
+          searchError={issues.searchError}
           savedSearchName={issues.savedSearchName}
           saveSearchOpen={issues.saveSearchOpen}
           savedSearches={issues.savedSearches}
