@@ -29,9 +29,33 @@ import { PostIngestPublisherService } from "./post-ingest-publisher.service";
 
 type TransactionClient = Parameters<Parameters<DatabaseClient["transaction"]>[0]>[0];
 
-class IngestQuotaExceededException extends HttpException {
-  constructor(scope: string) {
+const SENTRY_QUOTA_SCOPES: Record<string, string> = {
+  project_key_minute: "key",
+  project_hour: "project",
+  organization_hour: "organization",
+};
+
+export class IngestQuotaExceededException extends HttpException {
+  constructor(
+    scope: string,
+    /** Seconds until the quota window resets. */
+    readonly retryAfterSeconds: number,
+  ) {
     super(`Ingestion quota exceeded: ${scope}`, HttpStatus.TOO_MANY_REQUESTS);
+    this.sentryScope = SENTRY_QUOTA_SCOPES[scope] ?? "project";
+  }
+
+  readonly sentryScope: string;
+
+  /**
+   * Headers Sentry SDKs read to pause sending until the window resets: Retry-After, and
+   * X-Sentry-Rate-Limits as `<seconds>:<categories, empty = all>:<scope>:<reason>`.
+   */
+  get headers(): Record<string, string> {
+    return {
+      "Retry-After": String(this.retryAfterSeconds),
+      "X-Sentry-Rate-Limits": `${this.retryAfterSeconds}::${this.sentryScope}:quota_exceeded`,
+    };
   }
 }
 
@@ -46,15 +70,14 @@ export class IngestService {
   async ingestStore(projectId: string, payload: Record<string, unknown>, sentryKey?: string) {
     const project = await this.assertProjectAccess(projectId, sentryKey);
     this.assertPayloadSize(Buffer.byteLength(JSON.stringify(payload)));
-    await this.consumeQuotas(project);
     return this.trackResult(await this.persistEvent(project, payload));
   }
 
   async ingestEnvelope(projectId: string, envelope: string, sentryKey?: string) {
     const project = await this.assertProjectAccess(projectId, sentryKey);
     this.assertPayloadSize(Buffer.byteLength(envelope));
-    // Parse before counting quotas: envelopes without an event and malformed ones are not stored,
-    // so they must not use up the project's event quota.
+    // Envelopes without an event and malformed ones are not stored, so they never reach the
+    // quota check in persistEvent.
     let payload: Record<string, unknown> | null;
     try {
       payload = parseEnvelopeEvent(envelope);
@@ -69,7 +92,6 @@ export class IngestService {
       return { accepted: true, dropped: true, reason: "unsupported_envelope_item" };
     }
 
-    await this.consumeQuotas(project);
     return this.trackResult(await this.persistEvent(project, payload));
   }
 
@@ -113,9 +135,8 @@ export class IngestService {
     try {
       await this.db.transaction(async (tx) => {
         for (const quota of quotas) {
-          const windowStartedAt = new Date(
-            Math.floor(Date.now() / quota.windowMs) * quota.windowMs,
-          );
+          const now = Date.now();
+          const windowStartedAt = new Date(Math.floor(now / quota.windowMs) * quota.windowMs);
           const [counter] = await tx
             .insert(ingestRateCounters)
             .values({
@@ -137,7 +158,11 @@ export class IngestService {
             })
             .returning({ count: ingestRateCounters.count });
           if (counter.count > quota.limit) {
-            throw new IngestQuotaExceededException(quota.scope);
+            const resetsAt = windowStartedAt.getTime() + quota.windowMs;
+            throw new IngestQuotaExceededException(
+              quota.scope,
+              Math.max(1, Math.ceil((resetsAt - now) / 1000)),
+            );
           }
         }
       });
@@ -198,8 +223,6 @@ export class IngestService {
         projectId: project.id,
       };
     }
-    const context = await this.buildIngestContext(project, parsedPayload);
-
     const existingEvent = await this.findExistingEvent(project.id, parsedPayload.eventExternalId);
 
     if (existingEvent) {
@@ -210,6 +233,11 @@ export class IngestService {
         eventId: existingEvent.id,
       };
     }
+
+    // Counted only now: events dropped by inbound rules and SDK retries of a stored event do not
+    // use up the quota.
+    await this.consumeQuotas(project);
+    const context = await this.buildIngestContext(project, parsedPayload);
 
     try {
       const result = await this.db.transaction(async (tx) => {

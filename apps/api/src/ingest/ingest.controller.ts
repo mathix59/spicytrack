@@ -1,9 +1,19 @@
-import { Body, Controller, Headers, Param, Post, Query, Req } from "@nestjs/common";
+import { Body, Controller, Headers, Param, Post, Query, Req, Res } from "@nestjs/common";
 import { ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from "@nestjs/swagger";
-import type { FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { EndpointAccess } from "../auth/endpoint-access.decorator";
 import { IngestAcceptedDto, SentryEventBodyDto } from "../openapi/contracts";
-import { IngestService } from "./ingest.service";
+import { IngestQuotaExceededException, IngestService } from "./ingest.service";
+
+/** Adds the rate-limit headers SDKs use to back off when a quota rejects the event. */
+async function withRateLimitHeaders<T>(reply: FastifyReply, ingest: () => Promise<T>) {
+  try {
+    return await ingest();
+  } catch (error) {
+    if (error instanceof IngestQuotaExceededException) reply.headers(error.headers);
+    throw error;
+  }
+}
 
 @ApiTags("ingest")
 @ApiParam({ name: "projectId", type: String })
@@ -22,11 +32,14 @@ export class IngestController {
     @Body() body: Record<string, unknown>,
     @Query("sentry_key") sentryKeyQuery: string | undefined,
     @Headers("x-sentry-auth") sentryAuthHeader: string | undefined,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    return this.ingestService.ingestStore(
-      projectId,
-      body,
-      sentryKeyQuery ?? parseSentryAuthHeader(sentryAuthHeader),
+    return withRateLimitHeaders(reply, () =>
+      this.ingestService.ingestStore(
+        projectId,
+        body,
+        sentryKeyQuery ?? parseSentryAuthHeader(sentryAuthHeader),
+      ),
     );
   }
 
@@ -39,16 +52,19 @@ export class IngestController {
     @Req() request: FastifyRequest<{ Body: string }>,
     @Query("sentry_key") sentryKeyQuery: string | undefined,
     @Headers("x-sentry-auth") sentryAuthHeader: string | undefined,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     const rawEnvelope =
       typeof request.body === "string" ? request.body : JSON.stringify(request.body);
 
-    return this.ingestService.ingestEnvelope(
-      projectId,
-      rawEnvelope,
-      sentryKeyQuery ??
-        parseSentryAuthHeader(sentryAuthHeader) ??
-        parseSentryAuthHeader(request.headers["sentry-auth"] as string | undefined),
+    return withRateLimitHeaders(reply, () =>
+      this.ingestService.ingestEnvelope(
+        projectId,
+        rawEnvelope,
+        sentryKeyQuery ??
+          parseSentryAuthHeader(sentryAuthHeader) ??
+          parseSentryAuthHeader(request.headers["sentry-auth"] as string | undefined),
+      ),
     );
   }
 }

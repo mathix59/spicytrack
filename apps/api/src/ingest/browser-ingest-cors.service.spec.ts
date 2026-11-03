@@ -34,6 +34,7 @@ describe("BrowserIngestCorsService", () => {
       origin: false,
       credentials: false,
       methods: ["POST", "OPTIONS"],
+      exposedHeaders: ["Retry-After", "X-Sentry-Rate-Limits"],
       maxAge: 600,
     });
   });

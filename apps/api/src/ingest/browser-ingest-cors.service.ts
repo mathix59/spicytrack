@@ -43,6 +43,8 @@ export class BrowserIngestCorsService {
       origin: allowed ? normalizedRequestOrigin : false,
       credentials: false,
       methods: ["POST", "OPTIONS"],
+      // Browser SDKs read these to back off when a quota rejects their events.
+      exposedHeaders: ["Retry-After", "X-Sentry-Rate-Limits"],
       maxAge: 600,
     };
   }
