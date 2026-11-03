@@ -17,6 +17,7 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { FirstEventIndicator } from "./first-event-indicator";
+import { TestEventButton } from "./test-event-button";
 import type { FirstEventStatus } from "./types";
 import { SETUP_PLATFORMS } from "./utils";
 
@@ -140,6 +141,10 @@ function ProjectKeySetupCard({
               />
             </SetupStep>
             <SetupStep index={4} title="Send a test event">
+              <TestEventButton orgSlug={orgSlug} projectSlug={projectSlug} />
+              <p className="text-xs text-muted-foreground">
+                Then confirm your SDK works by raising an error from your app:
+              </p>
               <CopyableCode
                 label="Test event"
                 language={language}

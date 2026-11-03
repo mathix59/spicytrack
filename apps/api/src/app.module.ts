@@ -12,6 +12,7 @@ import { InstanceAdminModule } from "./instance-admin/instance-admin.module";
 import { IssuesModule } from "./issues/issues.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { McpModule } from "./mcp/mcp.module";
+import { OnboardingModule } from "./onboarding/onboarding.module";
 import { OrganizationsModule } from "./organizations/organizations.module";
 import { PersonalTokensModule } from "./personal-tokens/personal-tokens.module";
 import { ProjectsModule } from "./projects/projects.module";
@@ -43,6 +44,7 @@ import { TeamsModule } from "./teams/teams.module";
     TeamsModule,
     IssuesModule,
     IntegrationsModule,
+    OnboardingModule,
     InstanceAdminModule,
     AutofixModule,
     JobsModule,

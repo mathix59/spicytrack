@@ -462,6 +462,34 @@ export class ProjectDto {
 
   @ApiProperty({ type: [String] })
   browserAllowedOrigins!: string[];
+
+  @ApiPropertyOptional({ type: String, nullable: true, description: "First SDK event received" })
+  firstEventAt?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  lastEventAt?: string | null;
+}
+
+export class ProjectFirstEventDto {
+  @ApiProperty({ type: String, nullable: true })
+  firstEventAt!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  lastEventAt!: string | null;
+}
+
+export class TestEventResultDto {
+  @ApiProperty({ description: "False when an inbound rule dropped the event" })
+  stored!: boolean;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  issueId?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  eventId?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  reason?: string | null;
 }
 
 export class ProjectSavedSearchFiltersDto {

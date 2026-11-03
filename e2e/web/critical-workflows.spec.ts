@@ -477,10 +477,19 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await projectDialog.getByRole("button", { name: "Create project" }).click();
 
   const projectLink = page.getByRole("link", { name: projectName, exact: true });
-  await Promise.race([projectLink.waitFor(), projectDialog.getByRole("alert").waitFor()]);
+  await Promise.race([page.waitForURL(/tab=setup/), projectDialog.getByRole("alert").waitFor()]);
   if (await projectDialog.getByRole("alert").isVisible()) {
     await page.keyboard.press("Escape");
     await expect(projectDialog).toBeHidden();
+  } else {
+    // New projects open the setup wizard; a server-side test event goes through ingestion.
+    await expect(page.getByText("Get your first event")).toBeVisible();
+    await page.getByRole("button", { name: "Next" }).click();
+    await expect(page.getByLabel(/install/i).first()).toBeVisible();
+    await page.getByRole("button", { name: "Next" }).click();
+    await page.getByRole("button", { name: "Send test event" }).click();
+    await expect(page.getByText(/Test event stored/)).toBeVisible();
+    await expect(page.getByText("Waiting for the first event…")).toBeVisible();
   }
   await expect(projectLink).toBeVisible();
 
@@ -551,7 +560,8 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
       const result = await json<{ items: Issue[] }>(
         await api.get(`/api/organizations/${organization.slug}/projects/${projectSlug}/issues`),
       );
-      issue = result.items[0];
+      // Skip the wizard's test event issue.
+      issue = result.items.find((candidate) => !candidate.title.startsWith("SpicyTrackTestError"));
       return issue?.timesSeen ?? 0;
     })
     .toBe(1);
@@ -586,7 +596,10 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   const defaultIssues = await defaultIssuesResponse;
   expect(defaultIssues.ok()).toBe(true);
   expect(new URL(defaultIssues.url()).searchParams.get("status")).toBe("open");
-  expect((await defaultIssues.json()).items).toEqual([]);
+  // Only the setup wizard's test event stays open once the real issue is resolved.
+  expect(
+    ((await defaultIssues.json()).items as Array<{ title: string }>).map((item) => item.title),
+  ).toEqual([expect.stringMatching(/^SpicyTrackTestError/)]);
   await expect(page.getByRole("heading", { name: projectName, exact: true })).toBeVisible();
   await expect(page.getByRole("table").getByText(issue!.title, { exact: true })).toHaveCount(0);
   await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?status=resolved`);

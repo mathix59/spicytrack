@@ -5859,6 +5859,103 @@
           "teams"
         ]
       }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/onboarding/first-event": {
+      "get": {
+        "operationId": "getProjectFirstEvent",
+        "parameters": [
+          {
+            "name": "wait",
+            "required": false,
+            "in": "query",
+            "description": "Seconds to hold the request until the first event arrives (max 25)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectFirstEventDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/onboarding/test-event": {
+      "post": {
+        "operationId": "sendProjectTestEvent",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestEventResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
     }
   },
   "info": {
@@ -6187,6 +6284,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "firstEventAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "First SDK event received"
+          },
+          "lastEventAt": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -9031,6 +9137,47 @@
         },
         "required": [
           "userId"
+        ]
+      },
+      "ProjectFirstEventDto": {
+        "type": "object",
+        "properties": {
+          "firstEventAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastEventAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "firstEventAt",
+          "lastEventAt"
+        ]
+      },
+      "TestEventResultDto": {
+        "type": "object",
+        "properties": {
+          "stored": {
+            "type": "boolean",
+            "description": "False when an inbound rule dropped the event"
+          },
+          "issueId": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "stored"
         ]
       }
     }

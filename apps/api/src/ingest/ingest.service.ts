@@ -102,6 +102,26 @@ export class IngestService {
     return this.trackResult(await this.persistEvent(project, payload));
   }
 
+  /**
+   * Sends an event through the whole pipeline with the project's first active key, as an SDK
+   * would. It does not count as the project's first event, so onboarding keeps waiting for
+   * the real SDK.
+   */
+  async ingestTestEvent(projectId: string, payload: Record<string, unknown>) {
+    const [key] = await this.db
+      .select({ publicId: projects.publicId, publicKey: projectKeys.publicKey })
+      .from(projectKeys)
+      .innerJoin(projects, eq(projects.id, projectKeys.projectId))
+      .where(and(eq(projectKeys.projectId, projectId), eq(projectKeys.isActive, true)))
+      .orderBy(projectKeys.createdAt)
+      .limit(1);
+    if (!key) {
+      throw new BadRequestException("Create or enable a client key to send a test event");
+    }
+    const project = await this.assertProjectAccess(String(key.publicId), key.publicKey);
+    return this.trackResult(await this.persistEvent(project, payload, { firstEvent: false }));
+  }
+
   private assertPayloadSize(size: number): void {
     const { maxEventBytes } = ingestLimits();
     if (maxEventBytes > 0 && size > maxEventBytes) {
@@ -219,7 +239,11 @@ export class IngestService {
     return project;
   }
 
-  private async persistEvent(project: IngestProjectAccess, payload: Record<string, unknown>) {
+  private async persistEvent(
+    project: IngestProjectAccess,
+    payload: Record<string, unknown>,
+    options: { firstEvent?: boolean } = {},
+  ) {
     const parsedPayload = parseEventPayload(payload);
     const policyResult = applyProjectPolicies(project, parsedPayload);
     if (policyResult.ignored) {
@@ -259,7 +283,12 @@ export class IngestService {
         );
 
         await this.linkLastEvent(tx, issue.id, event.id);
-        await this.touchProject(tx, project.id, parsedPayload.timestamp);
+        await this.touchProject(
+          tx,
+          project.id,
+          parsedPayload.timestamp,
+          options.firstEvent ?? true,
+        );
 
         return { issue, issueWasCreated, issueRegressed, event };
       });
@@ -556,11 +585,18 @@ export class IngestService {
       .where(eq(issues.id, issueId));
   }
 
-  private async touchProject(tx: TransactionClient, projectId: string, timestamp: Date) {
+  private async touchProject(
+    tx: TransactionClient,
+    projectId: string,
+    timestamp: Date,
+    firstEvent: boolean,
+  ) {
     await tx
       .update(projects)
       .set({
-        firstEventAt: sql`COALESCE(${projects.firstEventAt}, ${timestamp})`,
+        ...(firstEvent
+          ? { firstEventAt: sql`COALESCE(${projects.firstEventAt}, ${timestamp})` }
+          : {}),
         lastEventAt: timestamp,
         updatedAt: new Date(),
       })

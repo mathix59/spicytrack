@@ -31,7 +31,8 @@ function FirstEventIndicator({
         <span className="min-w-0">
           <span className="block font-medium text-foreground">Waiting for the first event…</span>
           <span className="block text-xs text-muted-foreground">
-            This updates automatically once your SDK reports.
+            This updates within a second once your SDK reports. Test events sent from SpicyTrack
+            don&apos;t count.
           </span>
         </span>
       </div>
@@ -46,11 +47,9 @@ function FirstEventIndicator({
       <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-success" />
       <span className="min-w-0 flex-1">
         <span className="block font-medium text-foreground">First event received</span>
-        {status.lastSeenAt ? (
-          <span className="block text-xs text-muted-foreground">
-            Latest issue seen {formatLocalDateTime(status.lastSeenAt)}
-          </span>
-        ) : null}
+        <span className="block text-xs text-muted-foreground">
+          Received {formatLocalDateTime(status.firstEventAt)}
+        </span>
       </span>
       <Button asChild size="sm" variant="secondary">
         <Link to={issuesHref}>

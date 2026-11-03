@@ -158,6 +158,13 @@ export interface ProjectDto {
   ownershipRules: ProjectDtoOwnershipRulesItem[];
   piiScrubFields: string[];
   browserAllowedOrigins: string[];
+  /**
+     * First SDK event received
+     * @nullable
+     */
+  firstEventAt?: string | null;
+  /** @nullable */
+  lastEventAt?: string | null;
 }
 
 export interface CreateProjectBodyDto {
@@ -1442,6 +1449,24 @@ export interface AddTeamMemberBodyDto {
   role?: string;
 }
 
+export interface ProjectFirstEventDto {
+  /** @nullable */
+  firstEventAt: string | null;
+  /** @nullable */
+  lastEventAt: string | null;
+}
+
+export interface TestEventResultDto {
+  /** False when an inbound rule dropped the event */
+  stored: boolean;
+  /** @nullable */
+  issueId?: string | null;
+  /** @nullable */
+  eventId?: string | null;
+  /** @nullable */
+  reason?: string | null;
+}
+
 export type InstanceAdminControllerUsersParams = {
   search: string;
   page: string;
@@ -1546,6 +1571,11 @@ export const ExportOrganizationAuditFormat = {
   csv: 'csv',
   json: 'json',
 } as const;
+
+export type GetProjectFirstEventParams = {
+  /** Seconds to hold the request until the first event arrives (max 25) */
+  wait?: number;
+};
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
@@ -14497,4 +14527,216 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getRemoveTeamMemberMutationOptions(options), queryClient);
+    }
+
+export type getProjectFirstEventResponse200 = {
+  data: ProjectFirstEventDto
+  status: 200
+}
+
+export type getProjectFirstEventResponseSuccess = (getProjectFirstEventResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getProjectFirstEventResponse = (getProjectFirstEventResponseSuccess)
+
+export const getGetProjectFirstEventUrl = (orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectFirstEventParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/onboarding/first-event?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/onboarding/first-event`
+}
+
+export const getProjectFirstEvent = async (orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectFirstEventParams, options?: Parameters<typeof orvalFetch>[1]): Promise<getProjectFirstEventResponse> => {
+
+  return orvalFetch<getProjectFirstEventResponse>(getGetProjectFirstEventUrl(orgSlug,projectSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectFirstEventQueryKey = (orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectFirstEventParams,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/onboarding/first-event`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProjectFirstEventQueryOptions = <TData = Awaited<ReturnType<typeof getProjectFirstEvent>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectFirstEventParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectFirstEvent>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectFirstEventQueryKey(orgSlug,projectSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectFirstEvent>>> = ({ signal }) => getProjectFirstEvent(orgSlug,projectSlug,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectFirstEvent>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectFirstEventQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectFirstEvent>>>
+export type GetProjectFirstEventQueryError = ErrorType<unknown>
+
+
+export function useGetProjectFirstEvent<TData = Awaited<ReturnType<typeof getProjectFirstEvent>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params: undefined |  GetProjectFirstEventParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectFirstEvent>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectFirstEvent>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectFirstEvent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectFirstEvent<TData = Awaited<ReturnType<typeof getProjectFirstEvent>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectFirstEventParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectFirstEvent>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectFirstEvent>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectFirstEvent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectFirstEvent<TData = Awaited<ReturnType<typeof getProjectFirstEvent>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectFirstEventParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectFirstEvent>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetProjectFirstEvent<TData = Awaited<ReturnType<typeof getProjectFirstEvent>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectFirstEventParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectFirstEvent>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProjectFirstEventQueryOptions(orgSlug,projectSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type sendProjectTestEventResponse200 = {
+  data: TestEventResultDto
+  status: 200
+}
+
+export type sendProjectTestEventResponseSuccess = (sendProjectTestEventResponse200) & {
+  headers: Headers;
+};
+;
+
+export type sendProjectTestEventResponse = (sendProjectTestEventResponseSuccess)
+
+export const getSendProjectTestEventUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/onboarding/test-event`
+}
+
+export const sendProjectTestEvent = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<sendProjectTestEventResponse> => {
+
+  return orvalFetch<sendProjectTestEventResponse>(getSendProjectTestEventUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSendProjectTestEventMutationKey = () => ['sendProjectTestEvent'] as const;
+
+export const getSendProjectTestEventMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendProjectTestEvent>>, TError,SendProjectTestEventMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendProjectTestEvent>>, TError,SendProjectTestEventMutationVariables, TContext> => {
+
+const mutationKey = getSendProjectTestEventMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendProjectTestEvent>>, SendProjectTestEventMutationVariables> = (props) => {
+          const {orgSlug,projectSlug} = props ?? {};
+
+          return  sendProjectTestEvent(orgSlug,projectSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendProjectTestEventMutationResult = NonNullable<Awaited<ReturnType<typeof sendProjectTestEvent>>>
+
+    export type SendProjectTestEventMutationError = ErrorType<unknown>
+    export type SendProjectTestEventMutationVariables = {orgSlug: string;projectSlug: string}
+
+    export const useSendProjectTestEvent = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendProjectTestEvent>>, TError,SendProjectTestEventMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof sendProjectTestEvent>>,
+        TError,
+        SendProjectTestEventMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendProjectTestEventMutationOptions(options), queryClient);
     }

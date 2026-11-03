@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useSearchParams, useParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -70,6 +70,7 @@ function useOrganizationPage(): OrganizationPageResult {
   const { orgSlug = "" } = useParams();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
   const [projectOpen, setProjectOpen] = useState(false);
@@ -213,9 +214,11 @@ function useOrganizationPage(): OrganizationPageResult {
             teamId: (String(formData.get("teamId") ?? "") || undefined) as never,
           },
         }),
-      onSuccess: async () => {
+      onSuccess: async (response) => {
         setProjectOpen(false);
         toast.success("Project created");
+        // New projects start in the setup wizard, until their first event arrives.
+        navigate(`/orgs/${orgSlug}/projects/${response.data.slug}?tab=setup`);
       },
     });
   };

@@ -60,6 +60,7 @@ function ProjectPage() {
         activeTab={page.activeTab}
         orgSlug={page.orgSlug}
         projectSlug={page.projectSlug}
+        showSetup={!page.project.firstEventAt}
       />
 
       <ProjectPageContent page={page} />

@@ -1,20 +1,12 @@
 import { Module } from "@nestjs/common";
-import { JobsModule } from "../jobs/jobs.module";
 import { IngestController } from "./ingest.controller";
 import { BrowserIngestCorsService } from "./browser-ingest-cors.service";
-import { IngestResolversService } from "./ingest-resolvers.service";
-import { IngestService } from "./ingest.service";
-import { PostIngestPublisherService } from "./post-ingest-publisher.service";
+import { IngestPipelineModule } from "./ingest-pipeline.module";
 
 @Module({
-  imports: [JobsModule],
+  imports: [IngestPipelineModule],
   controllers: [IngestController],
-  providers: [
-    IngestService,
-    IngestResolversService,
-    PostIngestPublisherService,
-    BrowserIngestCorsService,
-  ],
+  providers: [BrowserIngestCorsService],
   exports: [BrowserIngestCorsService],
 })
 export class IngestModule {}

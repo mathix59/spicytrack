@@ -6,7 +6,7 @@ type FirstEventStatus =
   | { state: "loading" }
   | { state: "unknown" }
   | { state: "waiting" }
-  | { state: "received"; lastSeenAt: string | null };
+  | { state: "received"; firstEventAt: string };
 
 type ProjectKeysTabData = {
   keys: ProjectKeyDto[];

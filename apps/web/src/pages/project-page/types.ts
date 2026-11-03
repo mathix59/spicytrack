@@ -7,7 +7,14 @@ import type {
   TeamDto,
 } from "@/generated/api";
 
-type ProjectTab = "observability" | "keys" | "inventory" | "alerting" | "integrations" | "audit";
+type ProjectTab =
+  | "observability"
+  | "setup"
+  | "keys"
+  | "inventory"
+  | "alerting"
+  | "integrations"
+  | "audit";
 
 type ProjectPageData = {
   orgSlug: string;

@@ -32,6 +32,7 @@ const EMPTY_TEAMS: TeamDto[] = [];
 const EMPTY_MEMBERS: OrganizationMemberDto[] = [];
 const VALID_TABS: ProjectTab[] = [
   "observability",
+  "setup",
   "keys",
   "inventory",
   "alerting",
