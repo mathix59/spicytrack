@@ -499,6 +499,8 @@ export const alertDeliveries = pgTable(
       table.projectId,
       table.createdAt,
     ),
+    // Retention purges settled deliveries across all projects by age.
+    createdIdx: index("alert_deliveries_created_idx").on(table.createdAt),
   }),
 );
 
@@ -658,6 +660,7 @@ export const auditLogs = pgTable(
       table.organizationId,
       table.createdAt,
     ),
+    createdIdx: index("audit_logs_created_idx").on(table.createdAt),
   }),
 );
 

@@ -49,7 +49,7 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
     private readonly retentionCleanupHandler: RetentionCleanupHandler,
   ) {
     this.handlers = {
-      retention_cleanup: () => this.retentionCleanupHandler.run(),
+      retention_cleanup: (_job, signal) => this.retentionCleanupHandler.run(signal),
     };
   }
 
