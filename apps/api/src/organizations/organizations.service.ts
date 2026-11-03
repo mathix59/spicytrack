@@ -18,7 +18,7 @@ import {
   organizations,
   users,
 } from "../database/schema";
-import { ROLE_PERMISSIONS } from "../rbac/permissions.constants";
+import { ROLE_DESCRIPTIONS, ROLE_PERMISSIONS } from "../rbac/permissions.constants";
 import type { Permission } from "../rbac/permissions.types";
 import {
   assertRoleManageable,
@@ -133,14 +133,44 @@ export class OrganizationsService {
 
   async listRoles(organizationId: string) {
     await this.ensureSystemRoles(organizationId);
-    return this.db
+    const roles = await this.db
       .select()
       .from(organizationRoles)
       .where(eq(organizationRoles.organizationId, organizationId));
+    return this.withRoleUsage(organizationId, roles);
+  }
+
+  /** Adds how many members and pending invitations use each role, so the UI can explain deletes. */
+  private async withRoleUsage<T extends { key: string }>(organizationId: string, roles: T[]) {
+    const [memberCounts, invitationCounts] = await Promise.all([
+      this.db
+        .select({ role: organizationMembers.role, count: sql<number>`count(*)::int` })
+        .from(organizationMembers)
+        .where(eq(organizationMembers.organizationId, organizationId))
+        .groupBy(organizationMembers.role),
+      this.db
+        .select({ role: invitations.role, count: sql<number>`count(*)::int` })
+        .from(invitations)
+        .where(
+          and(
+            eq(invitations.organizationId, organizationId),
+            sql`${invitations.acceptedAt} IS NULL`,
+            sql`${invitations.revokedAt} IS NULL`,
+          ),
+        )
+        .groupBy(invitations.role),
+    ]);
+    const members = new Map(memberCounts.map((row) => [row.role, Number(row.count)]));
+    const pending = new Map(invitationCounts.map((row) => [row.role, Number(row.count)]));
+    return roles.map((role) => ({
+      ...role,
+      memberCount: members.get(role.key) ?? 0,
+      pendingInvitationCount: pending.get(role.key) ?? 0,
+    }));
   }
   async createRole(
     organizationId: string,
-    input: { key: string; name: string; permissions: Permission[] },
+    input: { key: string; name: string; description?: string | null; permissions: Permission[] },
     actorUserId: string,
   ) {
     const actor = await this.getActorRolePolicy(organizationId, actorUserId);
@@ -159,7 +189,13 @@ export class OrganizationsService {
 
     const [role] = await this.db
       .insert(organizationRoles)
-      .values({ organizationId, key: input.key, name: input.name, permissions: input.permissions })
+      .values({
+        organizationId,
+        key: input.key,
+        name: input.name,
+        description: input.description ?? null,
+        permissions: input.permissions,
+      })
       .returning();
     await this.auditService.record({
       organizationId,
@@ -169,13 +205,13 @@ export class OrganizationsService {
       targetId: role.id,
       payload: { key: role.key, permissions: role.permissions },
     });
-    return role;
+    return { ...role, memberCount: 0, pendingInvitationCount: 0 };
   }
 
   async updateRole(
     organizationId: string,
     key: string,
-    input: { name: string; permissions: Permission[] },
+    input: { name: string; description?: string | null; permissions: Permission[] },
     actorUserId: string,
   ) {
     const [role] = await this.db
@@ -193,7 +229,12 @@ export class OrganizationsService {
     assertRolePermissionsAssignable(actor, { key, permissions: input.permissions });
     const [updated] = await this.db
       .update(organizationRoles)
-      .set({ name: input.name, permissions: input.permissions, updatedAt: new Date() })
+      .set({
+        name: input.name,
+        ...(input.description === undefined ? {} : { description: input.description }),
+        permissions: input.permissions,
+        updatedAt: new Date(),
+      })
       .where(eq(organizationRoles.id, role.id))
       .returning();
     await this.auditService.record({
@@ -204,7 +245,8 @@ export class OrganizationsService {
       targetId: role.id,
       payload: { key, permissions: input.permissions },
     });
-    return updated;
+    const [withUsage] = await this.withRoleUsage(organizationId, [updated]);
+    return withUsage;
   }
 
   async deleteRole(organizationId: string, key: string, actorUserId: string) {
@@ -595,6 +637,7 @@ export class OrganizationsService {
           organizationId,
           key,
           name: key[0]!.toUpperCase() + key.slice(1),
+          description: ROLE_DESCRIPTIONS[key as keyof typeof ROLE_DESCRIPTIONS],
           permissions,
           isSystem: true,
         })),
@@ -603,6 +646,7 @@ export class OrganizationsService {
         target: [organizationRoles.organizationId, organizationRoles.key],
         set: {
           name: sql`excluded.name`,
+          description: sql`excluded.description`,
           permissions: sql`excluded.permissions`,
           isSystem: true,
           updatedAt: new Date(),

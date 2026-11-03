@@ -7497,6 +7497,10 @@
           "name": {
             "type": "string"
           },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
           "permissions": {
             "type": "array",
             "items": {
@@ -7505,6 +7509,14 @@
           },
           "isSystem": {
             "type": "boolean"
+          },
+          "memberCount": {
+            "type": "number",
+            "description": "Members currently assigned this role."
+          },
+          "pendingInvitationCount": {
+            "type": "number",
+            "description": "Pending invitations that would grant this role."
           }
         },
         "required": [
@@ -7512,7 +7524,9 @@
           "key",
           "name",
           "permissions",
-          "isSystem"
+          "isSystem",
+          "memberCount",
+          "pendingInvitationCount"
         ]
       },
       "CreateOrganizationRoleBodyDto": {
@@ -7523,6 +7537,11 @@
           },
           "name": {
             "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 280
           },
           "permissions": {
             "type": "array",
@@ -7542,6 +7561,11 @@
         "properties": {
           "name": {
             "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 280
           },
           "permissions": {
             "type": "array",
@@ -8020,6 +8044,10 @@
           "name": {
             "type": "string"
           },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
           "permissions": {
             "type": "array",
             "items": {
@@ -8028,6 +8056,10 @@
           },
           "isSystem": {
             "type": "boolean"
+          },
+          "memberCount": {
+            "type": "number",
+            "description": "Members currently assigned this role."
           }
         },
         "required": [
@@ -8035,7 +8067,8 @@
           "key",
           "name",
           "permissions",
-          "isSystem"
+          "isSystem",
+          "memberCount"
         ]
       },
       "CreateTeamRoleBodyDto": {
@@ -8043,6 +8076,11 @@
         "properties": {
           "name": {
             "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 280
           },
           "permissions": {
             "type": "array",
@@ -8061,6 +8099,11 @@
         "properties": {
           "name": {
             "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 280
           },
           "permissions": {
             "type": "array",

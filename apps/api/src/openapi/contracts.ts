@@ -97,10 +97,16 @@ export class OrganizationRoleDto {
   key!: string;
   @ApiProperty()
   name!: string;
+  @ApiPropertyOptional({ type: String, nullable: true })
+  description?: string | null;
   @ApiProperty({ type: [String] })
   permissions!: string[];
   @ApiProperty()
   isSystem!: boolean;
+  @ApiProperty({ description: "Members currently assigned this role." })
+  memberCount!: number;
+  @ApiProperty({ description: "Pending invitations that would grant this role." })
+  pendingInvitationCount!: number;
 }
 
 export class CreateOrganizationRoleBodyDto {
@@ -108,6 +114,8 @@ export class CreateOrganizationRoleBodyDto {
   key!: string;
   @ApiProperty()
   name!: string;
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 280 })
+  description?: string | null;
   @ApiProperty({ type: [String] })
   permissions!: string[];
 }
@@ -115,6 +123,8 @@ export class CreateOrganizationRoleBodyDto {
 export class UpdateOrganizationRoleBodyDto {
   @ApiProperty()
   name!: string;
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 280 })
+  description?: string | null;
   @ApiProperty({ type: [String] })
   permissions!: string[];
 }
@@ -357,15 +367,21 @@ export class TeamRoleDto {
   key!: string;
   @ApiProperty()
   name!: string;
+  @ApiPropertyOptional({ type: String, nullable: true })
+  description?: string | null;
   @ApiProperty({ type: [String] })
   permissions!: string[];
   @ApiProperty()
   isSystem!: boolean;
+  @ApiProperty({ description: "Members currently assigned this role." })
+  memberCount!: number;
 }
 
 export class CreateTeamRoleBodyDto {
   @ApiProperty()
   name!: string;
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 280 })
+  description?: string | null;
   @ApiProperty({ type: [String] })
   permissions!: string[];
 }
@@ -373,6 +389,8 @@ export class CreateTeamRoleBodyDto {
 export class UpdateTeamRoleBodyDto {
   @ApiProperty()
   name!: string;
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 280 })
+  description?: string | null;
   @ApiProperty({ type: [String] })
   permissions!: string[];
 }

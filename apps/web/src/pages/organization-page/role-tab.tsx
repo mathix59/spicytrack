@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 
-import type { OrganizationRoleDto, TeamDto } from "@/generated/api";
+import type { OrganizationMemberDto, OrganizationRoleDto, TeamDto } from "@/generated/api";
 import { OrganizationRoleManagement } from "@/components/organizations/organization-role-management";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -15,6 +15,8 @@ function OrganizationRoleTab({
   teamsStatus,
   organizationRoles,
   organizationRolesStatus,
+  members,
+  membersStatus,
   canManageRoles,
 }: {
   orgSlug: string;
@@ -22,6 +24,8 @@ function OrganizationRoleTab({
   teamsStatus: QueryStatus;
   organizationRoles: OrganizationRoleDto[];
   organizationRolesStatus: QueryStatus;
+  members: OrganizationMemberDto[];
+  membersStatus: QueryStatus;
   canManageRoles: boolean;
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,7 +50,7 @@ function OrganizationRoleTab({
   };
 
   return (
-    <Tabs className="grid gap-4" onValueChange={selectSection} value={section}>
+    <Tabs className="grid gap-6" onValueChange={selectSection} value={section}>
       <TabsList>
         <TabsTrigger value="organization">Organization roles</TabsTrigger>
         <TabsTrigger value="team">Team roles</TabsTrigger>
@@ -54,6 +58,8 @@ function OrganizationRoleTab({
       <TabsContent value="organization">
         <OrganizationRoleManagement
           canManage={canManageRoles}
+          members={members}
+          membersStatus={membersStatus}
           orgSlug={orgSlug}
           roles={organizationRoles}
           status={organizationRolesStatus}

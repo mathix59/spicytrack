@@ -81,6 +81,24 @@ export function optionalNullableString(value: unknown): string | null | undefine
   return assertString(value, "value");
 }
 
+/** Free-text description: undefined keeps the stored value, null or blank clears it. */
+export function optionalDescription(
+  value: unknown,
+  field = "description",
+  maxLength = 280,
+): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== "string") {
+    throw new BadRequestException(`${field} must be a string`);
+  }
+  const trimmed = value.trim();
+  if (trimmed.length > maxLength) {
+    throw new BadRequestException(`${field} must contain at most ${maxLength} characters`);
+  }
+  return trimmed || null;
+}
+
 export function assertOneOf<T extends string>(
   value: unknown,
   allowed: readonly T[],

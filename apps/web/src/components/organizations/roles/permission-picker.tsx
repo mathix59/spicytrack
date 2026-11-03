@@ -1,47 +1,111 @@
-import { useState } from "react";
+import { ShieldAlert } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-import type { PermissionGroup } from "./permission-groups";
+import type { PermissionGroup, PermissionOption } from "./permission-groups";
+
+function PermissionChange({ granted }: { granted: boolean }) {
+  return granted ? (
+    <span className="text-2xs font-medium text-success">Added</span>
+  ) : (
+    <span className="text-2xs font-medium text-destructive">Removed</span>
+  );
+}
+
+function SensitiveMark() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-2xs font-medium text-warning"
+      title="Grants control over people, credentials or the organization"
+    >
+      <ShieldAlert aria-hidden className="size-3" />
+      Sensitive
+    </span>
+  );
+}
+
+function PermissionRow({
+  permission,
+  checked,
+  changed,
+  showKey,
+  onToggle,
+}: {
+  permission: PermissionOption;
+  checked: boolean;
+  changed: boolean;
+  showKey: boolean;
+  onToggle: (checked: boolean) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-start gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-accent/50",
+        changed && "bg-accent/40",
+      )}
+    >
+      <input
+        checked={checked}
+        className="mt-0.5"
+        onChange={(event) => onToggle(event.target.checked)}
+        type="checkbox"
+        value={permission.value}
+      />
+      <span className="grid min-w-0 gap-0.5">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+          <span className={cn(checked ? "text-foreground" : "text-muted-foreground")}>
+            {permission.label}
+          </span>
+          {permission.sensitive ? <SensitiveMark /> : null}
+          {changed ? <PermissionChange granted={checked} /> : null}
+        </span>
+        <span className="text-xs text-muted-foreground">{permission.description}</span>
+        {showKey ? (
+          <code className="truncate text-2xs text-subtle-foreground">{permission.value}</code>
+        ) : null}
+      </span>
+    </label>
+  );
+}
 
 /**
- * Grouped permission checkboxes with a "select all" toggle per group. Checked values are
- * submitted as repeated `name` form fields, so callers keep reading them with FormData.
+ * Grouped permission checkboxes with a "select all" toggle per group. When a baseline is given
+ * (the role being edited, or the role it starts from) every difference is marked.
  */
 function PermissionPicker({
   groups,
-  defaultSelected = [],
-  name = "permissions",
+  selected,
+  onChange,
+  baseline,
   legend = "Permissions",
   showKeys = false,
 }: {
   groups: PermissionGroup[];
-  defaultSelected?: string[];
-  name?: string;
+  selected: Set<string>;
+  onChange: (next: Set<string>) => void;
+  baseline?: Set<string>;
   legend?: string;
   showKeys?: boolean;
 }) {
-  const [selected, setSelected] = useState(() => new Set(defaultSelected));
-  const known = new Set(groups.flatMap((group) => group.permissions.map((entry) => entry.value)));
-  // Permissions the picker does not know about are preserved untouched on submit.
-  const unknown = defaultSelected.filter((permission) => !known.has(permission));
+  const known = groups.flatMap((group) => group.permissions.map((entry) => entry.value));
+  const selectedCount = known.filter((value) => selected.has(value)).length;
 
   const toggle = (values: string[], checked: boolean) => {
-    setSelected((current) => {
-      const next = new Set(current);
-      for (const value of values) {
-        if (checked) next.add(value);
-        else next.delete(value);
-      }
-      return next;
-    });
+    const next = new Set(selected);
+    for (const value of values) {
+      if (checked) next.add(value);
+      else next.delete(value);
+    }
+    onChange(next);
   };
 
   return (
     <fieldset className="grid gap-3">
       <legend className="mb-1.5 text-sm font-medium text-foreground">
         {legend}{" "}
-        <span className="font-normal text-muted-foreground">({selected.size} selected)</span>
+        <span className="font-normal text-muted-foreground">
+          ({selectedCount} of {known.length})
+        </span>
       </legend>
       {groups.map((group) => {
         const values = group.permissions.map((entry) => entry.value);
@@ -49,8 +113,8 @@ function PermissionPicker({
         const allChecked = checkedCount === values.length;
 
         return (
-          <div className="rounded-md border border-border" key={group.id}>
-            <label className="flex cursor-pointer items-center gap-2 border-b border-border bg-muted/20 px-3 py-2 text-sm font-medium">
+          <div className="rounded-lg border border-border" key={group.id}>
+            <label className="flex cursor-pointer items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-sm font-medium">
               <input
                 aria-label={`Select all ${group.label} permissions`}
                 checked={allChecked}
@@ -61,46 +125,30 @@ function PermissionPicker({
                 type="checkbox"
               />
               <span className="flex-1">{group.label}</span>
-              <span className="text-xs font-normal text-muted-foreground">
+              <span className="text-xs font-normal text-muted-foreground tabular">
                 {checkedCount}/{values.length}
               </span>
             </label>
-            <div className="grid gap-1 p-2 sm:grid-cols-2">
+            <div className="grid gap-0.5 p-1.5 sm:grid-cols-2">
               {group.permissions.map((permission) => (
-                <label
-                  className={cn(
-                    "flex cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent/50",
-                    selected.has(permission.value) && "text-foreground",
-                  )}
+                <PermissionRow
+                  changed={
+                    baseline !== undefined &&
+                    baseline.has(permission.value) !== selected.has(permission.value)
+                  }
+                  checked={selected.has(permission.value)}
                   key={permission.value}
-                >
-                  <input
-                    checked={selected.has(permission.value)}
-                    className="mt-0.5"
-                    name={name}
-                    onChange={(event) => toggle([permission.value], event.target.checked)}
-                    type="checkbox"
-                    value={permission.value}
-                  />
-                  <span className="grid min-w-0">
-                    <span>{permission.label}</span>
-                    {showKeys ? (
-                      <code className="truncate text-[11px] text-muted-foreground">
-                        {permission.value}
-                      </code>
-                    ) : null}
-                  </span>
-                </label>
+                  onToggle={(checked) => toggle([permission.value], checked)}
+                  permission={permission}
+                  showKey={showKeys}
+                />
               ))}
             </div>
           </div>
         );
       })}
-      {unknown.map((permission) => (
-        <input key={permission} name={name} type="hidden" value={permission} />
-      ))}
     </fieldset>
   );
 }
 
-export { PermissionPicker };
+export { PermissionPicker, SensitiveMark };

@@ -22,21 +22,6 @@ import { Field } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { TableCell, TableRow } from "@/components/ui/table";
 
-function roleSummary(role: string) {
-  switch (role) {
-    case "manager":
-      return "Can manage members, teams, projects, alerts, releases, and keys.";
-    case "developer":
-      return "Can investigate issues, events, releases, and artifacts.";
-    case "member":
-      return "Same read access as developer without management actions.";
-    case "viewer":
-      return "Read-only access across the organization scope.";
-    default:
-      return "Organization-level access role.";
-  }
-}
-
 function MemberAdminRow({
   member,
   canManage,
@@ -54,7 +39,8 @@ function MemberAdminRow({
   onRemoveMember: (memberId: string) => Promise<void>;
   roles: OrganizationRoleDto[];
 }) {
-  const roleName = roles.find((role) => role.key === member.role)?.name ?? member.role;
+  const memberRole = roles.find((role) => role.key === member.role);
+  const roleName = memberRole?.name ?? member.role;
   const displayName = renderNullableText(member.name, member.email);
 
   return (
@@ -72,7 +58,9 @@ function MemberAdminRow({
       <TableCell className="hidden lg:table-cell">
         <div className="flex max-w-[340px] items-start gap-2 text-sm text-muted-foreground">
           <Shield className="mt-0.5 size-4 shrink-0" />
-          <span>{roleSummary(member.role)}</span>
+          <span className="line-clamp-2">
+            {memberRole?.description || "Custom organization role."}
+          </span>
         </div>
       </TableCell>
       <TableCell className="hidden text-muted-foreground md:table-cell">
@@ -172,7 +160,10 @@ function MemberRoleDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
-          <Field label="Organization role">
+          <Field
+            hint={roles.find((roleOption) => roleOption.key === role)?.description ?? undefined}
+            label="Organization role"
+          >
             <Select onChange={(event) => setRole(event.target.value)} value={role}>
               {roles.map((roleOption) => (
                 <option key={roleOption.id} value={roleOption.key}>

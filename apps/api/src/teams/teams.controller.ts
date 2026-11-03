@@ -20,7 +20,12 @@ import {
 import { CurrentOrganization } from "../common/current-organization.decorator";
 import { CurrentUser } from "../common/current-user.decorator";
 import type { OrganizationRecord, UserRecord } from "../common/request-context";
-import { assertSlug, assertString, optionalNullableString } from "../common/validators";
+import {
+  assertSlug,
+  assertString,
+  optionalDescription,
+  optionalNullableString,
+} from "../common/validators";
 import { AuthGuard } from "../auth/auth.guard";
 import { OrganizationContextGuard } from "../rbac/organization-context.guard";
 import { PermissionGuard } from "../rbac/permission.guard";
@@ -177,6 +182,7 @@ export class TeamsController {
       teamSlug,
       key,
       name,
+      description: optionalDescription(body.description),
       permissions: assertTeamPermissions(body.permissions),
       actorUserId: user.id,
     });
@@ -223,6 +229,7 @@ export class TeamsController {
       teamSlug,
       roleKey: assertSlug(roleKey, "roleKey", 32),
       name: assertString(body.name, "name"),
+      description: optionalDescription(body.description),
       permissions: assertTeamPermissions(body.permissions),
       actorUserId: user.id,
     });

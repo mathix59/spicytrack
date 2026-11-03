@@ -1022,18 +1022,34 @@ export interface OrganizationRoleDto {
   id: string;
   key: string;
   name: string;
+  /** @nullable */
+  description?: string | null;
   permissions: string[];
   isSystem: boolean;
+  /** Members currently assigned this role. */
+  memberCount: number;
+  /** Pending invitations that would grant this role. */
+  pendingInvitationCount: number;
 }
 
 export interface CreateOrganizationRoleBodyDto {
   key: string;
   name: string;
+  /**
+     * @maxLength 280
+     * @nullable
+     */
+  description?: string | null;
   permissions: string[];
 }
 
 export interface UpdateOrganizationRoleBodyDto {
   name: string;
+  /**
+     * @maxLength 280
+     * @nullable
+     */
+  description?: string | null;
   permissions: string[];
 }
 
@@ -1187,17 +1203,31 @@ export interface TeamRoleDto {
   id: string;
   key: string;
   name: string;
+  /** @nullable */
+  description?: string | null;
   permissions: string[];
   isSystem: boolean;
+  /** Members currently assigned this role. */
+  memberCount: number;
 }
 
 export interface CreateTeamRoleBodyDto {
   name: string;
+  /**
+     * @maxLength 280
+     * @nullable
+     */
+  description?: string | null;
   permissions: string[];
 }
 
 export interface UpdateTeamRoleBodyDto {
   name: string;
+  /**
+     * @maxLength 280
+     * @nullable
+     */
+  description?: string | null;
   permissions: string[];
 }
 

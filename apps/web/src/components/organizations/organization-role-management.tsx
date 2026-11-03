@@ -1,23 +1,17 @@
 import { useState } from "react";
-import type { FormEvent } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import {
   getListOrganizationRolesQueryKey,
+  type OrganizationMemberDto,
   type OrganizationRoleDto,
   useCreateOrganizationRole,
   useDeleteOrganizationRole,
   useUpdateOrganizationRole,
 } from "@/generated/api";
-import { ConfirmDialog } from "@/components/common/confirm-dialog";
-import { QueryError } from "@/components/common/query-error";
 import { invalidateQueryKeys } from "@/lib/query-utils";
 import { getErrorMessage } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -25,37 +19,45 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SkeletonRows } from "@/components/ui/skeleton";
 
-import { OrganizationSectionHeader } from "./organization-section-header";
 import { ORGANIZATION_PERMISSION_GROUPS } from "./roles/permission-groups";
 import { RoleForm } from "./roles/role-form";
-import { RolePermissionsDialog } from "./roles/role-permissions-dialog";
+import { RoleWorkspace } from "./roles/role-workspace";
+import type { RoleFormValues, RoleItem } from "./roles/types";
 
 type QueryStatus = { isLoading: boolean; error: unknown; refetch: () => void };
+
+type DialogState =
+  | { mode: "create"; startFrom?: RoleItem }
+  | { mode: "edit"; role: RoleItem }
+  | null;
 
 function roleKeyFromName(name: string) {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32)
+    .replace(/-+$/g, "");
 }
 
 function OrganizationRoleManagement({
   orgSlug,
   roles,
   status,
+  members,
+  membersStatus,
   canManage,
 }: {
   orgSlug: string;
   roles: OrganizationRoleDto[];
-  status?: QueryStatus;
+  status: QueryStatus;
+  members: OrganizationMemberDto[];
+  membersStatus: QueryStatus;
   canManage: boolean;
 }) {
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState<OrganizationRoleDto | null>(null);
-  const [detailsRole, setDetailsRole] = useState<OrganizationRoleDto | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [dialog, setDialog] = useState<DialogState>(null);
   const [error, setError] = useState<string | null>(null);
   const createMutation = useCreateOrganizationRole();
   const updateMutation = useUpdateOrganizationRole();
@@ -63,169 +65,91 @@ function OrganizationRoleManagement({
   const refresh = () =>
     invalidateQueryKeys(queryClient, [getListOrganizationRolesQueryKey(orgSlug)]);
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const name = String(data.get("name") ?? "").trim();
-    const permissions = data.getAll("permissions").map(String);
+  const openDialog = (next: DialogState) => {
+    setError(null);
+    setDialog(next);
+  };
+
+  const submit = async (values: RoleFormValues) => {
+    if (!dialog) return;
     setError(null);
     try {
-      if (editing) {
-        await updateMutation.mutateAsync({
-          orgSlug,
-          roleKey: editing.key,
-          data: { name, permissions },
-        });
-        setEditing(null);
-        toast.success("Organization role updated");
+      if (dialog.mode === "edit") {
+        await updateMutation.mutateAsync({ orgSlug, roleKey: dialog.role.key, data: values });
+        toast.success(`${values.name} updated`);
       } else {
         await createMutation.mutateAsync({
           orgSlug,
-          data: { key: roleKeyFromName(name), name, permissions },
+          data: { ...values, key: roleKeyFromName(values.name) },
         });
-        setCreateOpen(false);
-        toast.success("Organization role created");
+        toast.success(`${values.name} created`);
       }
       await refresh();
+      setDialog(null);
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
     }
   };
 
-  const remove = async (role: OrganizationRoleDto) => {
-    await deleteMutation.mutateAsync({ orgSlug, roleKey: role.key });
-    await refresh();
-  };
+  const membersFor = (role: RoleItem) =>
+    membersStatus.isLoading
+      ? undefined
+      : members
+          .filter((member) => member.role === role.key)
+          .map((member) => ({ id: member.memberId, name: member.name ?? "", email: member.email }));
 
   return (
-    <Card>
-      <OrganizationSectionHeader
-        action={
-          canManage ? (
-            <Button
-              onClick={() => {
-                setError(null);
-                setCreateOpen(true);
-              }}
-              size="sm"
-            >
-              <Plus className="size-4" />
-              New organization role
-            </Button>
-          ) : null
-        }
-        count={status?.isLoading ? undefined : roles.length}
-        description="Organization roles can grant access across the whole organization. Team roles scope project access to one team."
+    <>
+      <RoleWorkspace
+        canManage={canManage}
+        description="Organization roles decide what each member can do across the whole organization and every project. Each member has exactly one."
+        groups={ORGANIZATION_PERMISSION_GROUPS}
+        membersFor={membersFor}
+        membersHref={`/orgs/${orgSlug}?tab=members`}
+        onCreate={(startFrom) => openDialog({ mode: "create", startFrom })}
+        onDelete={async (role) => {
+          await deleteMutation.mutateAsync({ orgSlug, roleKey: role.key });
+          await refresh();
+        }}
+        onEdit={(role) => openDialog({ mode: "edit", role })}
+        roles={roles}
+        status={status}
         title="Organization roles"
       />
-      <CardContent>
-        {status?.isLoading ? (
-          <SkeletonRows rows={3} />
-        ) : status?.error ? (
-          <QueryError
-            error={status.error}
-            onRetry={status.refetch}
-            title="Could not load organization roles"
-          />
-        ) : (
-          <div className="grid gap-3">
-            {roles.map((role) => (
-              <div
-                className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-start sm:justify-between"
-                key={role.id}
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium">{role.name}</p>
-                    {role.isSystem ? <Badge variant="muted">Built-in</Badge> : null}
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {role.permissions.length} permission{role.permissions.length === 1 ? "" : "s"}
-                  </p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Button onClick={() => setDetailsRole(role)} size="sm" variant="outline">
-                    View permissions
-                  </Button>
-                  {canManage && !role.isSystem ? (
-                    <>
-                      <Button
-                        aria-label={`Edit ${role.name}`}
-                        onClick={() => {
-                          setError(null);
-                          setEditing(role);
-                        }}
-                        size="icon-sm"
-                        variant="ghost"
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                      <ConfirmDialog
-                        confirmLabel="Delete role"
-                        description="Members using this role must be reassigned first."
-                        onConfirm={() => remove(role)}
-                        successMessage="Organization role deleted"
-                        title={`Delete ${role.name}?`}
-                        trigger={
-                          <Button aria-label={`Delete ${role.name}`} size="icon-sm" variant="ghost">
-                            <Trash2 className="size-4 text-destructive" />
-                          </Button>
-                        }
-                      />
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-      <RolePermissionsDialog
-        groups={ORGANIZATION_PERMISSION_GROUPS}
-        onClose={() => setDetailsRole(null)}
-        role={detailsRole}
-      />
-      <Dialog onOpenChange={setCreateOpen} open={createOpen}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
+      <Dialog onOpenChange={(open) => !open && setDialog(null)} open={dialog !== null}>
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>New organization role</DialogTitle>
+            <DialogTitle>
+              {dialog?.mode === "edit"
+                ? `Edit ${dialog.role.name}`
+                : dialog?.startFrom
+                  ? `Duplicate ${dialog.startFrom.name}`
+                  : "New organization role"}
+            </DialogTitle>
             <DialogDescription>
-              Grant permissions across the whole organization and all of its projects.
+              Grants permissions across the whole organization and all of its projects.
             </DialogDescription>
           </DialogHeader>
-          <RoleForm
-            error={error}
-            groups={ORGANIZATION_PERMISSION_GROUPS}
-            isPending={createMutation.isPending}
-            nameLabel="Organization role name"
-            onSubmit={submit}
-            permissionsLegend="Organization and project permissions"
-            showKeys
-            submitLabel="Create role"
-          />
+          {dialog ? (
+            <RoleForm
+              error={error}
+              groups={ORGANIZATION_PERMISSION_GROUPS}
+              isPending={createMutation.isPending || updateMutation.isPending}
+              key={dialog.mode === "edit" ? dialog.role.id : (dialog.startFrom?.id ?? "new")}
+              mode={dialog.mode}
+              nameLabel="Organization role name"
+              onSubmit={submit}
+              permissionsLegend="Organization and project permissions"
+              role={dialog.mode === "edit" ? dialog.role : null}
+              roles={roles}
+              showKeys
+              startFrom={dialog.mode === "create" ? dialog.startFrom : null}
+              submitLabel={dialog.mode === "edit" ? "Save changes" : "Create role"}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
-      <Dialog onOpenChange={(open) => !open && setEditing(null)} open={Boolean(editing)}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit {editing?.name}</DialogTitle>
-            <DialogDescription>Update this custom organization role.</DialogDescription>
-          </DialogHeader>
-          <RoleForm
-            error={error}
-            groups={ORGANIZATION_PERMISSION_GROUPS}
-            isPending={updateMutation.isPending}
-            key={editing?.id}
-            nameLabel="Organization role name"
-            onSubmit={submit}
-            permissionsLegend="Organization and project permissions"
-            role={editing}
-            showKeys
-            submitLabel="Save changes"
-          />
-        </DialogContent>
-      </Dialog>
-    </Card>
+    </>
   );
 }
 

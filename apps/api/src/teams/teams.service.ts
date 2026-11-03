@@ -1,5 +1,5 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { AuditService } from "../audit/audit.service";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
@@ -29,17 +29,26 @@ type TeamPermission = (typeof TEAM_PERMISSIONS)[number];
 const DEFAULT_TEAM_ROLES: Array<{
   key: string;
   name: string;
+  description: string;
   permissions: TeamPermission[];
 }> = [
-  { key: "viewer", name: "Viewer", permissions: ["view_projects"] },
+  {
+    key: "viewer",
+    name: "Viewer",
+    description: "Sees the team's projects and their issues.",
+    permissions: ["view_projects"],
+  },
   {
     key: "contributor",
     name: "Contributor",
+    description: "Sees the team's projects and triages their issues.",
     permissions: ["view_projects", "manage_issues"],
   },
   {
     key: "maintainer",
     name: "Maintainer",
+    description:
+      "Runs the team's projects: releases, alerts, keys, integrations, Autofix, audit log and team membership.",
     permissions: [
       "view_projects",
       "manage_issues",
@@ -253,7 +262,19 @@ export class TeamsService {
 
   async listRoles(organizationId: string, teamSlug: string) {
     const team = await this.getBySlugWithRoles(organizationId, teamSlug);
-    return this.db.select().from(teamRoles).where(eq(teamRoles.teamId, team.id));
+    const roles = await this.db.select().from(teamRoles).where(eq(teamRoles.teamId, team.id));
+    return this.withRoleUsage(team.id, roles);
+  }
+
+  /** Adds how many team members use each role, so the UI can explain deletes. */
+  private async withRoleUsage<T extends { key: string }>(teamId: string, roles: T[]) {
+    const counts = await this.db
+      .select({ role: teamMembers.role, count: sql<number>`count(*)::int` })
+      .from(teamMembers)
+      .where(eq(teamMembers.teamId, teamId))
+      .groupBy(teamMembers.role);
+    const members = new Map(counts.map((row) => [row.role, Number(row.count)]));
+    return roles.map((role) => ({ ...role, memberCount: members.get(role.key) ?? 0 }));
   }
 
   async createRole(input: {
@@ -261,6 +282,7 @@ export class TeamsService {
     teamSlug: string;
     key: string;
     name: string;
+    description?: string | null;
     permissions: TeamPermission[];
     actorUserId: string;
   }) {
@@ -279,6 +301,7 @@ export class TeamsService {
         teamId: team.id,
         key: input.key,
         name: input.name,
+        description: input.description ?? null,
         permissions: input.permissions,
       })
       .returning();
@@ -290,7 +313,7 @@ export class TeamsService {
       targetId: role.id,
       payload: { teamId: team.id, key: role.key, permissions: role.permissions },
     });
-    return role;
+    return { ...role, memberCount: 0 };
   }
 
   async deleteRole(input: {
@@ -339,6 +362,7 @@ export class TeamsService {
     teamSlug: string;
     roleKey: string;
     name: string;
+    description?: string | null;
     permissions: TeamPermission[];
     actorUserId: string;
   }) {
@@ -358,7 +382,12 @@ export class TeamsService {
 
     const [updated] = await this.db
       .update(teamRoles)
-      .set({ name: input.name, permissions: input.permissions, updatedAt: new Date() })
+      .set({
+        name: input.name,
+        ...(input.description === undefined ? {} : { description: input.description }),
+        permissions: input.permissions,
+        updatedAt: new Date(),
+      })
       .where(eq(teamRoles.id, role.id))
       .returning();
     await this.auditService.record({
@@ -369,7 +398,8 @@ export class TeamsService {
       targetId: role.id,
       payload: { teamId: team.id, key: input.roleKey, permissions: input.permissions },
     });
-    return updated;
+    const [withUsage] = await this.withRoleUsage(team.id, [updated]);
+    return withUsage;
   }
 
   private async getBySlugWithRoles(organizationId: string, teamSlug: string) {
@@ -414,7 +444,12 @@ export class TeamsService {
       } else if (existing.isSystem) {
         await this.db
           .update(teamRoles)
-          .set({ name: role.name, permissions: role.permissions, updatedAt: new Date() })
+          .set({
+            name: role.name,
+            description: role.description,
+            permissions: role.permissions,
+            updatedAt: new Date(),
+          })
           .where(eq(teamRoles.id, existing.id));
       }
     }

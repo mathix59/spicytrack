@@ -56,6 +56,8 @@ function OrganizationPage() {
       {page.activeTab === "roles" ? (
         <OrganizationRoleTab
           canManageRoles={page.canManageSettings}
+          members={page.members.members}
+          membersStatus={page.members.membersStatus}
           orgSlug={page.orgSlug}
           organizationRoles={page.members.roles}
           organizationRolesStatus={page.members.rolesStatus}

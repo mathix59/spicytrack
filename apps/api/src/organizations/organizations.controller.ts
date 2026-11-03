@@ -56,7 +56,7 @@ import {
   UpdateMemberRoleBodyDto,
 } from "../openapi/contracts";
 import { BadRequestException } from "@nestjs/common";
-import { assertSlug, assertString } from "../common/validators";
+import { assertSlug, assertString, optionalDescription } from "../common/validators";
 import { ROLE_PERMISSIONS } from "../rbac/permissions.constants";
 import type { Permission } from "../rbac/permissions.types";
 
@@ -65,11 +65,11 @@ const ORGANIZATION_ROLE_PERMISSIONS = new Set(Object.values(ROLE_PERMISSIONS).fl
 function parseOrganizationRoleBody(
   body: Record<string, unknown>,
   includeKey: true,
-): { key: string; name: string; permissions: Permission[] };
+): { key: string; name: string; description: string | null | undefined; permissions: Permission[] };
 function parseOrganizationRoleBody(
   body: Record<string, unknown>,
   includeKey: false,
-): { name: string; permissions: Permission[] };
+): { name: string; description: string | null | undefined; permissions: Permission[] };
 function parseOrganizationRoleBody(body: Record<string, unknown>, includeKey: boolean) {
   const permissions = body.permissions;
   if (
@@ -85,6 +85,7 @@ function parseOrganizationRoleBody(body: Record<string, unknown>, includeKey: bo
   return {
     ...(includeKey ? { key: assertSlug(body.key, "key", 32) } : {}),
     name: assertString(body.name, "name"),
+    description: optionalDescription(body.description),
     permissions: permissions as Permission[],
   };
 }

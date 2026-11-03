@@ -1,3 +1,5 @@
+import type { FormEvent } from "react";
+
 import type { TeamDto } from "@/generated/api";
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
 import { TEAM_PERMISSION_GROUPS } from "@/components/organizations/roles/permission-groups";
@@ -16,48 +18,61 @@ import { Select } from "@/components/ui/select";
 import type { TeamRolesState } from "./use-team-roles";
 
 function TeamRoleDialogs({ state, teams }: { state: TeamRolesState; teams: TeamDto[] }) {
+  const { dialog } = state;
   const destinationTeams = teams.filter((item) => item.id !== state.team?.id);
+
+  const copy = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void state.copyToTeam(String(new FormData(event.currentTarget).get("teamSlug") ?? ""));
+  };
 
   return (
     <>
-      <Dialog onOpenChange={state.setCreateOpen} open={state.createOpen}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
+      <Dialog onOpenChange={(open) => !open && state.setDialog(null)} open={dialog !== null}>
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>New role for {state.team?.name}</DialogTitle>
+            <DialogTitle>
+              {dialog?.mode === "edit"
+                ? `Edit ${dialog.role.name}`
+                : dialog?.startFrom
+                  ? `Duplicate ${dialog.startFrom.name}`
+                  : `New role for ${state.team?.name ?? "this team"}`}
+            </DialogTitle>
             <DialogDescription>
-              Choose the permissions granted to members of this team.
+              Team roles only apply to members of {state.team?.name ?? "this team"} and its
+              projects.
             </DialogDescription>
           </DialogHeader>
-          <RoleForm
-            error={state.error}
-            groups={TEAM_PERMISSION_GROUPS}
-            isPending={state.isCreating}
-            onSubmit={state.createRole}
-            submitLabel="Create role"
-          />
+          {dialog ? (
+            <RoleForm
+              error={state.error}
+              groups={TEAM_PERMISSION_GROUPS}
+              isPending={state.isSaving}
+              key={dialog.mode === "edit" ? dialog.role.id : (dialog.startFrom?.id ?? "new")}
+              mode={dialog.mode}
+              onSubmit={state.submitRole}
+              role={dialog.mode === "edit" ? dialog.role : null}
+              roles={state.roles}
+              startFrom={dialog.mode === "create" ? dialog.startFrom : null}
+              submitLabel={dialog.mode === "edit" ? "Save changes" : "Create role"}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
 
       <Dialog
-        onOpenChange={(open) => !open && state.setDuplicateRole(null)}
-        open={Boolean(state.duplicateRole)}
+        onOpenChange={(open) => !open && state.setCopyRole(null)}
+        open={Boolean(state.copyRole)}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Duplicate {state.duplicateRole?.name}</DialogTitle>
+            <DialogTitle>Copy {state.copyRole?.name} to another team</DialogTitle>
             <DialogDescription>
-              Copy this role and all its permissions to another team.
+              Creates the same role, with the same permissions, in the team you choose.
             </DialogDescription>
           </DialogHeader>
-          <form className="grid gap-4" onSubmit={state.duplicate}>
-            <Field
-              hint={
-                destinationTeams.length === 0
-                  ? "Create another team to duplicate roles."
-                  : undefined
-              }
-              label="Destination team"
-            >
+          <form className="grid gap-4" onSubmit={copy}>
+            <Field label="Destination team">
               <Select defaultValue="" name="teamSlug" required>
                 <option disabled value="">
                   Choose a team
@@ -74,32 +89,8 @@ function TeamRoleDialogs({ state, teams }: { state: TeamRolesState; teams: TeamD
                 <AlertDescription>{state.error}</AlertDescription>
               </Alert>
             ) : null}
-            <FormDialogActions
-              isPending={state.isCreating || destinationTeams.length === 0}
-              submitLabel="Duplicate role"
-            />
+            <FormDialogActions isPending={state.isSaving} submitLabel="Copy role" />
           </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        onOpenChange={(open) => !open && state.setEditRole(null)}
-        open={Boolean(state.editRole)}
-      >
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit {state.editRole?.name}</DialogTitle>
-            <DialogDescription>Update this custom role's name and permissions.</DialogDescription>
-          </DialogHeader>
-          <RoleForm
-            error={state.error}
-            groups={TEAM_PERMISSION_GROUPS}
-            isPending={state.isUpdating}
-            key={state.editRole?.id}
-            onSubmit={state.updateRole}
-            role={state.editRole}
-            submitLabel="Save changes"
-          />
         </DialogContent>
       </Dialog>
     </>

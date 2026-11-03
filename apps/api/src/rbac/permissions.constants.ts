@@ -139,3 +139,17 @@ export const ROLE_PERMISSIONS: Record<OrganizationRole, Permission[]> = {
     "project.autofix.read",
   ],
 };
+
+/** Shown next to the built-in roles so people can tell them apart without reading every permission. */
+export const ROLE_DESCRIPTIONS: Record<OrganizationRole, string> = {
+  owner:
+    "Everything an admin can do, plus ownership: only owners can delete the organization, and the last owner cannot be removed or demoted.",
+  admin:
+    "Full access to the organization, its settings, MCP and every project. Cannot delete the organization.",
+  manager:
+    "Manages members, teams and projects, including keys, alerts and integrations. Cannot delete teams or change organization settings.",
+  developer:
+    "Reads issues, events and releases across projects and can run Autofix. Cannot change issues or see the member list.",
+  member: "Read-only access to projects, teams and the member list. Cannot run Autofix.",
+  viewer: "Read-only access to projects and teams. Cannot see the member list or run Autofix.",
+};
