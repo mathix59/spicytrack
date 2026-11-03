@@ -183,6 +183,20 @@ function McpCredentialList({ state }: { state: McpSettingsState }) {
   );
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** `projectId=1d896420…, query=timeout`: what the agent asked, readable in one line. */
+function formatToolArguments(args: Record<string, unknown> | undefined) {
+  if (!args) return "";
+  return Object.entries(args)
+    .filter(([key]) => key !== "confirmed")
+    .map(([key, value]) => {
+      const text = typeof value === "string" ? value : JSON.stringify(value);
+      return `${key}=${UUID_PATTERN.test(text) ? `${text.slice(0, 8)}…` : text}`;
+    })
+    .join(", ");
+}
+
 function McpActivityList({ state }: { state: McpSettingsState }) {
   const activity = state.data?.activity ?? [];
 
@@ -192,12 +206,27 @@ function McpActivityList({ state }: { state: McpSettingsState }) {
       {state.query.isPending ? (
         <Skeleton className="h-4 w-2/3" />
       ) : activity.length ? (
-        activity.slice(0, 8).map((entry) => (
-          <p className="text-xs text-muted-foreground" key={entry.id}>
-            {entry.credentialName ?? "MCP key"} · {entry.payload?.tool ?? entry.action} ·{" "}
-            {entry.payload?.status ?? "recorded"} · {formatLocalDateTime(entry.createdAt)}
-          </p>
-        ))
+        activity.slice(0, 8).map((entry) => {
+          const args = formatToolArguments(entry.payload?.arguments);
+          return (
+            <div className="grid min-w-0 text-xs text-muted-foreground" key={entry.id}>
+              <p>
+                {entry.credentialName ?? "MCP key"} · {entry.payload?.tool ?? entry.action} ·{" "}
+                {entry.payload?.status ?? "recorded"} · {formatLocalDateTime(entry.createdAt)}
+              </p>
+              {args ? (
+                <p className="truncate font-mono" title={args}>
+                  {args}
+                </p>
+              ) : null}
+              {entry.payload?.error ? (
+                <p className="truncate text-destructive" title={entry.payload.error}>
+                  {entry.payload.error}
+                </p>
+              ) : null}
+            </div>
+          );
+        })
       ) : (
         <p className="text-sm text-muted-foreground">No MCP activity yet.</p>
       )}

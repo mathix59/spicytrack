@@ -13,6 +13,8 @@ import { DATABASE } from "../src/database/database.provider";
 import type { DatabaseClient } from "../src/database/database.provider";
 import {
   auditLogs,
+  autofixRuns,
+  events,
   ingestRateCounters,
   issues,
   mcpCredentialProjects,
@@ -53,6 +55,11 @@ describe("MCP server (e2e)", () => {
   const allowedProjectId = randomUUID();
   const blockedProjectId = randomUUID();
   const issueId = randomUUID();
+  const blockedIssueId = randomUUID();
+  const allowedRunId = randomUUID();
+  const blockedRunId = randomUUID();
+  const sdkEventId = randomUUID().replace(/-/g, "");
+  const blockedSdkEventId = randomUUID().replace(/-/g, "");
   let key: string;
 
   const rpcOn = async (
@@ -206,6 +213,8 @@ describe("MCP server (e2e)", () => {
       await db
         .delete(organizationMcpSettings)
         .where(eq(organizationMcpSettings.organizationId, organizationId));
+      await db.delete(autofixRuns).where(eq(autofixRuns.organizationId, organizationId));
+      await db.delete(events).where(eq(events.organizationId, organizationId));
       await db.delete(issues).where(eq(issues.organizationId, organizationId));
       await db.delete(projects).where(eq(projects.organizationId, organizationId));
       await db.delete(organizations).where(eq(organizations.id, organizationId));
@@ -363,6 +372,197 @@ describe("MCP server (e2e)", () => {
       params: { name: "update_issue", arguments: { projectId: allowedProjectId, issueId } },
     });
     expect(invalid.body.result?.isError).toBe(true);
+  });
+
+  it("finds issues, searches events and resolves stacks within the key's projects", async () => {
+    await db.insert(issues).values({
+      id: blockedIssueId,
+      organizationId,
+      projectId: blockedProjectId,
+      groupingKey: `mcp-e2e-${blockedIssueId}`,
+      title: "Blocked issue",
+    });
+    const frame = (fn: string, inApp: boolean) => ({
+      function: fn,
+      filename: inApp ? "src/payments.ts" : "node_modules/lib/index.js",
+      lineno: inApp ? 42 : 7,
+      in_app: inApp,
+      context_line: `  ${fn}();`,
+    });
+    await db.insert(events).values([
+      {
+        organizationId,
+        projectId: allowedProjectId,
+        issueId,
+        eventId: sdkEventId,
+        platform: "node",
+        level: "error",
+        message: "Payment declined for order 42",
+        timestamp: new Date(),
+        tags: { "browser.name": "Chrome" },
+        rawPayload: {
+          exception: {
+            values: [
+              {
+                type: "PaymentError",
+                value: "declined",
+                stacktrace: {
+                  frames: [frame("runQueue", false), frame("handler", true), frame("charge", true)],
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        organizationId,
+        projectId: blockedProjectId,
+        issueId: blockedIssueId,
+        eventId: blockedSdkEventId,
+        message: "Payment declined elsewhere",
+        timestamp: new Date(),
+        rawPayload: {},
+      },
+    ]);
+    await db.insert(autofixRuns).values([
+      { id: allowedRunId, organizationId, projectId: allowedProjectId, issueId, trigger: "manual" },
+      {
+        id: blockedRunId,
+        organizationId,
+        projectId: blockedProjectId,
+        issueId: blockedIssueId,
+        trigger: "manual",
+      },
+    ]);
+    const create = await app.inject({
+      method: "POST",
+      url: `/api/organizations/${organizationSlug}/mcp/credentials`,
+      payload: {
+        name: "Read E2E key",
+        scopes: ["issues:read", "events:read", "releases:read", "autofix:read"],
+        allProjects: false,
+        projectIds: [allowedProjectId],
+      },
+    });
+    expect(create.statusCode).toBe(201);
+    const readKey: string = create.json().secret;
+    let id = 100;
+    const call = async (name: string, args: Record<string, unknown>) => {
+      const { body } = await rpc(readKey, {
+        jsonrpc: "2.0",
+        id: (id += 1),
+        method: "tools/call",
+        params: { name, arguments: args },
+      });
+      const text = ((body.result?.content ?? []) as Array<{ text: string }>)[0]?.text ?? "";
+      return body.result?.isError ? { error: text } : JSON.parse(text);
+    };
+
+    const dashed = sdkEventId
+      .toUpperCase()
+      .replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5");
+    expect(await call("find_issue", { reference: dashed })).toMatchObject({
+      matchedBy: "sdk_event_id",
+      ambiguous: false,
+      issues: [{ id: issueId, projectSlug: "allowed" }],
+    });
+    expect(
+      await call("find_issue", {
+        reference: `https://st.test/orgs/o/projects/allowed/issues/${issueId}`,
+      }),
+    ).toMatchObject({ matchedBy: "issue_url", issues: [{ id: issueId }] });
+    expect(await call("find_issue", { reference: issueId.slice(0, 8) })).toMatchObject({
+      matchedBy: "issue_id_prefix",
+      issues: [{ id: issueId }],
+    });
+    for (const reference of [blockedSdkEventId, blockedIssueId]) {
+      expect(await call("find_issue", { reference })).toEqual({
+        error: "No issue matches this reference in the projects you can access",
+      });
+    }
+
+    const search = (args: Record<string, unknown>) =>
+      call("search_events", { projectId: allowedProjectId, ...args });
+    expect((await search({ query: "declined", tags: { "browser.name": "Chrome" } })).items).toEqual(
+      [expect.objectContaining({ eventId: sdkEventId, issueId, level: "error", release: null })],
+    );
+    // Exception events have no message: their type and value are searched in the payload.
+    expect((await search({ query: "paymenterror" })).items).toHaveLength(1);
+    expect((await search({ query: "%" })).items).toEqual([]);
+    expect((await search({ level: "warning" })).items).toEqual([]);
+    expect((await search({ tags: { "browser.name": "Firefox" } })).items).toEqual([]);
+    expect((await search({ until: "2000-01-01T00:00:00Z" })).items).toEqual([]);
+    expect(await search({ since: "yesterday" })).toEqual({
+      error: "since must be an ISO 8601 date-time",
+    });
+    expect(await call("search_events", { projectId: blockedProjectId, query: "declined" })).toEqual(
+      { error: "Project is not allowed for this MCP credential" },
+    );
+
+    const stack = await call("get_issue_stack_trace", { projectId: allowedProjectId, issueId });
+    expect(stack).toMatchObject({
+      sdkEventId,
+      header: "PaymentError: declined",
+      totalFrames: 3,
+      frames: [
+        {
+          function: "charge",
+          path: "src/payments.ts",
+          lineno: 42,
+          inApp: true,
+          mapped: false,
+          contextLine: "  charge();",
+        },
+        { function: "handler", inApp: true },
+      ],
+    });
+    expect(
+      (
+        await call("get_issue_stack_trace", {
+          projectId: allowedProjectId,
+          issueId,
+          allFrames: true,
+        })
+      ).frames.map((item: { function: string }) => item.function),
+    ).toEqual(["charge", "handler", "runQueue"]);
+
+    expect(
+      await call("get_autofix_run", { projectId: allowedProjectId, runId: allowedRunId }),
+    ).toMatchObject({ id: allowedRunId, issueId, phase: expect.any(String) });
+    expect(
+      await call("get_autofix_run", { projectId: allowedProjectId, runId: blockedRunId }),
+    ).toEqual({ error: "Autofix run not found" });
+    expect(
+      await call("list_suspect_commits", { projectId: allowedProjectId, issueId }),
+    ).toMatchObject({ status: "unavailable", suspects: [] });
+
+    const audits = await db
+      .select({ payload: auditLogs.payload, projectId: auditLogs.projectId })
+      .from(auditLogs)
+      .where(
+        and(eq(auditLogs.organizationId, organizationId), eq(auditLogs.action, "mcp.tool.called")),
+      );
+    expect(audits).toContainEqual({
+      projectId: allowedProjectId,
+      payload: {
+        tool: "search_events",
+        status: "success",
+        arguments: {
+          projectId: allowedProjectId,
+          query: "declined",
+          tags: '{"browser.name":"Chrome"}',
+        },
+      },
+    });
+    expect(audits).toContainEqual({
+      projectId: null,
+      payload: {
+        tool: "search_events",
+        status: "error",
+        error: "Project is not allowed for this MCP credential",
+        arguments: { projectId: blockedProjectId, query: "declined" },
+      },
+    });
   });
 
   it("invalidates a revoked key and accepts the rotated replacement", async () => {

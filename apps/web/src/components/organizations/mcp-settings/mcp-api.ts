@@ -30,7 +30,13 @@ type McpCredential = {
 type McpActivity = {
   id: string;
   action: string;
-  payload: { tool?: string; status?: string };
+  payload: {
+    tool?: string;
+    status?: string;
+    /** Tool arguments as audited: long text truncated, comment bodies reduced to a length. */
+    arguments?: Record<string, unknown>;
+    error?: string;
+  };
   createdAt: string;
   credentialName: string | null;
 };

@@ -37,6 +37,7 @@ describe("grouping protocol compatibility", () => {
         lineno: 23,
         colno: null,
         inApp: null,
+        contextLine: null,
       },
     ]);
     expect(getFrameKey(payload)).toBe("/fixture/main.go:main:23");

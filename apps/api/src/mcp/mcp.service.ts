@@ -9,9 +9,12 @@ import {
 } from "@nestjs/common";
 import { createMcpHandler, Server } from "@modelcontextprotocol/server";
 import { toWebRequest } from "@modelcontextprotocol/node";
-import { and, desc, eq, ilike, inArray, isNull, like, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, isNull, like, lte, or, sql } from "drizzle-orm";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
+import { loadProjectLinks, issueUrl } from "../alerts/alert-links";
+import { resolveEventStack } from "../artifacts/resolved-stack";
+import { SourcemapResolverService } from "../artifacts/sourcemap-resolver.service";
 import { AuditService } from "../audit/audit.service";
 import { AutofixService } from "../autofix/autofix.service";
 import { redactEventPayload } from "../common/event-payload-redaction";
@@ -21,6 +24,7 @@ import type { DatabaseClient } from "../database/database.provider";
 import {
   autofixRuns,
   auditLogs,
+  environments,
   events,
   ingestRateCounters,
   issues,
@@ -31,6 +35,7 @@ import {
   releases,
 } from "../database/schema";
 import { IssuesService } from "../issues/issues.service";
+import { ReleaseCommitsService } from "../release-commits/release-commits.service";
 import type { McpScope } from "./mcp.types";
 
 const MCP_TOKEN_PREFIX = "stp_mcp";
@@ -46,6 +51,42 @@ type McpTool = {
   execute: (args: Record<string, unknown>) => Promise<McpToolResult>;
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_AUDITED_STRING = 200;
+
+/**
+ * Tool arguments as recorded in the audit log: identifiers and filters as given, long text
+ * truncated, and comment bodies reduced to their length.
+ */
+export function auditedArguments(args: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(args)
+      .slice(0, 20)
+      .map(([key, value]) => {
+        if (key === "body" && typeof value === "string")
+          return [key, `[${value.length} characters]`];
+        if (typeof value === "string") {
+          return [
+            key,
+            value.length > MAX_AUDITED_STRING ? `${value.slice(0, MAX_AUDITED_STRING)}…` : value,
+          ];
+        }
+        if (typeof value === "number" || typeof value === "boolean" || value === null) {
+          return [key, value];
+        }
+        const json = JSON.stringify(value) ?? String(value);
+        return [
+          key,
+          json.length > MAX_AUDITED_STRING ? `${json.slice(0, MAX_AUDITED_STRING)}…` : json,
+        ];
+      }),
+  );
+}
+
+function likePattern(value: string) {
+  return `%${value.trim().replace(/[\\%_]/g, "\\$&")}%`;
+}
+
 function jsonResult(value: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] };
 }
@@ -59,6 +100,8 @@ export class McpService {
     private readonly auditService: AuditService,
     private readonly issuesService: IssuesService,
     private readonly autofixService: AutofixService,
+    private readonly releaseCommitsService: ReleaseCommitsService,
+    private readonly sourcemapResolverService: SourcemapResolverService,
   ) {
     this.db = primaryDatabase(database);
   }
@@ -389,24 +432,34 @@ export class McpService {
     );
     const scopes = new Set(credential.scopes as McpScope[]);
     const can = (scope: McpScope) => scopes.has(scope);
-    const run = async (tool: string, callback: () => Promise<unknown>) => {
+    const run = async (
+      tool: string,
+      args: Record<string, unknown>,
+      callback: () => Promise<unknown>,
+    ) => {
+      const audit = (outcome: { status: "success" } | { status: "error"; error: string }) =>
+        this.auditService.record({
+          organizationId: credential.organizationId,
+          action: "mcp.tool.called",
+          targetType: "mcp_credential",
+          targetId: credential.id,
+          // Only a successful call proves the credential may access the project.
+          projectId:
+            outcome.status === "success" &&
+            typeof args.projectId === "string" &&
+            UUID_PATTERN.test(args.projectId)
+              ? args.projectId
+              : undefined,
+          payload: { tool, arguments: auditedArguments(args), ...outcome },
+        });
       try {
         const result = await callback();
-        await this.auditService.record({
-          organizationId: credential.organizationId,
-          action: "mcp.tool.called",
-          targetType: "mcp_credential",
-          targetId: credential.id,
-          payload: { tool, status: "success" },
-        });
+        await audit({ status: "success" });
         return jsonResult(result);
       } catch (error) {
-        await this.auditService.record({
-          organizationId: credential.organizationId,
-          action: "mcp.tool.called",
-          targetType: "mcp_credential",
-          targetId: credential.id,
-          payload: { tool, status: "error" },
+        await audit({
+          status: "error",
+          error: (error instanceof Error ? error.message : String(error)).slice(0, 300),
         });
         throw error;
       }
@@ -420,7 +473,7 @@ export class McpService {
         description: "List projects this MCP credential may access.",
         inputSchema: { type: "object", additionalProperties: false },
         readOnly: true,
-        execute: () => run("list_projects", () => this.listAllowedProjects(credential)),
+        execute: (args) => run("list_projects", args, () => this.listAllowedProjects(credential)),
       });
     }
     if (can("issues:read")) {
@@ -443,7 +496,7 @@ export class McpService {
         readOnly: true,
         execute: (args) => {
           const projectId = this.uuidArg(args, "projectId");
-          return run("list_issues", () =>
+          return run("list_issues", args, () =>
             this.listIssues(credential, {
               projectId,
               page: this.numberArg(args, "page", 1, 1, 1000),
@@ -474,7 +527,7 @@ export class McpService {
         },
         readOnly: true,
         execute: (args) =>
-          run("get_issue", () =>
+          run("get_issue", args, () =>
             this.getIssue(
               credential,
               this.uuidArg(args, "projectId"),
@@ -500,7 +553,7 @@ export class McpService {
         },
         readOnly: true,
         execute: (args) =>
-          run("list_issue_events", () =>
+          run("list_issue_events", args, () =>
             this.listIssueEvents(
               credential,
               this.uuidArg(args, "projectId"),
@@ -523,7 +576,7 @@ export class McpService {
         },
         readOnly: true,
         execute: (args) =>
-          run("get_event", () =>
+          run("get_event", args, () =>
             this.getEvent(
               credential,
               this.uuidArg(args, "projectId"),
@@ -547,7 +600,7 @@ export class McpService {
         },
         readOnly: true,
         execute: (args) =>
-          run("list_releases", () =>
+          run("list_releases", args, () =>
             this.listReleases(
               credential,
               this.uuidArg(args, "projectId"),
@@ -571,7 +624,7 @@ export class McpService {
         },
         readOnly: true,
         execute: (args) =>
-          run("list_autofix_runs", () =>
+          run("list_autofix_runs", args, () =>
             this.listAutofixRuns(
               credential,
               this.uuidArg(args, "projectId"),
@@ -603,7 +656,7 @@ export class McpService {
         },
         readOnly: false,
         execute: (args) =>
-          run("update_issue", () =>
+          run("update_issue", args, () =>
             this.updateIssue(credential, {
               projectId: this.uuidArg(args, "projectId"),
               issueId: this.uuidArg(args, "issueId"),
@@ -641,7 +694,7 @@ export class McpService {
         },
         readOnly: false,
         execute: (args) =>
-          run("create_issue_comment", () =>
+          run("create_issue_comment", args, () =>
             this.createIssueComment(
               credential,
               this.uuidArg(args, "projectId"),
@@ -673,7 +726,7 @@ export class McpService {
         },
         readOnly: false,
         execute: (args) =>
-          run("run_autofix", () =>
+          run("run_autofix", args, () =>
             this.runAutofix(
               credential,
               this.uuidArg(args, "projectId"),
@@ -681,6 +734,151 @@ export class McpService {
               this.confirmedArg(args),
             ),
           ),
+      });
+    }
+
+    if (can("issues:read")) {
+      add({
+        name: "find_issue",
+        description:
+          "Find the issue behind a reference: an event ID printed by an SDK (32 hex characters), a SpicyTrack issue URL, an issue ID, or the first 8+ characters of an issue ID.",
+        inputSchema: {
+          type: "object",
+          required: ["reference"],
+          properties: { reference: { type: "string", minLength: 8, maxLength: 300 } },
+          additionalProperties: false,
+        },
+        readOnly: true,
+        execute: (args) =>
+          run("find_issue", args, () =>
+            this.findIssue(credential, this.stringArg(args, "reference", 300)),
+          ),
+      });
+    }
+    if (can("events:read")) {
+      add({
+        name: "search_events",
+        description:
+          "Search events of an allowed project, newest first. Filters combine: text in the message, exception type or value, or transaction; level, environment, release, issue, time range and tags.",
+        inputSchema: {
+          type: "object",
+          required: ["projectId"],
+          properties: {
+            projectId: { type: "string", format: "uuid" },
+            query: { type: "string", minLength: 1, maxLength: 200 },
+            level: { type: "string", enum: ["fatal", "error", "warning", "info", "debug"] },
+            environment: { type: "string", maxLength: 128 },
+            release: { type: "string", maxLength: 200 },
+            issueId: { type: "string", format: "uuid" },
+            since: { type: "string", format: "date-time" },
+            until: { type: "string", format: "date-time" },
+            tags: {
+              type: "object",
+              maxProperties: 5,
+              additionalProperties: { type: "string", maxLength: 200 },
+              description: 'Exact tag values, e.g. {"browser.name": "Chrome"}.',
+            },
+            limit: { type: "integer", minimum: 1, maximum: 100 },
+          },
+          additionalProperties: false,
+        },
+        readOnly: true,
+        execute: (args) =>
+          run("search_events", args, () =>
+            this.searchEvents(credential, {
+              projectId: this.uuidArg(args, "projectId"),
+              query: this.optionalStringArg(args, "query", 200)?.trim() || undefined,
+              level: this.optionalOneOfArg(args, "level", [
+                "fatal",
+                "error",
+                "warning",
+                "info",
+                "debug",
+              ]),
+              environment: this.optionalStringArg(args, "environment", 128),
+              release: this.optionalStringArg(args, "release", 200),
+              issueId: args.issueId === undefined ? undefined : this.uuidArg(args, "issueId"),
+              since: this.optionalDateArg(args, "since"),
+              until: this.optionalDateArg(args, "until"),
+              tags: this.optionalTagsArg(args),
+              limit: this.numberArg(args, "limit", 25, 1, 100),
+            }),
+          ),
+      });
+      add({
+        name: "get_issue_stack_trace",
+        description:
+          "Get the error and stack trace of an issue's latest event (or a given event), newest call first, resolved with the release's source maps and debug files. In-app frames only unless allFrames is true.",
+        inputSchema: {
+          type: "object",
+          required: ["projectId", "issueId"],
+          properties: {
+            projectId: { type: "string", format: "uuid" },
+            issueId: { type: "string", format: "uuid" },
+            eventId: { type: "string", format: "uuid" },
+            allFrames: { type: "boolean" },
+          },
+          additionalProperties: false,
+        },
+        readOnly: true,
+        execute: (args) =>
+          run("get_issue_stack_trace", args, () =>
+            this.getIssueStackTrace(credential, {
+              projectId: this.uuidArg(args, "projectId"),
+              issueId: this.uuidArg(args, "issueId"),
+              eventId: args.eventId === undefined ? undefined : this.uuidArg(args, "eventId"),
+              allFrames: args.allFrames === true,
+            }),
+          ),
+      });
+    }
+    if (can("releases:read")) {
+      add({
+        name: "list_suspect_commits",
+        description:
+          "List the commits of the issue's release that touched files in its stack trace, most likely culprit first.",
+        inputSchema: {
+          type: "object",
+          required: ["projectId", "issueId"],
+          properties: {
+            projectId: { type: "string", format: "uuid" },
+            issueId: { type: "string", format: "uuid" },
+          },
+          additionalProperties: false,
+        },
+        readOnly: true,
+        execute: (args) =>
+          run("list_suspect_commits", args, async () => {
+            const projectId = this.uuidArg(args, "projectId");
+            await this.assertAllowedProject(credential, projectId);
+            return this.releaseCommitsService.suspectsForIssue(
+              projectId,
+              this.uuidArg(args, "issueId"),
+            );
+          }),
+      });
+    }
+    if (can("autofix:read")) {
+      add({
+        name: "get_autofix_run",
+        description:
+          "Get one Autofix run: phase, status, root-cause analysis, fix summary, CI checks and pull request.",
+        inputSchema: {
+          type: "object",
+          required: ["projectId", "runId"],
+          properties: {
+            projectId: { type: "string", format: "uuid" },
+            runId: { type: "string", format: "uuid" },
+          },
+          additionalProperties: false,
+        },
+        readOnly: true,
+        execute: (args) =>
+          run("get_autofix_run", args, async () => {
+            const projectId = this.uuidArg(args, "projectId");
+            await this.assertAllowedProject(credential, projectId);
+            return this.autofixService.getRun(projectId, this.uuidArg(args, "runId"));
+          }),
       });
     }
 
@@ -761,6 +959,31 @@ export class McpService {
       throw new ForbiddenException(`${name} must be one of: ${options.join(", ")}`);
     }
     return value as T;
+  }
+
+  private optionalDateArg(args: Record<string, unknown>, name: string) {
+    const value = args[name];
+    if (value === undefined) return undefined;
+    const date = typeof value === "string" ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) {
+      throw new ForbiddenException(`${name} must be an ISO 8601 date-time`);
+    }
+    return date;
+  }
+
+  private optionalTagsArg(args: Record<string, unknown>) {
+    const value = args.tags;
+    if (value === undefined) return undefined;
+    const entries =
+      value && typeof value === "object" && !Array.isArray(value) ? Object.entries(value) : null;
+    if (
+      !entries ||
+      entries.length > 5 ||
+      entries.some(([key, tag]) => key.length > 200 || typeof tag !== "string" || tag.length > 200)
+    ) {
+      throw new ForbiddenException("tags must map up to 5 tag names to string values");
+    }
+    return entries.length ? (Object.fromEntries(entries) as Record<string, string>) : undefined;
   }
 
   private confirmedArg(args: Record<string, unknown>) {
@@ -967,6 +1190,192 @@ export class McpService {
       actorUserId: credential.createdByUserId,
       trigger: "manual",
     });
+  }
+
+  private async searchEvents(
+    credential: McpCredentialRecord,
+    input: {
+      projectId: string;
+      query?: string;
+      level?: string;
+      environment?: string;
+      release?: string;
+      issueId?: string;
+      since?: Date;
+      until?: Date;
+      tags?: Record<string, string>;
+      limit: number;
+    },
+  ) {
+    await this.assertAllowedProject(credential, input.projectId);
+    const items = await this.db
+      .select({
+        id: events.id,
+        eventId: events.eventId,
+        issueId: events.issueId,
+        level: events.level,
+        message: events.message,
+        transactionName: events.transactionName,
+        timestamp: events.timestamp,
+        release: releases.version,
+        environment: environments.name,
+        tags: events.tags,
+      })
+      .from(events)
+      .leftJoin(releases, eq(releases.id, events.releaseId))
+      .leftJoin(environments, eq(environments.id, events.environmentId))
+      .where(
+        and(
+          eq(events.projectId, input.projectId),
+          ...(input.query
+            ? [
+                or(
+                  ilike(events.message, likePattern(input.query)),
+                  ilike(events.transactionName, likePattern(input.query)),
+                  // Exception events carry their text in the payload, not in message.
+                  sql`jsonb_path_query_array(${events.rawPayload}, 'lax $.exception.values[*].type') :: text ilike ${likePattern(input.query)}`,
+                  sql`jsonb_path_query_array(${events.rawPayload}, 'lax $.exception.values[*].value') :: text ilike ${likePattern(input.query)}`,
+                ),
+              ]
+            : []),
+          ...(input.level ? [eq(events.level, input.level)] : []),
+          ...(input.environment ? [eq(environments.name, input.environment)] : []),
+          ...(input.release ? [eq(releases.version, input.release)] : []),
+          ...(input.issueId ? [eq(events.issueId, input.issueId)] : []),
+          ...(input.since ? [gte(events.timestamp, input.since)] : []),
+          ...(input.until ? [lte(events.timestamp, input.until)] : []),
+          ...(input.tags ? [sql`${events.tags} @> ${JSON.stringify(input.tags)}::jsonb`] : []),
+        ),
+      )
+      .orderBy(desc(events.timestamp))
+      .limit(input.limit);
+    return { items, limit: input.limit };
+  }
+
+  private async findIssue(credential: McpCredentialRecord, reference: string) {
+    const allowedIds = await this.allowedProjectIds(credential);
+    const inScope = and(
+      eq(issues.organizationId, credential.organizationId),
+      ...(allowedIds ? [inArray(issues.projectId, allowedIds)] : []),
+    );
+    const summaries = (where: ReturnType<typeof and>) =>
+      this.db
+        .select({
+          id: issues.id,
+          projectId: issues.projectId,
+          projectSlug: projects.slug,
+          title: issues.title,
+          culprit: issues.culprit,
+          level: issues.level,
+          status: issues.status,
+          priority: issues.priority,
+          timesSeen: issues.timesSeen,
+          firstSeenAt: issues.firstSeenAt,
+          lastSeenAt: issues.lastSeenAt,
+          mergedIntoIssueId: issues.mergedIntoIssueId,
+        })
+        .from(issues)
+        .innerJoin(projects, eq(projects.id, issues.projectId))
+        .where(and(inScope, where))
+        .orderBy(desc(issues.lastSeenAt))
+        .limit(5);
+    const viaEvents = (where: ReturnType<typeof and>) =>
+      summaries(
+        inArray(
+          issues.id,
+          this.db
+            .select({ issueId: events.issueId })
+            .from(events)
+            .where(and(eq(events.organizationId, credential.organizationId), where)),
+        ),
+      );
+
+    const text = reference.trim();
+    const issueIdInUrl = text.match(/\/issues\/([0-9a-f-]{36})(?:[/?#]|$)/i)?.[1];
+    const compact = text.replace(/-/g, "").toLowerCase();
+    const attempts: Array<[string, () => Promise<Awaited<ReturnType<typeof summaries>>>]> = [];
+    if (issueIdInUrl && UUID_PATTERN.test(issueIdInUrl)) {
+      attempts.push(["issue_url", () => summaries(eq(issues.id, issueIdInUrl))]);
+    } else if (UUID_PATTERN.test(text)) {
+      attempts.push(["issue_id", () => summaries(eq(issues.id, text))]);
+      attempts.push(["event_id", () => viaEvents(eq(events.id, text))]);
+    }
+    if (/^[0-9a-f]{32}$/.test(compact)) {
+      attempts.push(["sdk_event_id", () => viaEvents(eq(events.eventId, compact))]);
+    }
+    if (/^[0-9a-f-]{8,35}$/i.test(text) && !issueIdInUrl) {
+      attempts.push([
+        "issue_id_prefix",
+        () => summaries(sql`${issues.id}::text like ${`${text.toLowerCase()}%`}`),
+      ]);
+    }
+    if (attempts.length === 0) {
+      throw new ForbiddenException(
+        "reference must be an SDK event ID, an issue URL, an issue ID or at least 8 characters of one",
+      );
+    }
+
+    for (const [matchedBy, attempt] of attempts) {
+      const found = await attempt();
+      if (found.length === 0) continue;
+      const links = new Map<string, Awaited<ReturnType<typeof loadProjectLinks>>>();
+      for (const issue of found) {
+        if (!links.has(issue.projectId)) {
+          links.set(issue.projectId, await loadProjectLinks(this.db, issue.projectId));
+        }
+      }
+      return {
+        matchedBy,
+        ambiguous: found.length > 1,
+        issues: found.map((issue) => ({
+          ...issue,
+          url: issueUrl(links.get(issue.projectId)!, issue.id) ?? null,
+        })),
+      };
+    }
+    throw new NotFoundException("No issue matches this reference in the projects you can access");
+  }
+
+  private async getIssueStackTrace(
+    credential: McpCredentialRecord,
+    input: { projectId: string; issueId: string; eventId?: string; allFrames: boolean },
+  ) {
+    await this.assertAllowedProject(credential, input.projectId);
+    const [event] = await this.db
+      .select({
+        id: events.id,
+        eventId: events.eventId,
+        timestamp: events.timestamp,
+        rawPayload: events.rawPayload,
+        releaseId: events.releaseId,
+        release: releases.version,
+        sdkName: events.sdkName,
+        platform: events.platform,
+      })
+      .from(events)
+      .leftJoin(releases, eq(releases.id, events.releaseId))
+      .where(
+        and(
+          eq(events.projectId, input.projectId),
+          eq(events.issueId, input.issueId),
+          ...(input.eventId ? [eq(events.id, input.eventId)] : []),
+        ),
+      )
+      .orderBy(desc(events.timestamp))
+      .limit(1);
+    if (!event) throw new NotFoundException(input.eventId ? "Event not found" : "Issue not found");
+    const stack = await resolveEventStack(this.sourcemapResolverService, event, {
+      maxFrames: input.allFrames ? 200 : 50,
+      allFrames: input.allFrames,
+    });
+    return {
+      eventId: event.id,
+      sdkEventId: event.eventId,
+      timestamp: event.timestamp,
+      release: event.release,
+      platform: event.platform,
+      ...stack,
+    };
   }
 
   private async allowedProjectIds(credential: McpCredentialRecord) {

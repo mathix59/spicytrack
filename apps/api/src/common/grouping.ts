@@ -207,6 +207,8 @@ export interface RawStackFrame {
   lineno?: number | null;
   colno?: number | null;
   inApp?: boolean | null;
+  /** Source line the SDK attached, when it had the original file. */
+  contextLine?: string | null;
 }
 
 export function getAllFrames(payload: Record<string, unknown>): RawStackFrame[] {
@@ -224,6 +226,7 @@ export function getAllFrames(payload: Record<string, unknown>): RawStackFrame[] 
       lineno: asNumber(frame.lineno),
       colno: asNumber(frame.colno),
       inApp: typeof frame.in_app === "boolean" ? frame.in_app : null,
+      contextLine: asString(frame.context_line),
     }));
 }
 

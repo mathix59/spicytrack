@@ -9,10 +9,9 @@ import {
 } from "@nestjs/common";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { issueUrl, loadProjectLinks } from "../alerts/alert-links";
+import { resolveEventStack } from "../artifacts/resolved-stack";
 import { SourcemapResolverService } from "../artifacts/sourcemap-resolver.service";
 import { AuditService } from "../audit/audit.service";
-import { redactEventPayload } from "../common/event-payload-redaction";
-import { asString, getAllFrames } from "../common/grouping";
 import { isUniqueViolation } from "../common/postgres-errors";
 import { decryptSecret, encryptSecret } from "../common/secrets";
 import { DATABASE } from "../database/database.provider";
@@ -50,7 +49,6 @@ export type TicketProvider = (typeof TICKET_PROVIDERS)[number];
 export const MAX_TICKET_TITLE = 255;
 export const MAX_TICKET_DESCRIPTION = 20_000;
 const MAX_DRAFT_FRAMES = 15;
-const MAX_EXCEPTION_VALUE = 1000;
 
 type TrackerRecord = typeof ticketTrackers.$inferSelect;
 type TicketRecord = typeof issueTickets.$inferSelect;
@@ -503,45 +501,16 @@ export class TicketsService {
     sdkName: string | null;
     platform: string | null;
   }): Promise<string | null> {
-    const payload = redactEventPayload((event.rawPayload ?? {}) as Record<string, unknown>);
-    const exception = payload.exception as { values?: unknown[] } | unknown[] | undefined;
-    const values = Array.isArray(exception) ? exception : (exception?.values ?? []);
-    const last = values.at(-1) as Record<string, unknown> | undefined;
-    const type = asString(last?.type);
-    const value = asString(last?.value)?.slice(0, MAX_EXCEPTION_VALUE) ?? null;
-    const header = [type, value].filter(Boolean).join(": ") || asString(payload.message);
-
-    const rawFrames = getAllFrames(payload);
-    const resolved = await this.sourcemapResolverService.resolveFrames({
-      releaseId: event.releaseId,
-      frames: rawFrames,
-      sdkName: event.sdkName,
-      platform: event.platform,
+    const { header, frames } = await resolveEventStack(this.sourcemapResolverService, event, {
+      maxFrames: MAX_DRAFT_FRAMES,
     });
-    const frames = rawFrames.map((frame, index) => {
-      const mapped = resolved[index];
-      return {
-        inApp: frame.inApp,
-        function: (mapped?.resolved ? mapped.function : null) ?? frame.function ?? "<anonymous>",
-        path:
-          (mapped?.resolved ? mapped.filename : null) ??
-          frame.filename ??
-          frame.absPath ??
-          frame.module ??
-          "?",
-        lineno: (mapped?.resolved ? mapped.lineno : null) ?? frame.lineno,
-      };
-    });
-    const hasInApp = frames.some((frame) => frame.inApp === true);
-    const shown = frames
-      .filter((frame) => (hasInApp ? frame.inApp === true : frame.inApp !== false))
-      .reverse()
-      .slice(0, MAX_DRAFT_FRAMES)
-      .map(
+    if (!header && frames.length === 0) return null;
+    return [
+      header ?? "Error",
+      ...frames.map(
         (frame) =>
           `    at ${frame.function} (${frame.path}${frame.lineno ? `:${frame.lineno}` : ""})`,
-      );
-    if (!header && shown.length === 0) return null;
-    return [header ?? "Error", ...shown].join("\n");
+      ),
+    ].join("\n");
   }
 }
