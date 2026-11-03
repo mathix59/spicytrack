@@ -384,3 +384,77 @@ test("instance admin permanently deletes a user only after typing their email", 
   await page.getByRole("tab", { name: "Users", exact: true }).click();
   await expect(page.getByRole("button", { name: "Delete user", exact: true })).toHaveCount(0);
 });
+
+test("instance audit log filters, pages through older entries and exports", async ({ page }) => {
+  await mockApi(page);
+  await page.route("**/api/instance-admin/settings", (route) => route.fulfill({ json: settings }));
+  const entry = (id: number, action: string) => ({
+    id: `00000000-0000-4000-8000-${String(id).padStart(12, "0")}`,
+    organizationId: null,
+    projectId: null,
+    projectName: null,
+    actorUserId: "owner",
+    actorName: "Owner",
+    actorEmail: "owner@example.test",
+    actorTokenId: id === 1 ? "token-1" : null,
+    actorTokenName: id === 1 ? "Terraform" : null,
+    ipAddress: "203.0.113.7",
+    userAgent: "curl/8.7",
+    action,
+    targetType: "user",
+    targetId: null,
+    payload: {},
+    createdAt: new Date().toISOString(),
+  });
+  const requested: URLSearchParams[] = [];
+  await page.route(
+    (url) => url.pathname === "/api/instance-admin/audit",
+    async (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    requested.push(params);
+    await route.fulfill({
+      json: params.get("cursor")
+        ? { items: [entry(2, "instance.user.deleted")], nextCursor: null }
+        : { items: [entry(1, "instance.user.super_admin_granted")], nextCursor: "next" },
+    });
+    },
+  );
+  await page.route("**/api/instance-admin/audit/facets", (route) =>
+    route.fulfill({
+      json: {
+        actions: ["instance.user.deleted", "instance.user.super_admin_granted"],
+        targetTypes: ["user"],
+      },
+    }),
+  );
+  await page.route("**/api/instance-admin/audit/export?**", (route) => {
+    expect(new URL(route.request().url()).searchParams.get("format")).toBe("csv");
+    return route.fulfill({
+      body: "createdAt,action\r\n",
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": 'attachment; filename="instance-audit-2026-11-03.csv"',
+      },
+    });
+  });
+
+  await page.goto("/admin");
+  await page.getByRole("tab", { name: "Audit log" }).click();
+  const entries = page.getByRole("listitem");
+  await expect(entries.getByText("instance.user.super_admin_granted")).toBeVisible();
+  await expect(page.getByText("Terraform")).toBeVisible();
+  await expect(page.getByText(/203\.0\.113\.7/)).toBeVisible();
+
+  await page.getByLabel("Action").selectOption("instance.");
+  await expect.poll(() => requested.at(-1)?.get("action")).toBe("instance.");
+  await page.getByRole("button", { name: "Load older entries" }).click();
+  await expect(entries.getByText("instance.user.deleted", { exact: true })).toBeVisible();
+  expect(requested.at(-1)?.get("cursor")).toBe("next");
+
+  await page.getByRole("button", { name: "Export" }).click();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("menuitem", { name: /CSV/ }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("instance-audit-2026-11-03.csv");
+});

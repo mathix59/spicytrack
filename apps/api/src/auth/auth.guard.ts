@@ -12,6 +12,7 @@ import type { DatabaseClient } from "../database/database.provider";
 import { personalAccessTokens, users } from "../database/schema";
 import type { AuthenticatedRequest } from "../common/authenticated-request";
 import { hashOpaqueToken } from "../common/tokens";
+import { currentAuditRequest } from "../common/audit-request";
 import { tokenAllowsMethod } from "../personal-tokens/token-scopes";
 import { getBetterAuthSession } from "./better-auth";
 import { fromNodeHeaders } from "better-auth/node";
@@ -99,6 +100,8 @@ export class AuthGuard implements CanActivate {
         organizationId: patRecord.organizationId,
       },
     };
+    const auditRequest = currentAuditRequest();
+    if (auditRequest) auditRequest.tokenId = patRecord.id;
     return true;
   }
 }

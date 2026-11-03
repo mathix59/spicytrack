@@ -7,6 +7,7 @@ import {
   LogOut,
   Monitor,
   Moon,
+  ScrollText,
   Search,
   Settings,
   Shield,
@@ -135,6 +136,12 @@ function AppShellOrgNav({
         icon={ShieldCheck}
         label="Roles"
         to={`/orgs/${currentOrgSlug}?tab=roles`}
+      />
+      <ShellLink
+        active={isOrgPage && orgTab === "audit"}
+        icon={ScrollText}
+        label="Audit log"
+        to={`/orgs/${currentOrgSlug}?tab=audit`}
       />
       <ShellLink
         active={isOrgPage && orgTab === "settings"}

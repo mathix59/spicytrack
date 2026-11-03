@@ -659,9 +659,14 @@ export const auditLogs = pgTable(
   "audit_logs",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    organizationId: uuid("organization_id").notNull(),
+    /** Null for instance-level events (super-admin actions outside any organization). */
+    organizationId: uuid("organization_id"),
     projectId: uuid("project_id"),
     actorUserId: uuid("actor_user_id"),
+    /** Set when the actor authenticated with a personal access token. */
+    actorTokenId: uuid("actor_token_id"),
+    ipAddress: varchar("ip_address", { length: 64 }),
+    userAgent: varchar("user_agent", { length: 512 }),
     action: varchar("action", { length: 128 }).notNull(),
     targetType: varchar("target_type", { length: 64 }).notNull(),
     targetId: uuid("target_id"),
@@ -674,6 +679,9 @@ export const auditLogs = pgTable(
       table.createdAt,
     ),
     createdIdx: index("audit_logs_created_idx").on(table.createdAt),
+    instanceCreatedIdx: index("audit_logs_instance_created_idx")
+      .on(table.createdAt)
+      .where(sql`${table.organizationId} IS NULL`),
   }),
 );
 

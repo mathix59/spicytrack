@@ -128,6 +128,10 @@ export class DeleteUserService {
         await tx.execute(
           sql`DELETE FROM ${sql.identifier(table)} WHERE ${sql.identifier(column)} = ${targetId}::uuid`,
         );
+      // The deleted user's network identifiers are personal data; their actions stay logged.
+      await tx.execute(
+        sql`UPDATE audit_logs SET ip_address = NULL, user_agent = NULL WHERE actor_user_id = ${targetId}::uuid`,
+      );
       // Preserve shared project data and its history without dangling actor references.
       for (const [table, column] of [
         ["instance_settings", "updated_by_user_id"],

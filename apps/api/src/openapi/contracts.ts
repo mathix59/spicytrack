@@ -1113,8 +1113,8 @@ export class AuditLogDto {
   @ApiProperty()
   id!: string;
 
-  @ApiProperty()
-  organizationId!: string;
+  @ApiProperty({ type: String, nullable: true })
+  organizationId!: string | null;
 
   @ApiPropertyOptional({ type: String, nullable: true })
   projectId?: string | null;
@@ -1136,6 +1136,45 @@ export class AuditLogDto {
 
   @ApiProperty()
   createdAt!: string;
+}
+
+export class AuditEntryDto extends AuditLogDto {
+  @ApiProperty({ type: String, nullable: true })
+  projectName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  actorName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  actorEmail!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: "Personal access token used, if any" })
+  actorTokenId!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  actorTokenName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  ipAddress!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  userAgent!: string | null;
+}
+
+export class AuditEntryPageDto {
+  @ApiProperty({ type: [AuditEntryDto] })
+  items!: AuditEntryDto[];
+
+  @ApiProperty({ type: String, nullable: true, description: "Pass as `cursor` for older entries" })
+  nextCursor!: string | null;
+}
+
+export class AuditFacetsDto {
+  @ApiProperty({ type: [String] })
+  actions!: string[];
+
+  @ApiProperty({ type: [String] })
+  targetTypes!: string[];
 }
 
 export class PaginatedIssuesDto {

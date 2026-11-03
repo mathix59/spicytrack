@@ -5,6 +5,7 @@ import { QueryError } from "@/components/common/query-error";
 import { OrganizationSettingsPanel } from "@/components/organizations/organization-settings-panel";
 import { Skeleton, SkeletonRows } from "@/components/ui/skeleton";
 
+import { OrganizationAuditTab } from "./organization-page/audit-tab";
 import { OrganizationMemberTab } from "./organization-page/member-tab";
 import { OrganizationProjectTab } from "./organization-page/project-tab";
 import { OrganizationRoleTab } from "./organization-page/role-tab";
@@ -63,6 +64,15 @@ function OrganizationPage() {
           organizationRolesStatus={page.members.rolesStatus}
           teams={page.teams.teams}
           teamsStatus={page.teams.teamsStatus}
+        />
+      ) : null}
+
+      {page.activeTab === "audit" ? (
+        <OrganizationAuditTab
+          canReadAudit={page.canReadAudit}
+          members={page.members.members}
+          orgSlug={page.orgSlug}
+          projects={page.projects.projects}
         />
       ) : null}
 

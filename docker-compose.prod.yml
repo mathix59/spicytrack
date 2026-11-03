@@ -64,6 +64,8 @@ services:
       AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-100}
       AUTH_SIGN_IN_RATE_LIMIT_MAX: ${AUTH_SIGN_IN_RATE_LIMIT_MAX:-10}
       ALLOW_PRIVATE_WEBHOOK_URLS: ${ALLOW_PRIVATE_WEBHOOK_URLS:-false}
+      # api-web is only reachable through the web nginx: trust that one hop for client IPs.
+      TRUST_PROXY: ${TRUST_PROXY:-1}
       VCS_ALLOWED_HOSTS: ${VCS_ALLOWED_HOSTS:-}
       VCS_ALLOW_INSECURE_HTTP: ${VCS_ALLOW_INSECURE_HTTP:-false}
       STORAGE_ENDPOINT: http://rustfs:9000

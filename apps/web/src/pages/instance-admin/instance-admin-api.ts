@@ -1,6 +1,9 @@
 import { withReadableApiError } from "@/lib/api-error";
 import { orvalFetch } from "@/lib/orval-fetch";
 
+import type { AuditEntryPageDto, AuditFacetsDto } from "@/generated/api";
+import type { AuditQueryParams } from "@/components/audit/use-audit-log";
+
 import type { InstanceSettings, InstanceSettingsUpdate, InstanceUsersPage } from "./types";
 
 // The generated client has no typed bodies for these endpoints, so they are called directly.
@@ -10,6 +13,8 @@ const instanceAdminKeys = {
   settings: ["instance-admin", "settings"] as const,
   users: (search: string, page: number) => ["instance-admin", "users", { search, page }] as const,
   allUsers: ["instance-admin", "users"] as const,
+  audit: ["instance-admin", "audit"] as const,
+  auditFacets: ["instance-admin", "audit", "facets"] as const,
 };
 
 function fetchInstanceSettings() {
@@ -72,8 +77,29 @@ function deleteInstanceUser(userId: string, confirmationEmail: string) {
   );
 }
 
+function fetchInstanceAudit(params: AuditQueryParams & { cursor?: string }) {
+  return withReadableApiError(async () => {
+    const result = await orvalFetch<{ data: AuditEntryPageDto }>("/instance-admin/audit", {
+      method: "GET",
+      params,
+    });
+    return result.data;
+  });
+}
+
+function fetchInstanceAuditFacets() {
+  return withReadableApiError(async () => {
+    const result = await orvalFetch<{ data: AuditFacetsDto }>("/instance-admin/audit/facets", {
+      method: "GET",
+    });
+    return result.data;
+  });
+}
+
 export {
   deleteInstanceUser,
+  fetchInstanceAudit,
+  fetchInstanceAuditFacets,
   fetchInstanceSettings,
   fetchInstanceUsers,
   instanceAdminKeys,

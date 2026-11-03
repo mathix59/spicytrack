@@ -8,7 +8,7 @@ import type {
   TeamDto,
 } from "@/generated/api";
 
-type OrganizationTab = "projects" | "members" | "teams" | "roles" | "settings";
+type OrganizationTab = "projects" | "members" | "teams" | "roles" | "audit" | "settings";
 
 /** Loading/error status of a list query, so tabs can tell "loading" apart from "empty". */
 type QueryStatus = {
@@ -70,6 +70,7 @@ type OrganizationPageData = {
   canManageSettings: boolean;
   canDelete: boolean;
   canManageMcp: boolean;
+  canReadAudit: boolean;
   projects: OrganizationProjectsState;
   members: OrganizationMembersState;
   teams: OrganizationTeamsState;

@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton, SkeletonRows } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { AuditTab } from "./instance-admin/audit-tab";
 import { GeneralTab } from "./instance-admin/general-tab";
 import { SmtpTab } from "./instance-admin/smtp-tab";
 import { useInstanceSettings } from "./instance-admin/use-instance-settings";
@@ -50,6 +51,7 @@ export function InstanceAdminPage() {
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="email">Email delivery</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="audit">Audit log</TabsTrigger>
           </TabsList>
           <TabsContent className="mt-0" value="general">
             {settings ? (
@@ -63,6 +65,9 @@ export function InstanceAdminPage() {
           </TabsContent>
           <TabsContent className="mt-0" value="users">
             <UsersTab />
+          </TabsContent>
+          <TabsContent className="mt-0" value="audit">
+            <AuditTab />
           </TabsContent>
         </Tabs>
       )}

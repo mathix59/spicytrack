@@ -39,6 +39,7 @@ const ORG_SECTIONS = [
   { tab: "members", label: "Members", icon: Users },
   { tab: "teams", label: "Teams", icon: UsersRound },
   { tab: "roles", label: "Roles", icon: ShieldCheck },
+  { tab: "audit", label: "Audit log", icon: ScrollText },
   { tab: "settings", label: "Organization settings", icon: Settings },
 ] as const;
 

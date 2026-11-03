@@ -39,7 +39,14 @@ const EMPTY_INVITATIONS: OrganizationInvitationDto[] = [];
 const EMPTY_ROLES: OrganizationRoleDto[] = [];
 const EMPTY_TEAMS: TeamDto[] = [];
 const EMPTY_PROJECTS: ProjectDto[] = [];
-const VALID_TABS: OrganizationTab[] = ["projects", "members", "teams", "roles", "settings"];
+const VALID_TABS: OrganizationTab[] = [
+  "projects",
+  "members",
+  "teams",
+  "roles",
+  "audit",
+  "settings",
+];
 
 type OrganizationPageResult =
   | { state: "loading" }
@@ -221,6 +228,7 @@ function useOrganizationPage(): OrganizationPageResult {
     canManageSettings,
     canDelete: organizationMembership?.role === "owner",
     canManageMcp,
+    canReadAudit: permissions.has("audit.read"),
     projects: {
       projects,
       projectsStatus: toQueryStatus(projectsQuery),

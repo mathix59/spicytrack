@@ -2,6 +2,7 @@ import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
+import { saveBlob } from "@/lib/download";
 
 function downloadBackupCodes(codes: string[]) {
   const content = [
@@ -13,14 +14,10 @@ function downloadBackupCodes(codes: string[]) {
     ...codes,
     "",
   ].join("\n");
-  const url = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "spicytrack-backup-codes.txt";
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  saveBlob(
+    new Blob([content], { type: "text/plain;charset=utf-8" }),
+    "spicytrack-backup-codes.txt",
+  );
 }
 
 function BackupCodes({ codes }: { codes: string[] }) {

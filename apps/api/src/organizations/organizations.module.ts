@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuditModule } from "../audit/audit.module";
+import { OrganizationAuditController } from "../audit/organization-audit.controller";
 import { EmailModule } from "../email/email.module";
 import { JobsModule } from "../jobs/jobs.module";
 import { ProjectsModule } from "../projects/projects.module";
@@ -12,7 +13,7 @@ import { OrganizationsService } from "./organizations.service";
 
 @Module({
   imports: [AuditModule, EmailModule, RbacModule, ProjectsModule, JobsModule],
-  controllers: [OrganizationsController],
+  controllers: [OrganizationsController, OrganizationAuditController],
   providers: [
     OrganizationDeletionService,
     OrganizationsService,

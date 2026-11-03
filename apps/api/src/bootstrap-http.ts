@@ -13,6 +13,7 @@ import { BrowserIngestCorsService } from "./ingest/browser-ingest-cors.service";
 import { setupSwagger } from "./openapi/swagger";
 import { artifactMaxUploadBytes } from "./artifacts/artifact-upload-limits";
 import { createServiceLogging } from "./common/logger";
+import { auditRequestFrom, runWithAuditRequest, trustProxySetting } from "./common/audit-request";
 
 type HttpBootstrapOptions = {
   /** Name stamped on every JSON log line. */
@@ -41,6 +42,7 @@ async function createHttpApplication(
     rootModule,
     new FastifyAdapter({
       ignoreTrailingSlash: true,
+      trustProxy: trustProxySetting(),
       ...(options.bodyLimit ? { bodyLimit: options.bodyLimit } : {}),
       ...(logging.http ? { loggerInstance: logging.http } : {}),
     }),
@@ -60,16 +62,19 @@ async function createHttpApplication(
       methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     });
   }
-  app
-    .getHttpAdapter()
-    .getInstance()
-    .addHook("onSend", (_request, reply, _payload, done) => {
-      reply.header("X-Content-Type-Options", "nosniff");
-      reply.header("X-Frame-Options", "DENY");
-      reply.header("Referrer-Policy", "no-referrer");
-      reply.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-      done();
-    });
+  const fastify = app.getHttpAdapter().getInstance();
+  // Everything downstream of this hook (guards, handlers, services) sees the
+  // caller's IP and user agent, so audit entries need no plumbing.
+  fastify.addHook("onRequest", (request, _reply, done) => {
+    runWithAuditRequest(auditRequestFrom(request), done);
+  });
+  fastify.addHook("onSend", (_request, reply, _payload, done) => {
+    reply.header("X-Content-Type-Options", "nosniff");
+    reply.header("X-Frame-Options", "DENY");
+    reply.header("Referrer-Policy", "no-referrer");
+    reply.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    done();
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

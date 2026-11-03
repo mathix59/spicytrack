@@ -316,7 +316,8 @@ export type AuditLogDtoPayload = { [key: string]: unknown };
 
 export interface AuditLogDto {
   id: string;
-  organizationId: string;
+  /** @nullable */
+  organizationId: string | null;
   /** @nullable */
   projectId?: string | null;
   /** @nullable */
@@ -1319,6 +1320,55 @@ export interface UpdateMemberRoleBodyDto {
   role: string;
 }
 
+export type AuditEntryDtoPayload = { [key: string]: unknown };
+
+export interface AuditEntryDto {
+  id: string;
+  /** @nullable */
+  organizationId: string | null;
+  /** @nullable */
+  projectId?: string | null;
+  /** @nullable */
+  actorUserId?: string | null;
+  action: string;
+  targetType: string;
+  /** @nullable */
+  targetId?: string | null;
+  payload: AuditEntryDtoPayload;
+  createdAt: string;
+  /** @nullable */
+  projectName: string | null;
+  /** @nullable */
+  actorName: string | null;
+  /** @nullable */
+  actorEmail: string | null;
+  /**
+     * Personal access token used, if any
+     * @nullable
+     */
+  actorTokenId: string | null;
+  /** @nullable */
+  actorTokenName: string | null;
+  /** @nullable */
+  ipAddress: string | null;
+  /** @nullable */
+  userAgent: string | null;
+}
+
+export interface AuditEntryPageDto {
+  items: AuditEntryDto[];
+  /**
+     * Pass as `cursor` for older entries
+     * @nullable
+     */
+  nextCursor: string | null;
+}
+
+export interface AuditFacetsDto {
+  actions: string[];
+  targetTypes: string[];
+}
+
 export interface TeamDto {
   id: string;
   organizationId: string;
@@ -1461,6 +1511,41 @@ export type GetOrganizationJobQueueOverviewParams = {
   type?: string;
   status?: string;
 };
+
+export type ListOrganizationAuditParams = {
+  limit?: number;
+  cursor?: string;
+  /** Exact action, or a prefix ending with "." (e.g. "member.") */
+  action?: string;
+  actorUserId?: string;
+  projectId?: string;
+  targetType?: string;
+  /** ISO date, inclusive */
+  from?: string;
+  /** ISO date, inclusive */
+  to?: string;
+};
+
+export type ExportOrganizationAuditParams = {
+  format?: ExportOrganizationAuditFormat;
+  /** Exact action, or a prefix ending with "." (e.g. "member.") */
+  action?: string;
+  actorUserId?: string;
+  projectId?: string;
+  targetType?: string;
+  /** ISO date, inclusive */
+  from?: string;
+  /** ISO date, inclusive */
+  to?: string;
+};
+
+export type ExportOrganizationAuditFormat = typeof ExportOrganizationAuditFormat[keyof typeof ExportOrganizationAuditFormat];
+
+
+export const ExportOrganizationAuditFormat = {
+  csv: 'csv',
+  json: 'json',
+} as const;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
@@ -4469,6 +4554,327 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getInstanceAdminControllerUpdateUserMutationOptions(options), queryClient);
     }
+
+export type instanceAdminControllerListAuditResponse200 = {
+  data: void
+  status: 200
+}
+
+export type instanceAdminControllerListAuditResponseSuccess = (instanceAdminControllerListAuditResponse200) & {
+  headers: Headers;
+};
+;
+
+export type instanceAdminControllerListAuditResponse = (instanceAdminControllerListAuditResponseSuccess)
+
+export const getInstanceAdminControllerListAuditUrl = () => {
+
+
+
+
+  return `/instance-admin/audit`
+}
+
+export const instanceAdminControllerListAudit = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerListAuditResponse> => {
+
+  return orvalFetch<instanceAdminControllerListAuditResponse>(getInstanceAdminControllerListAuditUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getInstanceAdminControllerListAuditQueryKey = () => {
+    return [
+    `/instance-admin/audit`
+    ] as const;
+    }
+
+
+export const getInstanceAdminControllerListAuditQueryOptions = <TData = Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInstanceAdminControllerListAuditQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof instanceAdminControllerListAudit>>> = ({ signal }) => instanceAdminControllerListAudit({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InstanceAdminControllerListAuditQueryResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerListAudit>>>
+export type InstanceAdminControllerListAuditQueryError = ErrorType<unknown>
+
+
+export function useInstanceAdminControllerListAudit<TData = Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof instanceAdminControllerListAudit>>,
+          TError,
+          Awaited<ReturnType<typeof instanceAdminControllerListAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerListAudit<TData = Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof instanceAdminControllerListAudit>>,
+          TError,
+          Awaited<ReturnType<typeof instanceAdminControllerListAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerListAudit<TData = Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useInstanceAdminControllerListAudit<TData = Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerListAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getInstanceAdminControllerListAuditQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type instanceAdminControllerAuditFacetsResponse200 = {
+  data: void
+  status: 200
+}
+
+export type instanceAdminControllerAuditFacetsResponseSuccess = (instanceAdminControllerAuditFacetsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type instanceAdminControllerAuditFacetsResponse = (instanceAdminControllerAuditFacetsResponseSuccess)
+
+export const getInstanceAdminControllerAuditFacetsUrl = () => {
+
+
+
+
+  return `/instance-admin/audit/facets`
+}
+
+export const instanceAdminControllerAuditFacets = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerAuditFacetsResponse> => {
+
+  return orvalFetch<instanceAdminControllerAuditFacetsResponse>(getInstanceAdminControllerAuditFacetsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getInstanceAdminControllerAuditFacetsQueryKey = () => {
+    return [
+    `/instance-admin/audit/facets`
+    ] as const;
+    }
+
+
+export const getInstanceAdminControllerAuditFacetsQueryOptions = <TData = Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInstanceAdminControllerAuditFacetsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>> = ({ signal }) => instanceAdminControllerAuditFacets({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InstanceAdminControllerAuditFacetsQueryResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>>
+export type InstanceAdminControllerAuditFacetsQueryError = ErrorType<unknown>
+
+
+export function useInstanceAdminControllerAuditFacets<TData = Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>,
+          TError,
+          Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerAuditFacets<TData = Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>,
+          TError,
+          Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerAuditFacets<TData = Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useInstanceAdminControllerAuditFacets<TData = Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerAuditFacets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getInstanceAdminControllerAuditFacetsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type instanceAdminControllerExportAuditResponse200 = {
+  data: void
+  status: 200
+}
+
+export type instanceAdminControllerExportAuditResponseSuccess = (instanceAdminControllerExportAuditResponse200) & {
+  headers: Headers;
+};
+;
+
+export type instanceAdminControllerExportAuditResponse = (instanceAdminControllerExportAuditResponseSuccess)
+
+export const getInstanceAdminControllerExportAuditUrl = () => {
+
+
+
+
+  return `/instance-admin/audit/export`
+}
+
+export const instanceAdminControllerExportAudit = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerExportAuditResponse> => {
+
+  return orvalFetch<instanceAdminControllerExportAuditResponse>(getInstanceAdminControllerExportAuditUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getInstanceAdminControllerExportAuditQueryKey = () => {
+    return [
+    `/instance-admin/audit/export`
+    ] as const;
+    }
+
+
+export const getInstanceAdminControllerExportAuditQueryOptions = <TData = Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInstanceAdminControllerExportAuditQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>> = ({ signal }) => instanceAdminControllerExportAudit({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InstanceAdminControllerExportAuditQueryResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>>
+export type InstanceAdminControllerExportAuditQueryError = ErrorType<unknown>
+
+
+export function useInstanceAdminControllerExportAudit<TData = Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>,
+          TError,
+          Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerExportAudit<TData = Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>,
+          TError,
+          Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInstanceAdminControllerExportAudit<TData = Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useInstanceAdminControllerExportAudit<TData = Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instanceAdminControllerExportAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getInstanceAdminControllerExportAuditQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export type uploadReleaseArtifactResponse200 = {
   data: ReleaseArtifactDto
@@ -12664,6 +13070,362 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRemoveOrganizationMemberMutationOptions(options), queryClient);
     }
+
+export type listOrganizationAuditResponse200 = {
+  data: AuditEntryPageDto
+  status: 200
+}
+
+export type listOrganizationAuditResponseSuccess = (listOrganizationAuditResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listOrganizationAuditResponse = (listOrganizationAuditResponseSuccess)
+
+export const getListOrganizationAuditUrl = (orgSlug: string,
+    params?: ListOrganizationAuditParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/audit?${stringifiedParams}` : `/organizations/${orgSlug}/audit`
+}
+
+export const listOrganizationAudit = async (orgSlug: string,
+    params?: ListOrganizationAuditParams, options?: Parameters<typeof orvalFetch>[1]): Promise<listOrganizationAuditResponse> => {
+
+  return orvalFetch<listOrganizationAuditResponse>(getListOrganizationAuditUrl(orgSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOrganizationAuditQueryKey = (orgSlug: string,
+    params?: ListOrganizationAuditParams,) => {
+    return [
+    `/organizations/${orgSlug}/audit`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListOrganizationAuditQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizationAudit>>, TError = ErrorType<unknown>>(orgSlug: string,
+    params?: ListOrganizationAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationAuditQueryKey(orgSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationAudit>>> = ({ signal }) => listOrganizationAudit(orgSlug,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAudit>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListOrganizationAuditQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizationAudit>>>
+export type ListOrganizationAuditQueryError = ErrorType<unknown>
+
+
+export function useListOrganizationAudit<TData = Awaited<ReturnType<typeof listOrganizationAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params: undefined |  ListOrganizationAuditParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAudit>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOrganizationAudit>>,
+          TError,
+          Awaited<ReturnType<typeof listOrganizationAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationAudit<TData = Awaited<ReturnType<typeof listOrganizationAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params?: ListOrganizationAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAudit>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOrganizationAudit>>,
+          TError,
+          Awaited<ReturnType<typeof listOrganizationAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationAudit<TData = Awaited<ReturnType<typeof listOrganizationAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params?: ListOrganizationAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListOrganizationAudit<TData = Awaited<ReturnType<typeof listOrganizationAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params?: ListOrganizationAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListOrganizationAuditQueryOptions(orgSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type getOrganizationAuditFacetsResponse200 = {
+  data: AuditFacetsDto
+  status: 200
+}
+
+export type getOrganizationAuditFacetsResponseSuccess = (getOrganizationAuditFacetsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getOrganizationAuditFacetsResponse = (getOrganizationAuditFacetsResponseSuccess)
+
+export const getGetOrganizationAuditFacetsUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/audit/facets`
+}
+
+export const getOrganizationAuditFacets = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationAuditFacetsResponse> => {
+
+  return orvalFetch<getOrganizationAuditFacetsResponse>(getGetOrganizationAuditFacetsUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationAuditFacetsQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/audit/facets`
+    ] as const;
+    }
+
+
+export const getGetOrganizationAuditFacetsQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationAuditFacetsQueryKey(orgSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationAuditFacets>>> = ({ signal }) => getOrganizationAuditFacets(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationAuditFacetsQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationAuditFacets>>>
+export type GetOrganizationAuditFacetsQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationAuditFacets<TData = Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationAuditFacets>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationAuditFacets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationAuditFacets<TData = Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationAuditFacets>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationAuditFacets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationAuditFacets<TData = Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetOrganizationAuditFacets<TData = Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationAuditFacets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetOrganizationAuditFacetsQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type exportOrganizationAuditResponse200TextCsv = {
+  data: string
+  status: 200
+}
+
+export type exportOrganizationAuditResponse200ApplicationJson = {
+  data: string
+  status: 200
+}
+
+export type exportOrganizationAuditResponseSuccess = (exportOrganizationAuditResponse200TextCsv | exportOrganizationAuditResponse200ApplicationJson) & {
+  headers: Headers;
+};
+;
+
+export type exportOrganizationAuditResponse = (exportOrganizationAuditResponseSuccess)
+
+export const getExportOrganizationAuditUrl = (orgSlug: string,
+    params?: ExportOrganizationAuditParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/audit/export?${stringifiedParams}` : `/organizations/${orgSlug}/audit/export`
+}
+
+export const exportOrganizationAudit = async (orgSlug: string,
+    params?: ExportOrganizationAuditParams, options?: Parameters<typeof orvalFetch>[1]): Promise<exportOrganizationAuditResponse> => {
+
+  return orvalFetch<exportOrganizationAuditResponse>(getExportOrganizationAuditUrl(orgSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportOrganizationAuditQueryKey = (orgSlug: string,
+    params?: ExportOrganizationAuditParams,) => {
+    return [
+    `/organizations/${orgSlug}/audit/export`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getExportOrganizationAuditQueryOptions = <TData = Awaited<ReturnType<typeof exportOrganizationAudit>>, TError = ErrorType<unknown>>(orgSlug: string,
+    params?: ExportOrganizationAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportOrganizationAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportOrganizationAuditQueryKey(orgSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportOrganizationAudit>>> = ({ signal }) => exportOrganizationAudit(orgSlug,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportOrganizationAudit>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExportOrganizationAuditQueryResult = NonNullable<Awaited<ReturnType<typeof exportOrganizationAudit>>>
+export type ExportOrganizationAuditQueryError = ErrorType<unknown>
+
+
+export function useExportOrganizationAudit<TData = Awaited<ReturnType<typeof exportOrganizationAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params: undefined |  ExportOrganizationAuditParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportOrganizationAudit>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof exportOrganizationAudit>>,
+          TError,
+          Awaited<ReturnType<typeof exportOrganizationAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExportOrganizationAudit<TData = Awaited<ReturnType<typeof exportOrganizationAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params?: ExportOrganizationAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportOrganizationAudit>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof exportOrganizationAudit>>,
+          TError,
+          Awaited<ReturnType<typeof exportOrganizationAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExportOrganizationAudit<TData = Awaited<ReturnType<typeof exportOrganizationAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params?: ExportOrganizationAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportOrganizationAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useExportOrganizationAudit<TData = Awaited<ReturnType<typeof exportOrganizationAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    params?: ExportOrganizationAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportOrganizationAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExportOrganizationAuditQueryOptions(orgSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export type listTeamsResponse200 = {
   data: TeamDto[]
