@@ -17,7 +17,7 @@ function ProjectIntegrationsPanel({
 }) {
   return (
     <Tabs className="grid gap-4" defaultValue="repository">
-      <TabsList className="w-fit">
+      <TabsList>
         <TabsTrigger value="repository">Repository</TabsTrigger>
         <TabsTrigger value="autofix">Autofix</TabsTrigger>
       </TabsList>

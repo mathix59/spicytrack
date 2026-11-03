@@ -97,7 +97,7 @@ function ProjectInventoryTab({
 
   return (
     <Tabs className="grid gap-4" defaultValue="releases">
-      <TabsList className="w-fit">
+      <TabsList>
         <TabsTrigger value="releases">Releases</TabsTrigger>
         <TabsTrigger value="environments">Environments</TabsTrigger>
       </TabsList>

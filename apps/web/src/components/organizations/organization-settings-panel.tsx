@@ -54,19 +54,20 @@ function OrganizationSettingsPanel({
       onValueChange={selectSection}
       value={section}
     >
-      <div className="-mx-1 overflow-x-auto px-1">
-        <TabsList className="w-fit">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="ai">AI</TabsTrigger>
-          <TabsTrigger value="jobs">Job queue</TabsTrigger>
-          <TabsTrigger value="mcp">MCP</TabsTrigger>
-          {canDelete ? (
-            <TabsTrigger className="data-[state=active]:text-destructive" value="danger">
-              Delete organization
-            </TabsTrigger>
-          ) : null}
-        </TabsList>
-      </div>
+      <TabsList variant="underline">
+        <TabsTrigger value="general">General</TabsTrigger>
+        <TabsTrigger value="ai">AI</TabsTrigger>
+        <TabsTrigger value="jobs">Job queue</TabsTrigger>
+        <TabsTrigger value="mcp">MCP</TabsTrigger>
+        {canDelete ? (
+          <TabsTrigger
+            className="data-[state=active]:border-destructive data-[state=active]:text-destructive"
+            value="danger"
+          >
+            Delete organization
+          </TabsTrigger>
+        ) : null}
+      </TabsList>
 
       <TabsContent className="mt-0 grid grid-cols-[minmax(0,1fr)] gap-6" value="general">
         <OrganizationGeneralCard organization={organization} />

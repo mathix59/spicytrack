@@ -11,7 +11,6 @@ import {
   type IssueFilterSnapshot,
   type SavedIssueSearch,
 } from "@/features/issues/saved-searches";
-import { InboxPresetChip } from "@/components/projects/issue-table-primitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,9 +32,40 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
 import { renderNullableText } from "@/lib/utils";
+
+type InboxPreset = "incoming" | "unassigned" | "regressed" | "resolved";
+
+const INBOX_PRESETS: { value: InboxPreset; label: string }[] = [
+  { value: "incoming", label: "Incoming" },
+  { value: "unassigned", label: "Unassigned" },
+  { value: "regressed", label: "Regressions" },
+  { value: "resolved", label: "Resolved" },
+];
+
+function activeInboxPreset({
+  statusFilter,
+  assignedUserFilter,
+  regressedFilter,
+  issueSearch,
+}: {
+  statusFilter: string;
+  assignedUserFilter: string;
+  regressedFilter: string;
+  issueSearch: string;
+}): InboxPreset | null {
+  if (statusFilter === "resolved") return "resolved";
+  if (statusFilter !== "open") return null;
+  if (assignedUserFilter === "__unassigned__") return "unassigned";
+  if (regressedFilter === "true") return "regressed";
+  if (assignedUserFilter === "all" && regressedFilter === "all" && issueSearch.length === 0) {
+    return "incoming";
+  }
+  return null;
+}
 
 function ActiveFilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
@@ -94,7 +124,7 @@ function InboxToolbar({
   assignedUserFilter: string;
   regressedFilter: string;
   issueSearch: string;
-  applyInboxPreset: (preset: "incoming" | "unassigned" | "regressed" | "resolved") => void;
+  applyInboxPreset: (preset: InboxPreset) => void;
   savedSearches: SavedIssueSearch[];
   applySavedSearch: (search: SavedIssueSearch) => void;
   removeSavedSearch: (id: string) => void;
@@ -126,34 +156,23 @@ function InboxToolbar({
   setSavedSearchName: (value: string) => void;
   saveCurrentSearch: () => void;
 }) {
+  const activePreset = activeInboxPreset({
+    statusFilter,
+    assignedUserFilter,
+    regressedFilter,
+    issueSearch,
+  });
+
   return (
     <>
       <div className="grid gap-3">
-        <div className="flex flex-wrap items-center gap-0.5 pb-1 sm:flex-nowrap sm:overflow-x-auto sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
-          <InboxPresetChip
-            active={
-              statusFilter === "open" &&
-              assignedUserFilter === "all" &&
-              regressedFilter === "all" &&
-              issueSearch.length === 0
-            }
-            label="Incoming"
-            onClick={() => applyInboxPreset("incoming")}
-          />
-          <InboxPresetChip
-            active={statusFilter === "open" && assignedUserFilter === "__unassigned__"}
-            label="Unassigned"
-            onClick={() => applyInboxPreset("unassigned")}
-          />
-          <InboxPresetChip
-            active={statusFilter === "open" && regressedFilter === "true"}
-            label="Regressions"
-            onClick={() => applyInboxPreset("regressed")}
-          />
-          <InboxPresetChip
-            active={statusFilter === "resolved"}
-            label="Resolved"
-            onClick={() => applyInboxPreset("resolved")}
+        <div className="flex min-w-0 items-center gap-1">
+          <SegmentedControl<InboxPreset>
+            className="min-w-0"
+            label="Issue views"
+            onChange={applyInboxPreset}
+            options={INBOX_PRESETS}
+            value={activePreset}
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

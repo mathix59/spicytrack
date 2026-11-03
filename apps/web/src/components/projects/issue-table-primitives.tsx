@@ -2,32 +2,6 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-function InboxPresetChip({
-  active,
-  label,
-  onClick,
-}: {
-  active?: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-pressed={active ?? false}
-      className={cn(
-        "rounded-md px-2.5 py-1.5 text-sm transition-colors",
-        active
-          ? "bg-accent font-medium text-accent-foreground"
-          : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-      )}
-      onClick={onClick}
-      type="button"
-    >
-      {label}
-    </button>
-  );
-}
-
 function SortHeader({
   active,
   direction,
@@ -109,4 +83,4 @@ function AssigneeAvatar({ name }: { name: string | null }) {
   );
 }
 
-export { AssigneeAvatar, InboxPresetChip, LevelDot, SortHeader };
+export { AssigneeAvatar, LevelDot, SortHeader };

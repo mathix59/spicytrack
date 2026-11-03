@@ -3,7 +3,7 @@ import { BellRing, Bug, Layers } from "lucide-react";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 import { AuthCredentialsForm } from "./auth-credentials-form";
 import type { AuthenticationOptions } from "./use-authentication-options";
@@ -68,24 +68,14 @@ function AuthModeSwitch({
     { value: "register", label: "Sign up" },
   ] as const;
   return (
-    <div className="mb-6 flex rounded-md border border-border bg-muted p-1">
-      {options.map((option) => (
-        <button
-          aria-pressed={mode === option.value}
-          className={cn(
-            "flex-1 rounded-sm px-4 py-2 text-sm font-medium transition-colors",
-            mode === option.value
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-          key={option.value}
-          onClick={() => switchMode(option.value)}
-          type="button"
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl<"login" | "register">
+      className="mb-6"
+      fullWidth
+      label="Authentication mode"
+      onChange={switchMode}
+      options={[...options]}
+      value={mode === "forgot" ? null : mode}
+    />
   );
 }
 

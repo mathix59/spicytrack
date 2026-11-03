@@ -47,7 +47,7 @@ function OrganizationRoleTab({
 
   return (
     <Tabs className="grid gap-4" onValueChange={selectSection} value={section}>
-      <TabsList className="w-fit">
+      <TabsList>
         <TabsTrigger value="organization">Organization roles</TabsTrigger>
         <TabsTrigger value="team">Team roles</TabsTrigger>
       </TabsList>

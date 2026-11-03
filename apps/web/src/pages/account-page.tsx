@@ -25,7 +25,7 @@ function AccountPage() {
       />
 
       <Tabs className="grid gap-4" defaultValue="profile">
-        <TabsList className="w-fit max-w-full overflow-x-auto">
+        <TabsList variant="underline">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="api">API</TabsTrigger>

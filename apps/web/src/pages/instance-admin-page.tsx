@@ -46,7 +46,7 @@ export function InstanceAdminPage() {
         settingsFallback
       ) : (
         <Tabs defaultValue="general" className="grid gap-4">
-          <TabsList className="w-fit max-w-full overflow-x-auto">
+          <TabsList variant="underline">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="email">Email delivery</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
