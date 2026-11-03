@@ -1,6 +1,6 @@
 import { createRelease, uploadArtifact } from "./api.js";
 import { open } from "node:fs/promises";
-import { loadConfig, resolveRelease, validateConfig } from "./config.js";
+import { loadConfig, resolveCommitSha, resolveRelease, validateConfig } from "./config.js";
 import { discoverArtifacts } from "./files.js";
 
 async function parallelLimit(items, limit, operation) {
@@ -39,7 +39,7 @@ export async function uploadSourceMaps(options = {}) {
     throw new Error(`No source maps found under: ${config.roots.join(", ")}`);
   }
 
-  await createRelease(config, release);
+  await createRelease(config, release, resolveCommitSha(config, cwd));
   await parallelLimit(artifacts, Number(config.concurrency) || 6, async (artifact) => {
     await uploadArtifact(config, release, artifact);
     options.onUploaded?.(artifact);

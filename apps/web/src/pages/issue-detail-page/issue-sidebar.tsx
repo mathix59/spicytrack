@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 
 import { AutofixRunsCard } from "@/components/autofix/autofix-runs-card";
+import { SuspectCommitsCard } from "@/components/commits/suspect-commits-card";
 import { IssueTriageCard } from "@/components/issues/issue-triage-card";
 import { PriorityControl } from "@/components/issues/issue-status-controls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -154,6 +155,8 @@ function IssueSidebar({
           ) : null}
         </CardContent>
       </Card>
+
+      <SuspectCommitsCard issueId={issueId} orgSlug={orgSlug} projectSlug={projectSlug} />
 
       <IssueTagsCard issueId={issueId} orgSlug={orgSlug} projectSlug={projectSlug} />
 

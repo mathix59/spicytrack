@@ -41,6 +41,9 @@ Environment variables override the file:
 - `SPICYTRACK_AUTH_TOKEN` (required and secret)
 - `SPICYTRACK_URL`, `SPICYTRACK_ORG`, `SPICYTRACK_PROJECT`
 - `SPICYTRACK_RELEASE` (otherwise Vercel/GitHub/GitLab/Cloudflare/Netlify/Git is detected)
+- `SPICYTRACK_COMMIT_SHA` (otherwise detected the same way). It is sent with the release so
+  SpicyTrack can list the release's commits and point at suspect commits on each issue, when the
+  project has a connected repository.
 
 Run `spicytrack doctor` to verify the token, project, release and generated maps. Existing pipelines
 can use `spicytrack upload`, or `spicytrack build -- <command>` to upload only after a successful

@@ -54,6 +54,37 @@ export function resolveRelease(config, cwd = process.cwd()) {
   }
 }
 
+const CI_COMMIT_ENVIRONMENT = [
+  "VERCEL_GIT_COMMIT_SHA",
+  "GITHUB_SHA",
+  "CI_COMMIT_SHA",
+  "CF_PAGES_COMMIT_SHA",
+  "COMMIT_REF",
+];
+
+/** The commit being built, so SpicyTrack can list a release's commits. Null when unknown. */
+export function resolveCommitSha(config = {}, cwd = process.cwd()) {
+  const candidates = [
+    process.env.SPICYTRACK_COMMIT_SHA,
+    config.commitSha,
+    ...CI_COMMIT_ENVIRONMENT.map((name) => process.env[name]),
+  ];
+  let sha = candidates.find((value) => typeof value === "string" && value.trim());
+  if (!sha) {
+    try {
+      sha = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+    } catch {
+      return null;
+    }
+  }
+  sha = sha.trim().toLowerCase();
+  return /^[0-9a-f]{7,64}$/.test(sha) ? sha : null;
+}
+
 export function validateConfig(config, { requireToken = true } = {}) {
   const missing = ["url", "organization", "project"].filter((key) => !config[key]);
   if (requireToken && !config.token) missing.push("SPICYTRACK_AUTH_TOKEN");

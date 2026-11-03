@@ -251,6 +251,10 @@ export interface ProjectReleaseDto {
   organizationId: string;
   projectId: string;
   version: string;
+  /** @nullable */
+  commitSha?: string | null;
+  /** @nullable */
+  commitsStatus?: string | null;
   eventCount: number;
   /** @nullable */
   firstSeenAt?: string | null;
@@ -337,6 +341,11 @@ export interface AuditLogDto {
   createdAt: string;
 }
 
+export interface UpsertReleaseBodyDto {
+  /** Commit the release was built from (7 to 64 hex characters). A 40-character SHA version is used when omitted. */
+  commitSha?: string;
+}
+
 export interface ReleaseArtifactDto {
   id: string;
   releaseId: string;
@@ -346,6 +355,367 @@ export interface ReleaseArtifactDto {
   size: number;
   checksum: string;
   createdAt: string;
+}
+
+export type ReleaseCommitFileDtoStatus = typeof ReleaseCommitFileDtoStatus[keyof typeof ReleaseCommitFileDtoStatus];
+
+
+export const ReleaseCommitFileDtoStatus = {
+  added: 'added',
+  modified: 'modified',
+  removed: 'removed',
+  renamed: 'renamed',
+} as const;
+
+export interface ReleaseCommitFileDto {
+  path: string;
+  status: ReleaseCommitFileDtoStatus;
+  previousPath?: string;
+}
+
+export interface ReleaseCommitDto {
+  sha: string;
+  shortSha: string;
+  /** First line of the message. */
+  title: string;
+  message: string;
+  /** @nullable */
+  authorName: string | null;
+  /** @nullable */
+  authorLogin: string | null;
+  /** @nullable */
+  committedAt: string | null;
+  /** @nullable */
+  url: string | null;
+  files: ReleaseCommitFileDto[];
+  filesTruncated: boolean;
+}
+
+/**
+ * null when commits were never fetched.
+ * @nullable
+ */
+export type ReleaseCommitsDtoStatus = typeof ReleaseCommitsDtoStatus[keyof typeof ReleaseCommitsDtoStatus] | null;
+
+
+export const ReleaseCommitsDtoStatus = {
+  pending: 'pending',
+  synced: 'synced',
+  unavailable: 'unavailable',
+  failed: 'failed',
+} as const;
+
+export interface ReleaseCommitsDto {
+  /** @nullable */
+  commitSha: string | null;
+  /**
+     * null when commits were never fetched.
+     * @nullable
+     */
+  status: ReleaseCommitsDtoStatus;
+  /** @nullable */
+  error: string | null;
+  /**
+     * Previous release commit used as the range start.
+     * @nullable
+     */
+  baseSha: string | null;
+  /** More commits exist in the range than were stored. */
+  truncated: boolean;
+  /** @nullable */
+  syncedAt: string | null;
+  commits: ReleaseCommitDto[];
+}
+
+export interface SuspectCommitsReleaseDto {
+  version: string;
+  /** @nullable */
+  commitSha: string | null;
+}
+
+export interface SuspectCommitMatchDto {
+  /** Repository path of the changed file. */
+  path: string;
+  /** @nullable */
+  function: string | null;
+  /** @nullable */
+  lineno: number | null;
+  /** 0 is the frame that raised the error. */
+  depth: number;
+}
+
+export interface SuspectCommitDto {
+  sha: string;
+  shortSha: string;
+  /** First line of the message. */
+  title: string;
+  message: string;
+  /** @nullable */
+  authorName: string | null;
+  /** @nullable */
+  authorLogin: string | null;
+  /** @nullable */
+  committedAt: string | null;
+  /** @nullable */
+  url: string | null;
+  files: ReleaseCommitFileDto[];
+  filesTruncated: boolean;
+  score: number;
+  matches: SuspectCommitMatchDto[];
+}
+
+export type SuspectCommitsDtoStatus = typeof SuspectCommitsDtoStatus[keyof typeof SuspectCommitsDtoStatus];
+
+
+export const SuspectCommitsDtoStatus = {
+  pending: 'pending',
+  synced: 'synced',
+  unavailable: 'unavailable',
+  failed: 'failed',
+} as const;
+
+export interface SuspectCommitsDto {
+  status: SuspectCommitsDtoStatus;
+  /** @nullable */
+  reason: string | null;
+  /** @nullable */
+  release: SuspectCommitsReleaseDto | null;
+  suspects: SuspectCommitDto[];
+}
+
+export type RepoConnectionDtoProvider = typeof RepoConnectionDtoProvider[keyof typeof RepoConnectionDtoProvider];
+
+
+export const RepoConnectionDtoProvider = {
+  github: 'github',
+  gitlab: 'gitlab',
+} as const;
+
+/**
+ * @nullable
+ */
+export type RepoConnectionDtoBaseUrl = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type RepoConnectionDtoLastValidatedAt = { [key: string]: unknown } | null;
+
+export interface RepoConnectionDto {
+  id: string;
+  provider: RepoConnectionDtoProvider;
+  /** @nullable */
+  baseUrl?: RepoConnectionDtoBaseUrl;
+  /** @nullable */
+  htmlUrl?: string | null;
+  /** @nullable */
+  apiUrl?: string | null;
+  /** @nullable */
+  gitUser?: string | null;
+  /** @nullable */
+  gitPort?: number | null;
+  repoIdentifier: string;
+  defaultBranch: string;
+  tokenSet: boolean;
+  /** @nullable */
+  lastValidatedAt?: RepoConnectionDtoLastValidatedAt;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type UpsertRepoConnectionBodyDtoProvider = typeof UpsertRepoConnectionBodyDtoProvider[keyof typeof UpsertRepoConnectionBodyDtoProvider];
+
+
+export const UpsertRepoConnectionBodyDtoProvider = {
+  github: 'github',
+  gitlab: 'gitlab',
+} as const;
+
+/**
+ * @nullable
+ */
+export type UpsertRepoConnectionBodyDtoBaseUrl = { [key: string]: unknown } | null;
+
+export interface UpsertRepoConnectionBodyDto {
+  provider: UpsertRepoConnectionBodyDtoProvider;
+  /** @nullable */
+  baseUrl?: UpsertRepoConnectionBodyDtoBaseUrl;
+  /** @nullable */
+  htmlUrl?: string | null;
+  /** @nullable */
+  apiUrl?: string | null;
+  /** @nullable */
+  gitUser?: string | null;
+  /** @nullable */
+  gitPort?: number | null;
+  repoIdentifier: string;
+  /** Personal access token. Optional on update to keep the stored one. */
+  token?: string;
+  defaultBranch?: string;
+}
+
+export type TestRepoConnectionBodyDtoProvider = typeof TestRepoConnectionBodyDtoProvider[keyof typeof TestRepoConnectionBodyDtoProvider];
+
+
+export const TestRepoConnectionBodyDtoProvider = {
+  github: 'github',
+  gitlab: 'gitlab',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TestRepoConnectionBodyDtoBaseUrl = { [key: string]: unknown } | null;
+
+export interface TestRepoConnectionBodyDto {
+  provider?: TestRepoConnectionBodyDtoProvider;
+  /** @nullable */
+  baseUrl?: TestRepoConnectionBodyDtoBaseUrl;
+  /** @nullable */
+  htmlUrl?: string | null;
+  /** @nullable */
+  apiUrl?: string | null;
+  /** @nullable */
+  gitUser?: string | null;
+  /** @nullable */
+  gitPort?: number | null;
+  repoIdentifier?: string;
+  token?: string;
+}
+
+/**
+ * @nullable
+ */
+export type TestRepoConnectionResultDtoDefaultBranch = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type TestRepoConnectionResultDtoError = { [key: string]: unknown } | null;
+
+export interface TestRepoConnectionResultDto {
+  ok: boolean;
+  /** @nullable */
+  defaultBranch?: TestRepoConnectionResultDtoDefaultBranch;
+  /** @nullable */
+  error?: TestRepoConnectionResultDtoError;
+}
+
+export type OrganizationGithubAppSettingsDtoMode = typeof OrganizationGithubAppSettingsDtoMode[keyof typeof OrganizationGithubAppSettingsDtoMode];
+
+
+export const OrganizationGithubAppSettingsDtoMode = {
+  cloud: 'cloud',
+  enterprise: 'enterprise',
+} as const;
+
+export interface OrganizationGithubAppSettingsDto {
+  mode: OrganizationGithubAppSettingsDtoMode;
+  /** @nullable */
+  htmlUrl?: string | null;
+  /** @nullable */
+  apiUrl?: string | null;
+  /** @nullable */
+  gitUser?: string | null;
+  /** @nullable */
+  gitPort?: number | null;
+  /** @nullable */
+  appSlug?: string | null;
+  /** @nullable */
+  appId?: string | null;
+  /** @nullable */
+  clientId?: string | null;
+  /** @nullable */
+  installationId?: string | null;
+  /** @nullable */
+  installationAccountLogin?: string | null;
+  /** @nullable */
+  installationAccountType?: string | null;
+  clientSecretSet: boolean;
+  privateKeySet: boolean;
+  webhookSecretSet: boolean;
+  /** @nullable */
+  maskedClientSecret?: string | null;
+  /** @nullable */
+  maskedWebhookSecret?: string | null;
+}
+
+export interface GithubAppInstallUrlDto {
+  url: string;
+}
+
+export interface CreateGithubAppManifestBodyDto {
+  /** GitHub organization that should own the App. Empty uses the personal account. */
+  githubOrganization?: string;
+}
+
+export interface GithubAppManifestDto {
+  action: string;
+  state: string;
+  /** JSON-encoded GitHub App manifest. */
+  manifest: string;
+}
+
+export interface CompleteGithubAppManifestBodyDto {
+  code: string;
+  state: string;
+}
+
+export interface GithubAppManifestResultDto {
+  installUrl: string;
+  settings: OrganizationGithubAppSettingsDto;
+}
+
+export interface GithubAppRepositoryDto {
+  id: number;
+  fullName: string;
+  defaultBranch: string;
+  private: boolean;
+  archived: boolean;
+  disabled: boolean;
+}
+
+export interface CompleteGithubAppInstallationBodyDto {
+  installationId: string;
+  state?: string;
+}
+
+export type UpdateOrganizationGithubAppSettingsBodyDtoMode = typeof UpdateOrganizationGithubAppSettingsBodyDtoMode[keyof typeof UpdateOrganizationGithubAppSettingsBodyDtoMode];
+
+
+export const UpdateOrganizationGithubAppSettingsBodyDtoMode = {
+  cloud: 'cloud',
+  enterprise: 'enterprise',
+} as const;
+
+export interface UpdateOrganizationGithubAppSettingsBodyDto {
+  mode?: UpdateOrganizationGithubAppSettingsBodyDtoMode;
+  /** @nullable */
+  htmlUrl?: string | null;
+  /** @nullable */
+  apiUrl?: string | null;
+  /** @nullable */
+  gitUser?: string | null;
+  /** @nullable */
+  gitPort?: number | null;
+  /** @nullable */
+  appSlug?: string | null;
+  /** @nullable */
+  appId?: string | null;
+  /** @nullable */
+  clientId?: string | null;
+  /** @nullable */
+  installationId?: string | null;
+  /** @nullable */
+  installationAccountLogin?: string | null;
+  /** @nullable */
+  installationAccountType?: string | null;
+  /** @nullable */
+  clientSecret?: string | null;
+  /** @nullable */
+  privateKey?: string | null;
+  /** @nullable */
+  webhookSecret?: string | null;
 }
 
 export type HealthDtoDependencies = {[key: string]: string};
@@ -999,241 +1369,6 @@ export interface UpdateOrganizationAiSettingsBodyDto {
      * @nullable
      */
   runCostCapUsd?: number | null;
-}
-
-export type RepoConnectionDtoProvider = typeof RepoConnectionDtoProvider[keyof typeof RepoConnectionDtoProvider];
-
-
-export const RepoConnectionDtoProvider = {
-  github: 'github',
-  gitlab: 'gitlab',
-} as const;
-
-/**
- * @nullable
- */
-export type RepoConnectionDtoBaseUrl = { [key: string]: unknown } | null;
-
-/**
- * @nullable
- */
-export type RepoConnectionDtoLastValidatedAt = { [key: string]: unknown } | null;
-
-export interface RepoConnectionDto {
-  id: string;
-  provider: RepoConnectionDtoProvider;
-  /** @nullable */
-  baseUrl?: RepoConnectionDtoBaseUrl;
-  /** @nullable */
-  htmlUrl?: string | null;
-  /** @nullable */
-  apiUrl?: string | null;
-  /** @nullable */
-  gitUser?: string | null;
-  /** @nullable */
-  gitPort?: number | null;
-  repoIdentifier: string;
-  defaultBranch: string;
-  tokenSet: boolean;
-  /** @nullable */
-  lastValidatedAt?: RepoConnectionDtoLastValidatedAt;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type UpsertRepoConnectionBodyDtoProvider = typeof UpsertRepoConnectionBodyDtoProvider[keyof typeof UpsertRepoConnectionBodyDtoProvider];
-
-
-export const UpsertRepoConnectionBodyDtoProvider = {
-  github: 'github',
-  gitlab: 'gitlab',
-} as const;
-
-/**
- * @nullable
- */
-export type UpsertRepoConnectionBodyDtoBaseUrl = { [key: string]: unknown } | null;
-
-export interface UpsertRepoConnectionBodyDto {
-  provider: UpsertRepoConnectionBodyDtoProvider;
-  /** @nullable */
-  baseUrl?: UpsertRepoConnectionBodyDtoBaseUrl;
-  /** @nullable */
-  htmlUrl?: string | null;
-  /** @nullable */
-  apiUrl?: string | null;
-  /** @nullable */
-  gitUser?: string | null;
-  /** @nullable */
-  gitPort?: number | null;
-  repoIdentifier: string;
-  /** Personal access token. Optional on update to keep the stored one. */
-  token?: string;
-  defaultBranch?: string;
-}
-
-export type TestRepoConnectionBodyDtoProvider = typeof TestRepoConnectionBodyDtoProvider[keyof typeof TestRepoConnectionBodyDtoProvider];
-
-
-export const TestRepoConnectionBodyDtoProvider = {
-  github: 'github',
-  gitlab: 'gitlab',
-} as const;
-
-/**
- * @nullable
- */
-export type TestRepoConnectionBodyDtoBaseUrl = { [key: string]: unknown } | null;
-
-export interface TestRepoConnectionBodyDto {
-  provider?: TestRepoConnectionBodyDtoProvider;
-  /** @nullable */
-  baseUrl?: TestRepoConnectionBodyDtoBaseUrl;
-  /** @nullable */
-  htmlUrl?: string | null;
-  /** @nullable */
-  apiUrl?: string | null;
-  /** @nullable */
-  gitUser?: string | null;
-  /** @nullable */
-  gitPort?: number | null;
-  repoIdentifier?: string;
-  token?: string;
-}
-
-/**
- * @nullable
- */
-export type TestRepoConnectionResultDtoDefaultBranch = { [key: string]: unknown } | null;
-
-/**
- * @nullable
- */
-export type TestRepoConnectionResultDtoError = { [key: string]: unknown } | null;
-
-export interface TestRepoConnectionResultDto {
-  ok: boolean;
-  /** @nullable */
-  defaultBranch?: TestRepoConnectionResultDtoDefaultBranch;
-  /** @nullable */
-  error?: TestRepoConnectionResultDtoError;
-}
-
-export type OrganizationGithubAppSettingsDtoMode = typeof OrganizationGithubAppSettingsDtoMode[keyof typeof OrganizationGithubAppSettingsDtoMode];
-
-
-export const OrganizationGithubAppSettingsDtoMode = {
-  cloud: 'cloud',
-  enterprise: 'enterprise',
-} as const;
-
-export interface OrganizationGithubAppSettingsDto {
-  mode: OrganizationGithubAppSettingsDtoMode;
-  /** @nullable */
-  htmlUrl?: string | null;
-  /** @nullable */
-  apiUrl?: string | null;
-  /** @nullable */
-  gitUser?: string | null;
-  /** @nullable */
-  gitPort?: number | null;
-  /** @nullable */
-  appSlug?: string | null;
-  /** @nullable */
-  appId?: string | null;
-  /** @nullable */
-  clientId?: string | null;
-  /** @nullable */
-  installationId?: string | null;
-  /** @nullable */
-  installationAccountLogin?: string | null;
-  /** @nullable */
-  installationAccountType?: string | null;
-  clientSecretSet: boolean;
-  privateKeySet: boolean;
-  webhookSecretSet: boolean;
-  /** @nullable */
-  maskedClientSecret?: string | null;
-  /** @nullable */
-  maskedWebhookSecret?: string | null;
-}
-
-export interface GithubAppInstallUrlDto {
-  url: string;
-}
-
-export interface CreateGithubAppManifestBodyDto {
-  /** GitHub organization that should own the App. Empty uses the personal account. */
-  githubOrganization?: string;
-}
-
-export interface GithubAppManifestDto {
-  action: string;
-  state: string;
-  /** JSON-encoded GitHub App manifest. */
-  manifest: string;
-}
-
-export interface CompleteGithubAppManifestBodyDto {
-  code: string;
-  state: string;
-}
-
-export interface GithubAppManifestResultDto {
-  installUrl: string;
-  settings: OrganizationGithubAppSettingsDto;
-}
-
-export interface GithubAppRepositoryDto {
-  id: number;
-  fullName: string;
-  defaultBranch: string;
-  private: boolean;
-  archived: boolean;
-  disabled: boolean;
-}
-
-export interface CompleteGithubAppInstallationBodyDto {
-  installationId: string;
-  state?: string;
-}
-
-export type UpdateOrganizationGithubAppSettingsBodyDtoMode = typeof UpdateOrganizationGithubAppSettingsBodyDtoMode[keyof typeof UpdateOrganizationGithubAppSettingsBodyDtoMode];
-
-
-export const UpdateOrganizationGithubAppSettingsBodyDtoMode = {
-  cloud: 'cloud',
-  enterprise: 'enterprise',
-} as const;
-
-export interface UpdateOrganizationGithubAppSettingsBodyDto {
-  mode?: UpdateOrganizationGithubAppSettingsBodyDtoMode;
-  /** @nullable */
-  htmlUrl?: string | null;
-  /** @nullable */
-  apiUrl?: string | null;
-  /** @nullable */
-  gitUser?: string | null;
-  /** @nullable */
-  gitPort?: number | null;
-  /** @nullable */
-  appSlug?: string | null;
-  /** @nullable */
-  appId?: string | null;
-  /** @nullable */
-  clientId?: string | null;
-  /** @nullable */
-  installationId?: string | null;
-  /** @nullable */
-  installationAccountLogin?: string | null;
-  /** @nullable */
-  installationAccountType?: string | null;
-  /** @nullable */
-  clientSecret?: string | null;
-  /** @nullable */
-  privateKey?: string | null;
-  /** @nullable */
-  webhookSecret?: string | null;
 }
 
 export interface CreateOrganizationBodyDto {
@@ -3656,14 +3791,29 @@ export const getUpsertProjectReleaseUrl = (orgSlug: string,
 
 export const upsertProjectRelease = async (orgSlug: string,
     projectSlug: string,
-    releaseVersion: string, options?: Parameters<typeof orvalFetch>[1]): Promise<upsertProjectReleaseResponse> => {
+    releaseVersion: string,
+    upsertReleaseBodyDto?: UpsertReleaseBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<upsertProjectReleaseResponse> => {
 
-  return orvalFetch<upsertProjectReleaseResponse>(getUpsertProjectReleaseUrl(orgSlug,projectSlug,releaseVersion),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<upsertProjectReleaseResponse>(getUpsertProjectReleaseUrl(orgSlug,projectSlug,releaseVersion),
   {
     ...options,
-    method: 'PUT'
-
-
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(upsertReleaseBodyDto)
   }
 );}
 
@@ -3688,9 +3838,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertProjectRelease>>, UpsertProjectReleaseMutationVariables> = (props) => {
-          const {orgSlug,projectSlug,releaseVersion} = props ?? {};
+          const {orgSlug,projectSlug,releaseVersion,data} = props ?? {};
 
-          return  upsertProjectRelease(orgSlug,projectSlug,releaseVersion,requestOptions)
+          return  upsertProjectRelease(orgSlug,projectSlug,releaseVersion,data,requestOptions)
         }
 
 
@@ -3701,9 +3851,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpsertProjectReleaseMutationResult = NonNullable<Awaited<ReturnType<typeof upsertProjectRelease>>>
-
+    export type UpsertProjectReleaseMutationBody = BodyType<UpsertReleaseBodyDto> | undefined
     export type UpsertProjectReleaseMutationError = ErrorType<unknown>
-    export type UpsertProjectReleaseMutationVariables = {orgSlug: string;projectSlug: string;releaseVersion: string}
+    export type UpsertProjectReleaseMutationVariables = {orgSlug: string;projectSlug: string;releaseVersion: string;data?: BodyType<UpsertReleaseBodyDto>}
 
     export const useUpsertProjectRelease = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertProjectRelease>>, TError,UpsertProjectReleaseMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
@@ -5288,6 +5438,1508 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDeleteReleaseArtifactMutationOptions(options), queryClient);
+    }
+
+export type listReleaseCommitsResponse200 = {
+  data: ReleaseCommitsDto
+  status: 200
+}
+
+export type listReleaseCommitsResponseSuccess = (listReleaseCommitsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listReleaseCommitsResponse = (listReleaseCommitsResponseSuccess)
+
+export const getListReleaseCommitsUrl = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/commits`
+}
+
+export const listReleaseCommits = async (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listReleaseCommitsResponse> => {
+
+  return orvalFetch<listReleaseCommitsResponse>(getListReleaseCommitsUrl(orgSlug,projectSlug,releaseVersion),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListReleaseCommitsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/commits`
+    ] as const;
+    }
+
+
+export const getListReleaseCommitsQueryOptions = <TData = Awaited<ReturnType<typeof listReleaseCommits>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseCommits>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListReleaseCommitsQueryKey(orgSlug,projectSlug,releaseVersion);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listReleaseCommits>>> = ({ signal }) => listReleaseCommits(orgSlug,projectSlug,releaseVersion, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && releaseVersion !== null && releaseVersion !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listReleaseCommits>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListReleaseCommitsQueryResult = NonNullable<Awaited<ReturnType<typeof listReleaseCommits>>>
+export type ListReleaseCommitsQueryError = ErrorType<unknown>
+
+
+export function useListReleaseCommits<TData = Awaited<ReturnType<typeof listReleaseCommits>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseCommits>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listReleaseCommits>>,
+          TError,
+          Awaited<ReturnType<typeof listReleaseCommits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListReleaseCommits<TData = Awaited<ReturnType<typeof listReleaseCommits>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseCommits>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listReleaseCommits>>,
+          TError,
+          Awaited<ReturnType<typeof listReleaseCommits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListReleaseCommits<TData = Awaited<ReturnType<typeof listReleaseCommits>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseCommits>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListReleaseCommits<TData = Awaited<ReturnType<typeof listReleaseCommits>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReleaseCommits>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListReleaseCommitsQueryOptions(orgSlug,projectSlug,releaseVersion,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type syncReleaseCommitsResponse200 = {
+  data: ReleaseCommitsDto
+  status: 200
+}
+
+export type syncReleaseCommitsResponseSuccess = (syncReleaseCommitsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type syncReleaseCommitsResponse = (syncReleaseCommitsResponseSuccess)
+
+export const getSyncReleaseCommitsUrl = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/commits/sync`
+}
+
+export const syncReleaseCommits = async (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string, options?: Parameters<typeof orvalFetch>[1]): Promise<syncReleaseCommitsResponse> => {
+
+  return orvalFetch<syncReleaseCommitsResponse>(getSyncReleaseCommitsUrl(orgSlug,projectSlug,releaseVersion),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSyncReleaseCommitsMutationKey = () => ['syncReleaseCommits'] as const;
+
+export const getSyncReleaseCommitsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncReleaseCommits>>, TError,SyncReleaseCommitsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncReleaseCommits>>, TError,SyncReleaseCommitsMutationVariables, TContext> => {
+
+const mutationKey = getSyncReleaseCommitsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncReleaseCommits>>, SyncReleaseCommitsMutationVariables> = (props) => {
+          const {orgSlug,projectSlug,releaseVersion} = props ?? {};
+
+          return  syncReleaseCommits(orgSlug,projectSlug,releaseVersion,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncReleaseCommitsMutationResult = NonNullable<Awaited<ReturnType<typeof syncReleaseCommits>>>
+
+    export type SyncReleaseCommitsMutationError = ErrorType<unknown>
+    export type SyncReleaseCommitsMutationVariables = {orgSlug: string;projectSlug: string;releaseVersion: string}
+
+    export const useSyncReleaseCommits = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncReleaseCommits>>, TError,SyncReleaseCommitsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof syncReleaseCommits>>,
+        TError,
+        SyncReleaseCommitsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSyncReleaseCommitsMutationOptions(options), queryClient);
+    }
+
+export type getIssueSuspectCommitsResponse200 = {
+  data: SuspectCommitsDto
+  status: 200
+}
+
+export type getIssueSuspectCommitsResponseSuccess = (getIssueSuspectCommitsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getIssueSuspectCommitsResponse = (getIssueSuspectCommitsResponseSuccess)
+
+export const getGetIssueSuspectCommitsUrl = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/suspect-commits`
+}
+
+export const getIssueSuspectCommits = async (orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getIssueSuspectCommitsResponse> => {
+
+  return orvalFetch<getIssueSuspectCommitsResponse>(getGetIssueSuspectCommitsUrl(orgSlug,projectSlug,issueId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIssueSuspectCommitsQueryKey = (orgSlug: string,
+    projectSlug: string,
+    issueId: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/issues/${issueId}/suspect-commits`
+    ] as const;
+    }
+
+
+export const getGetIssueSuspectCommitsQueryOptions = <TData = Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIssueSuspectCommitsQueryKey(orgSlug,projectSlug,issueId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIssueSuspectCommits>>> = ({ signal }) => getIssueSuspectCommits(orgSlug,projectSlug,issueId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && issueId !== null && issueId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetIssueSuspectCommitsQueryResult = NonNullable<Awaited<ReturnType<typeof getIssueSuspectCommits>>>
+export type GetIssueSuspectCommitsQueryError = ErrorType<unknown>
+
+
+export function useGetIssueSuspectCommits<TData = Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIssueSuspectCommits>>,
+          TError,
+          Awaited<ReturnType<typeof getIssueSuspectCommits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssueSuspectCommits<TData = Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIssueSuspectCommits>>,
+          TError,
+          Awaited<ReturnType<typeof getIssueSuspectCommits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIssueSuspectCommits<TData = Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetIssueSuspectCommits<TData = Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    issueId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIssueSuspectCommits>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetIssueSuspectCommitsQueryOptions(orgSlug,projectSlug,issueId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type getRepoConnectionResponse200 = {
+  data: RepoConnectionDto
+  status: 200
+}
+
+export type getRepoConnectionResponseSuccess = (getRepoConnectionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getRepoConnectionResponse = (getRepoConnectionResponseSuccess)
+
+export const getGetRepoConnectionUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
+}
+
+export const getRepoConnection = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getRepoConnectionResponse> => {
+
+  return orvalFetch<getRepoConnectionResponse>(getGetRepoConnectionUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRepoConnectionQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
+    ] as const;
+    }
+
+
+export const getGetRepoConnectionQueryOptions = <TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRepoConnectionQueryKey(orgSlug,projectSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRepoConnection>>> = ({ signal }) => getRepoConnection(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetRepoConnectionQueryResult = NonNullable<Awaited<ReturnType<typeof getRepoConnection>>>
+export type GetRepoConnectionQueryError = ErrorType<unknown>
+
+
+export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRepoConnection>>,
+          TError,
+          Awaited<ReturnType<typeof getRepoConnection>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRepoConnection>>,
+          TError,
+          Awaited<ReturnType<typeof getRepoConnection>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetRepoConnectionQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type upsertRepoConnectionResponse200 = {
+  data: RepoConnectionDto
+  status: 200
+}
+
+export type upsertRepoConnectionResponseSuccess = (upsertRepoConnectionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type upsertRepoConnectionResponse = (upsertRepoConnectionResponseSuccess)
+
+export const getUpsertRepoConnectionUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
+}
+
+export const upsertRepoConnection = async (orgSlug: string,
+    projectSlug: string,
+    upsertRepoConnectionBodyDto: UpsertRepoConnectionBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<upsertRepoConnectionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<upsertRepoConnectionResponse>(getUpsertRepoConnectionUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(upsertRepoConnectionBodyDto)
+  }
+);}
+
+
+
+
+
+export const getUpsertRepoConnectionMutationKey = () => ['upsertRepoConnection'] as const;
+
+export const getUpsertRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,UpsertRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,UpsertRepoConnectionMutationVariables, TContext> => {
+
+const mutationKey = getUpsertRepoConnectionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertRepoConnection>>, UpsertRepoConnectionMutationVariables> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  upsertRepoConnection(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof upsertRepoConnection>>>
+    export type UpsertRepoConnectionMutationBody = BodyType<UpsertRepoConnectionBodyDto>
+    export type UpsertRepoConnectionMutationError = ErrorType<unknown>
+    export type UpsertRepoConnectionMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}
+
+    export const useUpsertRepoConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,UpsertRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof upsertRepoConnection>>,
+        TError,
+        UpsertRepoConnectionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpsertRepoConnectionMutationOptions(options), queryClient);
+    }
+
+export type deleteRepoConnectionResponse200 = {
+  data: SuccessDto
+  status: 200
+}
+
+export type deleteRepoConnectionResponseSuccess = (deleteRepoConnectionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteRepoConnectionResponse = (deleteRepoConnectionResponseSuccess)
+
+export const getDeleteRepoConnectionUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
+}
+
+export const deleteRepoConnection = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteRepoConnectionResponse> => {
+
+  return orvalFetch<deleteRepoConnectionResponse>(getDeleteRepoConnectionUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteRepoConnectionMutationKey = () => ['deleteRepoConnection'] as const;
+
+export const getDeleteRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,DeleteRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,DeleteRepoConnectionMutationVariables, TContext> => {
+
+const mutationKey = getDeleteRepoConnectionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRepoConnection>>, DeleteRepoConnectionMutationVariables> = (props) => {
+          const {orgSlug,projectSlug} = props ?? {};
+
+          return  deleteRepoConnection(orgSlug,projectSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRepoConnection>>>
+
+    export type DeleteRepoConnectionMutationError = ErrorType<unknown>
+    export type DeleteRepoConnectionMutationVariables = {orgSlug: string;projectSlug: string}
+
+    export const useDeleteRepoConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,DeleteRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteRepoConnection>>,
+        TError,
+        DeleteRepoConnectionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteRepoConnectionMutationOptions(options), queryClient);
+    }
+
+export type testRepoConnectionResponse200 = {
+  data: TestRepoConnectionResultDto
+  status: 200
+}
+
+export type testRepoConnectionResponseSuccess = (testRepoConnectionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type testRepoConnectionResponse = (testRepoConnectionResponseSuccess)
+
+export const getTestRepoConnectionUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection/test`
+}
+
+export const testRepoConnection = async (orgSlug: string,
+    projectSlug: string,
+    testRepoConnectionBodyDto: TestRepoConnectionBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<testRepoConnectionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<testRepoConnectionResponse>(getTestRepoConnectionUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(testRepoConnectionBodyDto)
+  }
+);}
+
+
+
+
+
+export const getTestRepoConnectionMutationKey = () => ['testRepoConnection'] as const;
+
+export const getTestRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,TestRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,TestRepoConnectionMutationVariables, TContext> => {
+
+const mutationKey = getTestRepoConnectionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testRepoConnection>>, TestRepoConnectionMutationVariables> = (props) => {
+          const {orgSlug,projectSlug,data} = props ?? {};
+
+          return  testRepoConnection(orgSlug,projectSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof testRepoConnection>>>
+    export type TestRepoConnectionMutationBody = BodyType<TestRepoConnectionBodyDto>
+    export type TestRepoConnectionMutationError = ErrorType<unknown>
+    export type TestRepoConnectionMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}
+
+    export const useTestRepoConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,TestRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testRepoConnection>>,
+        TError,
+        TestRepoConnectionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTestRepoConnectionMutationOptions(options), queryClient);
+    }
+
+export type getOrganizationGithubAppSettingsResponse200 = {
+  data: OrganizationGithubAppSettingsDto
+  status: 200
+}
+
+export type getOrganizationGithubAppSettingsResponseSuccess = (getOrganizationGithubAppSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getOrganizationGithubAppSettingsResponse = (getOrganizationGithubAppSettingsResponseSuccess)
+
+export const getGetOrganizationGithubAppSettingsUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/github-app`
+}
+
+export const getOrganizationGithubAppSettings = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationGithubAppSettingsResponse> => {
+
+  return orvalFetch<getOrganizationGithubAppSettingsResponse>(getGetOrganizationGithubAppSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationGithubAppSettingsQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/github-app`
+    ] as const;
+    }
+
+
+export const getGetOrganizationGithubAppSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationGithubAppSettingsQueryKey(orgSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>> = ({ signal }) => getOrganizationGithubAppSettings(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationGithubAppSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>>
+export type GetOrganizationGithubAppSettingsQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetOrganizationGithubAppSettingsQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type updateOrganizationGithubAppSettingsResponse200 = {
+  data: OrganizationGithubAppSettingsDto
+  status: 200
+}
+
+export type updateOrganizationGithubAppSettingsResponseSuccess = (updateOrganizationGithubAppSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type updateOrganizationGithubAppSettingsResponse = (updateOrganizationGithubAppSettingsResponseSuccess)
+
+export const getUpdateOrganizationGithubAppSettingsUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/github-app`
+}
+
+export const updateOrganizationGithubAppSettings = async (orgSlug: string,
+    updateOrganizationGithubAppSettingsBodyDto: UpdateOrganizationGithubAppSettingsBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationGithubAppSettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateOrganizationGithubAppSettingsResponse>(getUpdateOrganizationGithubAppSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateOrganizationGithubAppSettingsBodyDto)
+  }
+);}
+
+
+
+
+
+export const getUpdateOrganizationGithubAppSettingsMutationKey = () => ['updateOrganizationGithubAppSettings'] as const;
+
+export const getUpdateOrganizationGithubAppSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,UpdateOrganizationGithubAppSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,UpdateOrganizationGithubAppSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationGithubAppSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, UpdateOrganizationGithubAppSettingsMutationVariables> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  updateOrganizationGithubAppSettings(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationGithubAppSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>>
+    export type UpdateOrganizationGithubAppSettingsMutationBody = BodyType<UpdateOrganizationGithubAppSettingsBodyDto>
+    export type UpdateOrganizationGithubAppSettingsMutationError = ErrorType<unknown>
+    export type UpdateOrganizationGithubAppSettingsMutationVariables = {orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}
+
+    export const useUpdateOrganizationGithubAppSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,UpdateOrganizationGithubAppSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>,
+        TError,
+        UpdateOrganizationGithubAppSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateOrganizationGithubAppSettingsMutationOptions(options), queryClient);
+    }
+
+export type getOrganizationGithubAppInstallUrlResponse200 = {
+  data: GithubAppInstallUrlDto
+  status: 200
+}
+
+export type getOrganizationGithubAppInstallUrlResponseSuccess = (getOrganizationGithubAppInstallUrlResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getOrganizationGithubAppInstallUrlResponse = (getOrganizationGithubAppInstallUrlResponseSuccess)
+
+export const getGetOrganizationGithubAppInstallUrlUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/github-app/install-url`
+}
+
+export const getOrganizationGithubAppInstallUrl = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationGithubAppInstallUrlResponse> => {
+
+  return orvalFetch<getOrganizationGithubAppInstallUrlResponse>(getGetOrganizationGithubAppInstallUrlUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationGithubAppInstallUrlQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/github-app/install-url`
+    ] as const;
+    }
+
+
+export const getGetOrganizationGithubAppInstallUrlQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationGithubAppInstallUrlQueryKey(orgSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>> = ({ signal }) => getOrganizationGithubAppInstallUrl(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationGithubAppInstallUrlQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>>
+export type GetOrganizationGithubAppInstallUrlQueryError = ErrorType<unknown>
+
+
+export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetOrganizationGithubAppInstallUrlQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type createOrganizationGithubAppManifestResponse200 = {
+  data: GithubAppManifestDto
+  status: 200
+}
+
+export type createOrganizationGithubAppManifestResponseSuccess = (createOrganizationGithubAppManifestResponse200) & {
+  headers: Headers;
+};
+;
+
+export type createOrganizationGithubAppManifestResponse = (createOrganizationGithubAppManifestResponseSuccess)
+
+export const getCreateOrganizationGithubAppManifestUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/github-app/manifest`
+}
+
+export const createOrganizationGithubAppManifest = async (orgSlug: string,
+    createGithubAppManifestBodyDto: CreateGithubAppManifestBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationGithubAppManifestResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<createOrganizationGithubAppManifestResponse>(getCreateOrganizationGithubAppManifestUrl(orgSlug),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createGithubAppManifestBodyDto)
+  }
+);}
+
+
+
+
+
+export const getCreateOrganizationGithubAppManifestMutationKey = () => ['createOrganizationGithubAppManifest'] as const;
+
+export const getCreateOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,CreateOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,CreateOrganizationGithubAppManifestMutationVariables, TContext> => {
+
+const mutationKey = getCreateOrganizationGithubAppManifestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, CreateOrganizationGithubAppManifestMutationVariables> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  createOrganizationGithubAppManifest(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOrganizationGithubAppManifestMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>>
+    export type CreateOrganizationGithubAppManifestMutationBody = BodyType<CreateGithubAppManifestBodyDto>
+    export type CreateOrganizationGithubAppManifestMutationError = ErrorType<unknown>
+    export type CreateOrganizationGithubAppManifestMutationVariables = {orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}
+
+    export const useCreateOrganizationGithubAppManifest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,CreateOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>,
+        TError,
+        CreateOrganizationGithubAppManifestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateOrganizationGithubAppManifestMutationOptions(options), queryClient);
+    }
+
+export type completeOrganizationGithubAppManifestResponse200 = {
+  data: GithubAppManifestResultDto
+  status: 200
+}
+
+export type completeOrganizationGithubAppManifestResponseSuccess = (completeOrganizationGithubAppManifestResponse200) & {
+  headers: Headers;
+};
+;
+
+export type completeOrganizationGithubAppManifestResponse = (completeOrganizationGithubAppManifestResponseSuccess)
+
+export const getCompleteOrganizationGithubAppManifestUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/github-app/complete-manifest`
+}
+
+export const completeOrganizationGithubAppManifest = async (orgSlug: string,
+    completeGithubAppManifestBodyDto: CompleteGithubAppManifestBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<completeOrganizationGithubAppManifestResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<completeOrganizationGithubAppManifestResponse>(getCompleteOrganizationGithubAppManifestUrl(orgSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(completeGithubAppManifestBodyDto)
+  }
+);}
+
+
+
+
+
+export const getCompleteOrganizationGithubAppManifestMutationKey = () => ['completeOrganizationGithubAppManifest'] as const;
+
+export const getCompleteOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,CompleteOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,CompleteOrganizationGithubAppManifestMutationVariables, TContext> => {
+
+const mutationKey = getCompleteOrganizationGithubAppManifestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, CompleteOrganizationGithubAppManifestMutationVariables> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  completeOrganizationGithubAppManifest(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteOrganizationGithubAppManifestMutationResult = NonNullable<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>>
+    export type CompleteOrganizationGithubAppManifestMutationBody = BodyType<CompleteGithubAppManifestBodyDto>
+    export type CompleteOrganizationGithubAppManifestMutationError = ErrorType<unknown>
+    export type CompleteOrganizationGithubAppManifestMutationVariables = {orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}
+
+    export const useCompleteOrganizationGithubAppManifest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,CompleteOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>,
+        TError,
+        CompleteOrganizationGithubAppManifestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCompleteOrganizationGithubAppManifestMutationOptions(options), queryClient);
+    }
+
+export type listOrganizationGithubRepositoriesResponse200 = {
+  data: GithubAppRepositoryDto[]
+  status: 200
+}
+
+export type listOrganizationGithubRepositoriesResponseSuccess = (listOrganizationGithubRepositoriesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listOrganizationGithubRepositoriesResponse = (listOrganizationGithubRepositoriesResponseSuccess)
+
+export const getListOrganizationGithubRepositoriesUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/github-app/repositories`
+}
+
+export const listOrganizationGithubRepositories = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listOrganizationGithubRepositoriesResponse> => {
+
+  return orvalFetch<listOrganizationGithubRepositoriesResponse>(getListOrganizationGithubRepositoriesUrl(orgSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOrganizationGithubRepositoriesQueryKey = (orgSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/settings/github-app/repositories`
+    ] as const;
+    }
+
+
+export const getListOrganizationGithubRepositoriesQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationGithubRepositoriesQueryKey(orgSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>> = ({ signal }) => listOrganizationGithubRepositories(orgSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListOrganizationGithubRepositoriesQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>>
+export type ListOrganizationGithubRepositoriesQueryError = ErrorType<unknown>
+
+
+export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
+          TError,
+          Awaited<ReturnType<typeof listOrganizationGithubRepositories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
+          TError,
+          Awaited<ReturnType<typeof listOrganizationGithubRepositories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
+ orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListOrganizationGithubRepositoriesQueryOptions(orgSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type syncOrganizationGithubRepositoriesResponse200 = {
+  data: GithubAppRepositoryDto[]
+  status: 200
+}
+
+export type syncOrganizationGithubRepositoriesResponseSuccess = (syncOrganizationGithubRepositoriesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type syncOrganizationGithubRepositoriesResponse = (syncOrganizationGithubRepositoriesResponseSuccess)
+
+export const getSyncOrganizationGithubRepositoriesUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/github-app/repositories/sync`
+}
+
+export const syncOrganizationGithubRepositories = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<syncOrganizationGithubRepositoriesResponse> => {
+
+  return orvalFetch<syncOrganizationGithubRepositoriesResponse>(getSyncOrganizationGithubRepositoriesUrl(orgSlug),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSyncOrganizationGithubRepositoriesMutationKey = () => ['syncOrganizationGithubRepositories'] as const;
+
+export const getSyncOrganizationGithubRepositoriesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,SyncOrganizationGithubRepositoriesMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,SyncOrganizationGithubRepositoriesMutationVariables, TContext> => {
+
+const mutationKey = getSyncOrganizationGithubRepositoriesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, SyncOrganizationGithubRepositoriesMutationVariables> = (props) => {
+          const {orgSlug} = props ?? {};
+
+          return  syncOrganizationGithubRepositories(orgSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncOrganizationGithubRepositoriesMutationResult = NonNullable<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>>
+
+    export type SyncOrganizationGithubRepositoriesMutationError = ErrorType<unknown>
+    export type SyncOrganizationGithubRepositoriesMutationVariables = {orgSlug: string}
+
+    export const useSyncOrganizationGithubRepositories = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,SyncOrganizationGithubRepositoriesMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>,
+        TError,
+        SyncOrganizationGithubRepositoriesMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSyncOrganizationGithubRepositoriesMutationOptions(options), queryClient);
+    }
+
+export type completeOrganizationGithubAppInstallationResponse200 = {
+  data: OrganizationGithubAppSettingsDto
+  status: 200
+}
+
+export type completeOrganizationGithubAppInstallationResponseSuccess = (completeOrganizationGithubAppInstallationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type completeOrganizationGithubAppInstallationResponse = (completeOrganizationGithubAppInstallationResponseSuccess)
+
+export const getCompleteOrganizationGithubAppInstallationUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/github-app/complete-installation`
+}
+
+export const completeOrganizationGithubAppInstallation = async (orgSlug: string,
+    completeGithubAppInstallationBodyDto: CompleteGithubAppInstallationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<completeOrganizationGithubAppInstallationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<completeOrganizationGithubAppInstallationResponse>(getCompleteOrganizationGithubAppInstallationUrl(orgSlug),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(completeGithubAppInstallationBodyDto)
+  }
+);}
+
+
+
+
+
+export const getCompleteOrganizationGithubAppInstallationMutationKey = () => ['completeOrganizationGithubAppInstallation'] as const;
+
+export const getCompleteOrganizationGithubAppInstallationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,CompleteOrganizationGithubAppInstallationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,CompleteOrganizationGithubAppInstallationMutationVariables, TContext> => {
+
+const mutationKey = getCompleteOrganizationGithubAppInstallationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, CompleteOrganizationGithubAppInstallationMutationVariables> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  completeOrganizationGithubAppInstallation(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteOrganizationGithubAppInstallationMutationResult = NonNullable<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>>
+    export type CompleteOrganizationGithubAppInstallationMutationBody = BodyType<CompleteGithubAppInstallationBodyDto>
+    export type CompleteOrganizationGithubAppInstallationMutationError = ErrorType<unknown>
+    export type CompleteOrganizationGithubAppInstallationMutationVariables = {orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}
+
+    export const useCompleteOrganizationGithubAppInstallation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,CompleteOrganizationGithubAppInstallationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>,
+        TError,
+        CompleteOrganizationGithubAppInstallationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCompleteOrganizationGithubAppInstallationMutationOptions(options), queryClient);
     }
 
 export type appControllerGetHelloResponse200 = {
@@ -10268,1178 +11920,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getReplaceOrganizationAiPricingOverridesMutationOptions(options), queryClient);
-    }
-
-export type getRepoConnectionResponse200 = {
-  data: RepoConnectionDto
-  status: 200
-}
-
-export type getRepoConnectionResponseSuccess = (getRepoConnectionResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getRepoConnectionResponse = (getRepoConnectionResponseSuccess)
-
-export const getGetRepoConnectionUrl = (orgSlug: string,
-    projectSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
-}
-
-export const getRepoConnection = async (orgSlug: string,
-    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getRepoConnectionResponse> => {
-
-  return orvalFetch<getRepoConnectionResponse>(getGetRepoConnectionUrl(orgSlug,projectSlug),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetRepoConnectionQueryKey = (orgSlug: string,
-    projectSlug: string,) => {
-    return [
-    `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
-    ] as const;
-    }
-
-
-export const getGetRepoConnectionQueryOptions = <TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(orgSlug: string,
-    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetRepoConnectionQueryKey(orgSlug,projectSlug);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRepoConnection>>> = ({ signal }) => getRepoConnection(orgSlug,projectSlug, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetRepoConnectionQueryResult = NonNullable<Awaited<ReturnType<typeof getRepoConnection>>>
-export type GetRepoConnectionQueryError = ErrorType<unknown>
-
-
-export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
- orgSlug: string,
-    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getRepoConnection>>,
-          TError,
-          Awaited<ReturnType<typeof getRepoConnection>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
- orgSlug: string,
-    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getRepoConnection>>,
-          TError,
-          Awaited<ReturnType<typeof getRepoConnection>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
- orgSlug: string,
-    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useGetRepoConnection<TData = Awaited<ReturnType<typeof getRepoConnection>>, TError = ErrorType<unknown>>(
- orgSlug: string,
-    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRepoConnection>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetRepoConnectionQueryOptions(orgSlug,projectSlug,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export type upsertRepoConnectionResponse200 = {
-  data: RepoConnectionDto
-  status: 200
-}
-
-export type upsertRepoConnectionResponseSuccess = (upsertRepoConnectionResponse200) & {
-  headers: Headers;
-};
-;
-
-export type upsertRepoConnectionResponse = (upsertRepoConnectionResponseSuccess)
-
-export const getUpsertRepoConnectionUrl = (orgSlug: string,
-    projectSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
-}
-
-export const upsertRepoConnection = async (orgSlug: string,
-    projectSlug: string,
-    upsertRepoConnectionBodyDto: UpsertRepoConnectionBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<upsertRepoConnectionResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return orvalFetch<upsertRepoConnectionResponse>(getUpsertRepoConnectionUrl(orgSlug,projectSlug),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(upsertRepoConnectionBodyDto)
-  }
-);}
-
-
-
-
-
-export const getUpsertRepoConnectionMutationKey = () => ['upsertRepoConnection'] as const;
-
-export const getUpsertRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,UpsertRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,UpsertRepoConnectionMutationVariables, TContext> => {
-
-const mutationKey = getUpsertRepoConnectionMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertRepoConnection>>, UpsertRepoConnectionMutationVariables> = (props) => {
-          const {orgSlug,projectSlug,data} = props ?? {};
-
-          return  upsertRepoConnection(orgSlug,projectSlug,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpsertRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof upsertRepoConnection>>>
-    export type UpsertRepoConnectionMutationBody = BodyType<UpsertRepoConnectionBodyDto>
-    export type UpsertRepoConnectionMutationError = ErrorType<unknown>
-    export type UpsertRepoConnectionMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<UpsertRepoConnectionBodyDto>}
-
-    export const useUpsertRepoConnection = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertRepoConnection>>, TError,UpsertRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof upsertRepoConnection>>,
-        TError,
-        UpsertRepoConnectionMutationVariables,
-        TContext
-      > => {
-      return useMutation(getUpsertRepoConnectionMutationOptions(options), queryClient);
-    }
-
-export type deleteRepoConnectionResponse200 = {
-  data: SuccessDto
-  status: 200
-}
-
-export type deleteRepoConnectionResponseSuccess = (deleteRepoConnectionResponse200) & {
-  headers: Headers;
-};
-;
-
-export type deleteRepoConnectionResponse = (deleteRepoConnectionResponseSuccess)
-
-export const getDeleteRepoConnectionUrl = (orgSlug: string,
-    projectSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection`
-}
-
-export const deleteRepoConnection = async (orgSlug: string,
-    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteRepoConnectionResponse> => {
-
-  return orvalFetch<deleteRepoConnectionResponse>(getDeleteRepoConnectionUrl(orgSlug,projectSlug),
-  {
-    ...options,
-    method: 'DELETE'
-
-
-  }
-);}
-
-
-
-
-
-export const getDeleteRepoConnectionMutationKey = () => ['deleteRepoConnection'] as const;
-
-export const getDeleteRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,DeleteRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,DeleteRepoConnectionMutationVariables, TContext> => {
-
-const mutationKey = getDeleteRepoConnectionMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRepoConnection>>, DeleteRepoConnectionMutationVariables> = (props) => {
-          const {orgSlug,projectSlug} = props ?? {};
-
-          return  deleteRepoConnection(orgSlug,projectSlug,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRepoConnection>>>
-
-    export type DeleteRepoConnectionMutationError = ErrorType<unknown>
-    export type DeleteRepoConnectionMutationVariables = {orgSlug: string;projectSlug: string}
-
-    export const useDeleteRepoConnection = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRepoConnection>>, TError,DeleteRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteRepoConnection>>,
-        TError,
-        DeleteRepoConnectionMutationVariables,
-        TContext
-      > => {
-      return useMutation(getDeleteRepoConnectionMutationOptions(options), queryClient);
-    }
-
-export type testRepoConnectionResponse200 = {
-  data: TestRepoConnectionResultDto
-  status: 200
-}
-
-export type testRepoConnectionResponseSuccess = (testRepoConnectionResponse200) & {
-  headers: Headers;
-};
-;
-
-export type testRepoConnectionResponse = (testRepoConnectionResponseSuccess)
-
-export const getTestRepoConnectionUrl = (orgSlug: string,
-    projectSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/projects/${projectSlug}/integrations/repo-connection/test`
-}
-
-export const testRepoConnection = async (orgSlug: string,
-    projectSlug: string,
-    testRepoConnectionBodyDto: TestRepoConnectionBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<testRepoConnectionResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return orvalFetch<testRepoConnectionResponse>(getTestRepoConnectionUrl(orgSlug,projectSlug),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(testRepoConnectionBodyDto)
-  }
-);}
-
-
-
-
-
-export const getTestRepoConnectionMutationKey = () => ['testRepoConnection'] as const;
-
-export const getTestRepoConnectionMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,TestRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,TestRepoConnectionMutationVariables, TContext> => {
-
-const mutationKey = getTestRepoConnectionMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testRepoConnection>>, TestRepoConnectionMutationVariables> = (props) => {
-          const {orgSlug,projectSlug,data} = props ?? {};
-
-          return  testRepoConnection(orgSlug,projectSlug,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type TestRepoConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof testRepoConnection>>>
-    export type TestRepoConnectionMutationBody = BodyType<TestRepoConnectionBodyDto>
-    export type TestRepoConnectionMutationError = ErrorType<unknown>
-    export type TestRepoConnectionMutationVariables = {orgSlug: string;projectSlug: string;data: BodyType<TestRepoConnectionBodyDto>}
-
-    export const useTestRepoConnection = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testRepoConnection>>, TError,TestRepoConnectionMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof testRepoConnection>>,
-        TError,
-        TestRepoConnectionMutationVariables,
-        TContext
-      > => {
-      return useMutation(getTestRepoConnectionMutationOptions(options), queryClient);
-    }
-
-export type getOrganizationGithubAppSettingsResponse200 = {
-  data: OrganizationGithubAppSettingsDto
-  status: 200
-}
-
-export type getOrganizationGithubAppSettingsResponseSuccess = (getOrganizationGithubAppSettingsResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getOrganizationGithubAppSettingsResponse = (getOrganizationGithubAppSettingsResponseSuccess)
-
-export const getGetOrganizationGithubAppSettingsUrl = (orgSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/settings/github-app`
-}
-
-export const getOrganizationGithubAppSettings = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationGithubAppSettingsResponse> => {
-
-  return orvalFetch<getOrganizationGithubAppSettingsResponse>(getGetOrganizationGithubAppSettingsUrl(orgSlug),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetOrganizationGithubAppSettingsQueryKey = (orgSlug: string,) => {
-    return [
-    `/organizations/${orgSlug}/settings/github-app`
-    ] as const;
-    }
-
-
-export const getGetOrganizationGithubAppSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationGithubAppSettingsQueryKey(orgSlug);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>> = ({ signal }) => getOrganizationGithubAppSettings(orgSlug, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetOrganizationGithubAppSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>>
-export type GetOrganizationGithubAppSettingsQueryError = ErrorType<unknown>
-
-
-export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
- orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
-          TError,
-          Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
- orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>,
-          TError,
-          Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
- orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useGetOrganizationGithubAppSettings<TData = Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError = ErrorType<unknown>>(
- orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppSettings>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetOrganizationGithubAppSettingsQueryOptions(orgSlug,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export type updateOrganizationGithubAppSettingsResponse200 = {
-  data: OrganizationGithubAppSettingsDto
-  status: 200
-}
-
-export type updateOrganizationGithubAppSettingsResponseSuccess = (updateOrganizationGithubAppSettingsResponse200) & {
-  headers: Headers;
-};
-;
-
-export type updateOrganizationGithubAppSettingsResponse = (updateOrganizationGithubAppSettingsResponseSuccess)
-
-export const getUpdateOrganizationGithubAppSettingsUrl = (orgSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/settings/github-app`
-}
-
-export const updateOrganizationGithubAppSettings = async (orgSlug: string,
-    updateOrganizationGithubAppSettingsBodyDto: UpdateOrganizationGithubAppSettingsBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationGithubAppSettingsResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return orvalFetch<updateOrganizationGithubAppSettingsResponse>(getUpdateOrganizationGithubAppSettingsUrl(orgSlug),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateOrganizationGithubAppSettingsBodyDto)
-  }
-);}
-
-
-
-
-
-export const getUpdateOrganizationGithubAppSettingsMutationKey = () => ['updateOrganizationGithubAppSettings'] as const;
-
-export const getUpdateOrganizationGithubAppSettingsMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,UpdateOrganizationGithubAppSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,UpdateOrganizationGithubAppSettingsMutationVariables, TContext> => {
-
-const mutationKey = getUpdateOrganizationGithubAppSettingsMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, UpdateOrganizationGithubAppSettingsMutationVariables> = (props) => {
-          const {orgSlug,data} = props ?? {};
-
-          return  updateOrganizationGithubAppSettings(orgSlug,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateOrganizationGithubAppSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>>
-    export type UpdateOrganizationGithubAppSettingsMutationBody = BodyType<UpdateOrganizationGithubAppSettingsBodyDto>
-    export type UpdateOrganizationGithubAppSettingsMutationError = ErrorType<unknown>
-    export type UpdateOrganizationGithubAppSettingsMutationVariables = {orgSlug: string;data: BodyType<UpdateOrganizationGithubAppSettingsBodyDto>}
-
-    export const useUpdateOrganizationGithubAppSettings = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>, TError,UpdateOrganizationGithubAppSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateOrganizationGithubAppSettings>>,
-        TError,
-        UpdateOrganizationGithubAppSettingsMutationVariables,
-        TContext
-      > => {
-      return useMutation(getUpdateOrganizationGithubAppSettingsMutationOptions(options), queryClient);
-    }
-
-export type getOrganizationGithubAppInstallUrlResponse200 = {
-  data: GithubAppInstallUrlDto
-  status: 200
-}
-
-export type getOrganizationGithubAppInstallUrlResponseSuccess = (getOrganizationGithubAppInstallUrlResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getOrganizationGithubAppInstallUrlResponse = (getOrganizationGithubAppInstallUrlResponseSuccess)
-
-export const getGetOrganizationGithubAppInstallUrlUrl = (orgSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/settings/github-app/install-url`
-}
-
-export const getOrganizationGithubAppInstallUrl = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getOrganizationGithubAppInstallUrlResponse> => {
-
-  return orvalFetch<getOrganizationGithubAppInstallUrlResponse>(getGetOrganizationGithubAppInstallUrlUrl(orgSlug),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetOrganizationGithubAppInstallUrlQueryKey = (orgSlug: string,) => {
-    return [
-    `/organizations/${orgSlug}/settings/github-app/install-url`
-    ] as const;
-    }
-
-
-export const getGetOrganizationGithubAppInstallUrlQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationGithubAppInstallUrlQueryKey(orgSlug);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>> = ({ signal }) => getOrganizationGithubAppInstallUrl(orgSlug, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetOrganizationGithubAppInstallUrlQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>>
-export type GetOrganizationGithubAppInstallUrlQueryError = ErrorType<unknown>
-
-
-export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
- orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
-          TError,
-          Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
- orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>,
-          TError,
-          Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
- orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useGetOrganizationGithubAppInstallUrl<TData = Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError = ErrorType<unknown>>(
- orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationGithubAppInstallUrl>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetOrganizationGithubAppInstallUrlQueryOptions(orgSlug,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export type createOrganizationGithubAppManifestResponse200 = {
-  data: GithubAppManifestDto
-  status: 200
-}
-
-export type createOrganizationGithubAppManifestResponseSuccess = (createOrganizationGithubAppManifestResponse200) & {
-  headers: Headers;
-};
-;
-
-export type createOrganizationGithubAppManifestResponse = (createOrganizationGithubAppManifestResponseSuccess)
-
-export const getCreateOrganizationGithubAppManifestUrl = (orgSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/settings/github-app/manifest`
-}
-
-export const createOrganizationGithubAppManifest = async (orgSlug: string,
-    createGithubAppManifestBodyDto: CreateGithubAppManifestBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<createOrganizationGithubAppManifestResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return orvalFetch<createOrganizationGithubAppManifestResponse>(getCreateOrganizationGithubAppManifestUrl(orgSlug),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(createGithubAppManifestBodyDto)
-  }
-);}
-
-
-
-
-
-export const getCreateOrganizationGithubAppManifestMutationKey = () => ['createOrganizationGithubAppManifest'] as const;
-
-export const getCreateOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,CreateOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,CreateOrganizationGithubAppManifestMutationVariables, TContext> => {
-
-const mutationKey = getCreateOrganizationGithubAppManifestMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, CreateOrganizationGithubAppManifestMutationVariables> = (props) => {
-          const {orgSlug,data} = props ?? {};
-
-          return  createOrganizationGithubAppManifest(orgSlug,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateOrganizationGithubAppManifestMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>>
-    export type CreateOrganizationGithubAppManifestMutationBody = BodyType<CreateGithubAppManifestBodyDto>
-    export type CreateOrganizationGithubAppManifestMutationError = ErrorType<unknown>
-    export type CreateOrganizationGithubAppManifestMutationVariables = {orgSlug: string;data: BodyType<CreateGithubAppManifestBodyDto>}
-
-    export const useCreateOrganizationGithubAppManifest = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>, TError,CreateOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createOrganizationGithubAppManifest>>,
-        TError,
-        CreateOrganizationGithubAppManifestMutationVariables,
-        TContext
-      > => {
-      return useMutation(getCreateOrganizationGithubAppManifestMutationOptions(options), queryClient);
-    }
-
-export type completeOrganizationGithubAppManifestResponse200 = {
-  data: GithubAppManifestResultDto
-  status: 200
-}
-
-export type completeOrganizationGithubAppManifestResponseSuccess = (completeOrganizationGithubAppManifestResponse200) & {
-  headers: Headers;
-};
-;
-
-export type completeOrganizationGithubAppManifestResponse = (completeOrganizationGithubAppManifestResponseSuccess)
-
-export const getCompleteOrganizationGithubAppManifestUrl = (orgSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/settings/github-app/complete-manifest`
-}
-
-export const completeOrganizationGithubAppManifest = async (orgSlug: string,
-    completeGithubAppManifestBodyDto: CompleteGithubAppManifestBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<completeOrganizationGithubAppManifestResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return orvalFetch<completeOrganizationGithubAppManifestResponse>(getCompleteOrganizationGithubAppManifestUrl(orgSlug),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(completeGithubAppManifestBodyDto)
-  }
-);}
-
-
-
-
-
-export const getCompleteOrganizationGithubAppManifestMutationKey = () => ['completeOrganizationGithubAppManifest'] as const;
-
-export const getCompleteOrganizationGithubAppManifestMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,CompleteOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,CompleteOrganizationGithubAppManifestMutationVariables, TContext> => {
-
-const mutationKey = getCompleteOrganizationGithubAppManifestMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, CompleteOrganizationGithubAppManifestMutationVariables> = (props) => {
-          const {orgSlug,data} = props ?? {};
-
-          return  completeOrganizationGithubAppManifest(orgSlug,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CompleteOrganizationGithubAppManifestMutationResult = NonNullable<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>>
-    export type CompleteOrganizationGithubAppManifestMutationBody = BodyType<CompleteGithubAppManifestBodyDto>
-    export type CompleteOrganizationGithubAppManifestMutationError = ErrorType<unknown>
-    export type CompleteOrganizationGithubAppManifestMutationVariables = {orgSlug: string;data: BodyType<CompleteGithubAppManifestBodyDto>}
-
-    export const useCompleteOrganizationGithubAppManifest = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>, TError,CompleteOrganizationGithubAppManifestMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof completeOrganizationGithubAppManifest>>,
-        TError,
-        CompleteOrganizationGithubAppManifestMutationVariables,
-        TContext
-      > => {
-      return useMutation(getCompleteOrganizationGithubAppManifestMutationOptions(options), queryClient);
-    }
-
-export type listOrganizationGithubRepositoriesResponse200 = {
-  data: GithubAppRepositoryDto[]
-  status: 200
-}
-
-export type listOrganizationGithubRepositoriesResponseSuccess = (listOrganizationGithubRepositoriesResponse200) & {
-  headers: Headers;
-};
-;
-
-export type listOrganizationGithubRepositoriesResponse = (listOrganizationGithubRepositoriesResponseSuccess)
-
-export const getListOrganizationGithubRepositoriesUrl = (orgSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/settings/github-app/repositories`
-}
-
-export const listOrganizationGithubRepositories = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listOrganizationGithubRepositoriesResponse> => {
-
-  return orvalFetch<listOrganizationGithubRepositoriesResponse>(getListOrganizationGithubRepositoriesUrl(orgSlug),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListOrganizationGithubRepositoriesQueryKey = (orgSlug: string,) => {
-    return [
-    `/organizations/${orgSlug}/settings/github-app/repositories`
-    ] as const;
-    }
-
-
-export const getListOrganizationGithubRepositoriesQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListOrganizationGithubRepositoriesQueryKey(orgSlug);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>> = ({ signal }) => listOrganizationGithubRepositories(orgSlug, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListOrganizationGithubRepositoriesQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>>
-export type ListOrganizationGithubRepositoriesQueryError = ErrorType<unknown>
-
-
-export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
- orgSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
-          TError,
-          Awaited<ReturnType<typeof listOrganizationGithubRepositories>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
- orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listOrganizationGithubRepositories>>,
-          TError,
-          Awaited<ReturnType<typeof listOrganizationGithubRepositories>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
- orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useListOrganizationGithubRepositories<TData = Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError = ErrorType<unknown>>(
- orgSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOrganizationGithubRepositories>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getListOrganizationGithubRepositoriesQueryOptions(orgSlug,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export type syncOrganizationGithubRepositoriesResponse200 = {
-  data: GithubAppRepositoryDto[]
-  status: 200
-}
-
-export type syncOrganizationGithubRepositoriesResponseSuccess = (syncOrganizationGithubRepositoriesResponse200) & {
-  headers: Headers;
-};
-;
-
-export type syncOrganizationGithubRepositoriesResponse = (syncOrganizationGithubRepositoriesResponseSuccess)
-
-export const getSyncOrganizationGithubRepositoriesUrl = (orgSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/settings/github-app/repositories/sync`
-}
-
-export const syncOrganizationGithubRepositories = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<syncOrganizationGithubRepositoriesResponse> => {
-
-  return orvalFetch<syncOrganizationGithubRepositoriesResponse>(getSyncOrganizationGithubRepositoriesUrl(orgSlug),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-
-export const getSyncOrganizationGithubRepositoriesMutationKey = () => ['syncOrganizationGithubRepositories'] as const;
-
-export const getSyncOrganizationGithubRepositoriesMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,SyncOrganizationGithubRepositoriesMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,SyncOrganizationGithubRepositoriesMutationVariables, TContext> => {
-
-const mutationKey = getSyncOrganizationGithubRepositoriesMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, SyncOrganizationGithubRepositoriesMutationVariables> = (props) => {
-          const {orgSlug} = props ?? {};
-
-          return  syncOrganizationGithubRepositories(orgSlug,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type SyncOrganizationGithubRepositoriesMutationResult = NonNullable<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>>
-
-    export type SyncOrganizationGithubRepositoriesMutationError = ErrorType<unknown>
-    export type SyncOrganizationGithubRepositoriesMutationVariables = {orgSlug: string}
-
-    export const useSyncOrganizationGithubRepositories = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>, TError,SyncOrganizationGithubRepositoriesMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof syncOrganizationGithubRepositories>>,
-        TError,
-        SyncOrganizationGithubRepositoriesMutationVariables,
-        TContext
-      > => {
-      return useMutation(getSyncOrganizationGithubRepositoriesMutationOptions(options), queryClient);
-    }
-
-export type completeOrganizationGithubAppInstallationResponse200 = {
-  data: OrganizationGithubAppSettingsDto
-  status: 200
-}
-
-export type completeOrganizationGithubAppInstallationResponseSuccess = (completeOrganizationGithubAppInstallationResponse200) & {
-  headers: Headers;
-};
-;
-
-export type completeOrganizationGithubAppInstallationResponse = (completeOrganizationGithubAppInstallationResponseSuccess)
-
-export const getCompleteOrganizationGithubAppInstallationUrl = (orgSlug: string,) => {
-
-
-
-
-  return `/organizations/${orgSlug}/settings/github-app/complete-installation`
-}
-
-export const completeOrganizationGithubAppInstallation = async (orgSlug: string,
-    completeGithubAppInstallationBodyDto: CompleteGithubAppInstallationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<completeOrganizationGithubAppInstallationResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return orvalFetch<completeOrganizationGithubAppInstallationResponse>(getCompleteOrganizationGithubAppInstallationUrl(orgSlug),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(completeGithubAppInstallationBodyDto)
-  }
-);}
-
-
-
-
-
-export const getCompleteOrganizationGithubAppInstallationMutationKey = () => ['completeOrganizationGithubAppInstallation'] as const;
-
-export const getCompleteOrganizationGithubAppInstallationMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,CompleteOrganizationGithubAppInstallationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,CompleteOrganizationGithubAppInstallationMutationVariables, TContext> => {
-
-const mutationKey = getCompleteOrganizationGithubAppInstallationMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, CompleteOrganizationGithubAppInstallationMutationVariables> = (props) => {
-          const {orgSlug,data} = props ?? {};
-
-          return  completeOrganizationGithubAppInstallation(orgSlug,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CompleteOrganizationGithubAppInstallationMutationResult = NonNullable<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>>
-    export type CompleteOrganizationGithubAppInstallationMutationBody = BodyType<CompleteGithubAppInstallationBodyDto>
-    export type CompleteOrganizationGithubAppInstallationMutationError = ErrorType<unknown>
-    export type CompleteOrganizationGithubAppInstallationMutationVariables = {orgSlug: string;data: BodyType<CompleteGithubAppInstallationBodyDto>}
-
-    export const useCompleteOrganizationGithubAppInstallation = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>, TError,CompleteOrganizationGithubAppInstallationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof completeOrganizationGithubAppInstallation>>,
-        TError,
-        CompleteOrganizationGithubAppInstallationMutationVariables,
-        TContext
-      > => {
-      return useMutation(getCompleteOrganizationGithubAppInstallationMutationOptions(options), queryClient);
     }
 
 export type listOrganizationsResponse200 = {

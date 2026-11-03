@@ -615,6 +615,12 @@ export class ProjectReleaseDto {
   @ApiProperty()
   version!: string;
 
+  @ApiPropertyOptional({ type: String, nullable: true })
+  commitSha?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  commitsStatus?: string | null;
+
   @ApiProperty()
   eventCount!: number;
 
@@ -629,6 +635,133 @@ export class ProjectReleaseDto {
 
   @ApiProperty()
   updatedAt!: string;
+}
+
+export class UpsertReleaseBodyDto {
+  @ApiPropertyOptional({
+    description:
+      "Commit the release was built from (7 to 64 hex characters). A 40-character SHA version is used when omitted.",
+  })
+  commitSha?: string;
+}
+
+export class ReleaseCommitFileDto {
+  @ApiProperty()
+  path!: string;
+
+  @ApiProperty({ enum: ["added", "modified", "removed", "renamed"] })
+  status!: string;
+
+  @ApiPropertyOptional()
+  previousPath?: string;
+}
+
+export class ReleaseCommitDto {
+  @ApiProperty()
+  sha!: string;
+
+  @ApiProperty()
+  shortSha!: string;
+
+  @ApiProperty({ description: "First line of the message." })
+  title!: string;
+
+  @ApiProperty()
+  message!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  authorName!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  authorLogin!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  committedAt!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  url!: string | null;
+
+  @ApiProperty({ type: [ReleaseCommitFileDto] })
+  files!: ReleaseCommitFileDto[];
+
+  @ApiProperty()
+  filesTruncated!: boolean;
+}
+
+export class ReleaseCommitsDto {
+  @ApiProperty({ type: String, nullable: true })
+  commitSha!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    enum: ["pending", "synced", "unavailable", "failed"],
+    description: "null when commits were never fetched.",
+  })
+  status!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  error!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: "Previous release commit used as the range start.",
+  })
+  baseSha!: string | null;
+
+  @ApiProperty({ description: "More commits exist in the range than were stored." })
+  truncated!: boolean;
+
+  @ApiProperty({ type: String, nullable: true })
+  syncedAt!: string | null;
+
+  @ApiProperty({ type: [ReleaseCommitDto] })
+  commits!: ReleaseCommitDto[];
+}
+
+export class SuspectCommitMatchDto {
+  @ApiProperty({ description: "Repository path of the changed file." })
+  path!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  function!: string | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  lineno!: number | null;
+
+  @ApiProperty({ description: "0 is the frame that raised the error." })
+  depth!: number;
+}
+
+export class SuspectCommitDto extends ReleaseCommitDto {
+  @ApiProperty()
+  score!: number;
+
+  @ApiProperty({ type: [SuspectCommitMatchDto] })
+  matches!: SuspectCommitMatchDto[];
+}
+
+export class SuspectCommitsReleaseDto {
+  @ApiProperty()
+  version!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  commitSha!: string | null;
+}
+
+export class SuspectCommitsDto {
+  @ApiProperty({ enum: ["pending", "synced", "unavailable", "failed"] })
+  status!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  reason!: string | null;
+
+  @ApiProperty({ type: SuspectCommitsReleaseDto, nullable: true })
+  release!: SuspectCommitsReleaseDto | null;
+
+  @ApiProperty({ type: [SuspectCommitDto] })
+  suspects!: SuspectCommitDto[];
 }
 
 export class AlertRuleDto {

@@ -1,6 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import {
+  COMMIT_FETCH_CONCURRENCY,
   type CommitChecks,
+  type ListCommitsOptions,
+  type ListCommitsResult,
+  MAX_COMMIT_FILES,
+  type VcsCommit,
+  assertCommitSha,
+  mapLimit,
   CreatePullRequestOptions,
   PullRequestResult,
   RepoConnectionInput,
@@ -10,6 +17,25 @@ import {
   summarizeChecks,
 } from "./vcs-provider.interface";
 import { assertAllowedVcsEndpoints } from "./vcs-url-policy";
+
+const GITLAB_MAX_PAGE = 100;
+
+type GitlabCommit = {
+  id: string;
+  message: string;
+  author_name?: string | null;
+  author_email?: string | null;
+  committed_date?: string | null;
+  web_url?: string | null;
+};
+
+type GitlabDiff = {
+  old_path: string;
+  new_path: string;
+  new_file: boolean;
+  renamed_file: boolean;
+  deleted_file: boolean;
+};
 
 @Injectable()
 export class GitlabProvider implements VcsProvider {
@@ -126,5 +152,76 @@ export class GitlabProvider implements VcsProvider {
               : "pending",
       },
     ]);
+  }
+
+  /** Commits in base..head (compare, oldest first), or the latest ancestors of head. */
+  async listCommits(
+    connection: RepoConnectionInput,
+    options: ListCommitsOptions,
+  ): Promise<ListCommitsResult> {
+    assertCommitSha(options.head);
+    const repository = `/projects/${this.projectPath(connection)}/repository`;
+    let listed: GitlabCommit[] | null = null;
+    let base = options.base;
+
+    if (base) {
+      assertCommitSha(base);
+      try {
+        const compare = await this.request<{ commits: GitlabCommit[] }>(
+          connection,
+          "GET",
+          `${repository}/compare?from=${base}&to=${options.head}`,
+        );
+        listed = compare.commits.reverse();
+      } catch (error) {
+        if (!(error instanceof VcsRequestError) || error.status !== 404) throw error;
+        base = null;
+      }
+    }
+    if (!listed) {
+      listed = await this.request<GitlabCommit[]>(
+        connection,
+        "GET",
+        `${repository}/commits?ref_name=${options.head}&per_page=${options.limit + 1}`,
+      );
+    }
+    const truncated = listed.length > options.limit;
+
+    const commits = await mapLimit(
+      listed.slice(0, options.limit),
+      COMMIT_FETCH_CONCURRENCY,
+      async (commit): Promise<VcsCommit> => {
+        const diffs = await this.request<GitlabDiff[]>(
+          connection,
+          "GET",
+          `${repository}/commits/${commit.id}/diff?per_page=${GITLAB_MAX_PAGE}`,
+        );
+        return {
+          sha: commit.id,
+          message: commit.message,
+          authorName: commit.author_name ?? null,
+          authorEmail: commit.author_email ?? null,
+          authorLogin: null,
+          committedAt: commit.committed_date ?? null,
+          url: commit.web_url ?? null,
+          files: diffs.slice(0, MAX_COMMIT_FILES).map((diff) =>
+            diff.new_file
+              ? { path: diff.new_path, status: "added" as const }
+              : diff.deleted_file
+                ? { path: diff.old_path, status: "removed" as const }
+                : diff.renamed_file
+                  ? {
+                      path: diff.new_path,
+                      status: "renamed" as const,
+                      previousPath: diff.old_path,
+                    }
+                  : { path: diff.new_path, status: "modified" as const },
+          ),
+          // GitLab pages diffs (100 at most): a full page means there may be more files.
+          filesTruncated: diffs.length >= GITLAB_MAX_PAGE,
+        };
+      },
+    );
+    return { commits, truncated, base };
   }
 }

@@ -965,6 +965,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertReleaseBodyDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1515,6 +1525,686 @@
         "summary": "",
         "tags": [
           "releases"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/releases/{releaseVersion}/commits": {
+      "get": {
+        "operationId": "listReleaseCommits",
+        "parameters": [
+          {
+            "name": "releaseVersion",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseCommitsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/releases/{releaseVersion}/commits/sync": {
+      "post": {
+        "operationId": "syncReleaseCommits",
+        "parameters": [
+          {
+            "name": "releaseVersion",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseCommitsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/issues/{issueId}/suspect-commits": {
+      "get": {
+        "operationId": "getIssueSuspectCommits",
+        "parameters": [
+          {
+            "name": "issueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuspectCommitsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/integrations/repo-connection": {
+      "get": {
+        "operationId": "getRepoConnection",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoConnectionDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "integrations"
+        ]
+      },
+      "put": {
+        "operationId": "upsertRepoConnection",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertRepoConnectionBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepoConnectionDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "integrations"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteRepoConnection",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/integrations/repo-connection/test": {
+      "post": {
+        "operationId": "testRepoConnection",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestRepoConnectionBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestRepoConnectionResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app": {
+      "get": {
+        "operationId": "getOrganizationGithubAppSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "put": {
+        "operationId": "updateOrganizationGithubAppSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationGithubAppSettingsBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/install-url": {
+      "get": {
+        "operationId": "getOrganizationGithubAppInstallUrl",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubAppInstallUrlDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/manifest": {
+      "post": {
+        "operationId": "createOrganizationGithubAppManifest",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGithubAppManifestBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubAppManifestDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/complete-manifest": {
+      "put": {
+        "operationId": "completeOrganizationGithubAppManifest",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteGithubAppManifestBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubAppManifestResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/repositories": {
+      "get": {
+        "operationId": "listOrganizationGithubRepositories",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GithubAppRepositoryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/repositories/sync": {
+      "post": {
+        "operationId": "syncOrganizationGithubRepositories",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GithubAppRepositoryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/settings/github-app/complete-installation": {
+      "put": {
+        "operationId": "completeOrganizationGithubAppInstallation",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteGithubAppInstallationBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
         ]
       }
     },
@@ -3789,530 +4479,6 @@
         "responses": {
           "200": {
             "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{orgSlug}/projects/{projectSlug}/integrations/repo-connection": {
-      "get": {
-        "operationId": "getRepoConnection",
-        "parameters": [
-          {
-            "name": "projectSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RepoConnectionDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "integrations"
-        ]
-      },
-      "put": {
-        "operationId": "upsertRepoConnection",
-        "parameters": [
-          {
-            "name": "projectSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertRepoConnectionBodyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RepoConnectionDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "integrations"
-        ]
-      },
-      "delete": {
-        "operationId": "deleteRepoConnection",
-        "parameters": [
-          {
-            "name": "projectSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "integrations"
-        ]
-      }
-    },
-    "/organizations/{orgSlug}/projects/{projectSlug}/integrations/repo-connection/test": {
-      "post": {
-        "operationId": "testRepoConnection",
-        "parameters": [
-          {
-            "name": "projectSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TestRepoConnectionBodyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestRepoConnectionResultDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "integrations"
-        ]
-      }
-    },
-    "/organizations/{orgSlug}/settings/github-app": {
-      "get": {
-        "operationId": "getOrganizationGithubAppSettings",
-        "parameters": [
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "organizations"
-        ]
-      },
-      "put": {
-        "operationId": "updateOrganizationGithubAppSettings",
-        "parameters": [
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateOrganizationGithubAppSettingsBodyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{orgSlug}/settings/github-app/install-url": {
-      "get": {
-        "operationId": "getOrganizationGithubAppInstallUrl",
-        "parameters": [
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubAppInstallUrlDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{orgSlug}/settings/github-app/manifest": {
-      "post": {
-        "operationId": "createOrganizationGithubAppManifest",
-        "parameters": [
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateGithubAppManifestBodyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubAppManifestDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{orgSlug}/settings/github-app/complete-manifest": {
-      "put": {
-        "operationId": "completeOrganizationGithubAppManifest",
-        "parameters": [
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompleteGithubAppManifestBodyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubAppManifestResultDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{orgSlug}/settings/github-app/repositories": {
-      "get": {
-        "operationId": "listOrganizationGithubRepositories",
-        "parameters": [
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/GithubAppRepositoryDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{orgSlug}/settings/github-app/repositories/sync": {
-      "post": {
-        "operationId": "syncOrganizationGithubRepositories",
-        "parameters": [
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/GithubAppRepositoryDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{orgSlug}/settings/github-app/complete-installation": {
-      "put": {
-        "operationId": "completeOrganizationGithubAppInstallation",
-        "parameters": [
-          {
-            "name": "orgSlug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompleteGithubAppInstallationBodyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -6625,6 +6791,14 @@
           "version": {
             "type": "string"
           },
+          "commitSha": {
+            "type": "string",
+            "nullable": true
+          },
+          "commitsStatus": {
+            "type": "string",
+            "nullable": true
+          },
           "eventCount": {
             "type": "number"
           },
@@ -6835,6 +7009,15 @@
           "createdAt"
         ]
       },
+      "UpsertReleaseBodyDto": {
+        "type": "object",
+        "properties": {
+          "commitSha": {
+            "type": "string",
+            "description": "Commit the release was built from (7 to 64 hex characters). A 40-character SHA version is used when omitted."
+          }
+        }
+      },
       "ReleaseArtifactDto": {
         "type": "object",
         "properties": {
@@ -6869,6 +7052,705 @@
           "checksum",
           "createdAt"
         ]
+      },
+      "ReleaseCommitFileDto": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "added",
+              "modified",
+              "removed",
+              "renamed"
+            ]
+          },
+          "previousPath": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "status"
+        ]
+      },
+      "ReleaseCommitDto": {
+        "type": "object",
+        "properties": {
+          "sha": {
+            "type": "string"
+          },
+          "shortSha": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "description": "First line of the message."
+          },
+          "message": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorLogin": {
+            "type": "string",
+            "nullable": true
+          },
+          "committedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseCommitFileDto"
+            }
+          },
+          "filesTruncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sha",
+          "shortSha",
+          "title",
+          "message",
+          "authorName",
+          "authorLogin",
+          "committedAt",
+          "url",
+          "files",
+          "filesTruncated"
+        ]
+      },
+      "ReleaseCommitsDto": {
+        "type": "object",
+        "properties": {
+          "commitSha": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "pending",
+              "synced",
+              "unavailable",
+              "failed"
+            ],
+            "description": "null when commits were never fetched."
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "baseSha": {
+            "type": "string",
+            "nullable": true,
+            "description": "Previous release commit used as the range start."
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "More commits exist in the range than were stored."
+          },
+          "syncedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "commits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseCommitDto"
+            }
+          }
+        },
+        "required": [
+          "commitSha",
+          "status",
+          "error",
+          "baseSha",
+          "truncated",
+          "syncedAt",
+          "commits"
+        ]
+      },
+      "SuspectCommitsReleaseDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "commitSha": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "version",
+          "commitSha"
+        ]
+      },
+      "SuspectCommitMatchDto": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Repository path of the changed file."
+          },
+          "function": {
+            "type": "string",
+            "nullable": true
+          },
+          "lineno": {
+            "type": "number",
+            "nullable": true
+          },
+          "depth": {
+            "type": "number",
+            "description": "0 is the frame that raised the error."
+          }
+        },
+        "required": [
+          "path",
+          "function",
+          "lineno",
+          "depth"
+        ]
+      },
+      "SuspectCommitDto": {
+        "type": "object",
+        "properties": {
+          "sha": {
+            "type": "string"
+          },
+          "shortSha": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "description": "First line of the message."
+          },
+          "message": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorLogin": {
+            "type": "string",
+            "nullable": true
+          },
+          "committedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseCommitFileDto"
+            }
+          },
+          "filesTruncated": {
+            "type": "boolean"
+          },
+          "score": {
+            "type": "number"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuspectCommitMatchDto"
+            }
+          }
+        },
+        "required": [
+          "sha",
+          "shortSha",
+          "title",
+          "message",
+          "authorName",
+          "authorLogin",
+          "committedAt",
+          "url",
+          "files",
+          "filesTruncated",
+          "score",
+          "matches"
+        ]
+      },
+      "SuspectCommitsDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "synced",
+              "unavailable",
+              "failed"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "release": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SuspectCommitsReleaseDto"
+              }
+            ]
+          },
+          "suspects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuspectCommitDto"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "reason",
+          "release",
+          "suspects"
+        ]
+      },
+      "RepoConnectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab"
+            ]
+          },
+          "baseUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "repoIdentifier": {
+            "type": "string"
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "tokenSet": {
+            "type": "boolean"
+          },
+          "lastValidatedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "repoIdentifier",
+          "defaultBranch",
+          "tokenSet",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpsertRepoConnectionBodyDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab"
+            ]
+          },
+          "baseUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "repoIdentifier": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string",
+            "description": "Personal access token. Optional on update to keep the stored one."
+          },
+          "defaultBranch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "repoIdentifier"
+        ]
+      },
+      "TestRepoConnectionBodyDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab"
+            ]
+          },
+          "baseUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "repoIdentifier": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "TestRepoConnectionResultDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "defaultBranch": {
+            "type": "object",
+            "nullable": true
+          },
+          "error": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "OrganizationGithubAppSettingsDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "cloud",
+              "enterprise"
+            ]
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "appSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "appId": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientId": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationAccountLogin": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationAccountType": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientSecretSet": {
+            "type": "boolean"
+          },
+          "privateKeySet": {
+            "type": "boolean"
+          },
+          "webhookSecretSet": {
+            "type": "boolean"
+          },
+          "maskedClientSecret": {
+            "type": "string",
+            "nullable": true
+          },
+          "maskedWebhookSecret": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "mode",
+          "clientSecretSet",
+          "privateKeySet",
+          "webhookSecretSet"
+        ]
+      },
+      "GithubAppInstallUrlDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "CreateGithubAppManifestBodyDto": {
+        "type": "object",
+        "properties": {
+          "githubOrganization": {
+            "type": "string",
+            "description": "GitHub organization that should own the App. Empty uses the personal account."
+          }
+        }
+      },
+      "GithubAppManifestDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "manifest": {
+            "type": "string",
+            "description": "JSON-encoded GitHub App manifest."
+          }
+        },
+        "required": [
+          "action",
+          "state",
+          "manifest"
+        ]
+      },
+      "CompleteGithubAppManifestBodyDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "state"
+        ]
+      },
+      "GithubAppManifestResultDto": {
+        "type": "object",
+        "properties": {
+          "installUrl": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
+          }
+        },
+        "required": [
+          "installUrl",
+          "settings"
+        ]
+      },
+      "GithubAppRepositoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "defaultBranch",
+          "private",
+          "archived",
+          "disabled"
+        ]
+      },
+      "CompleteGithubAppInstallationBodyDto": {
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "installationId"
+        ]
+      },
+      "UpdateOrganizationGithubAppSettingsBodyDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "cloud",
+              "enterprise"
+            ]
+          },
+          "htmlUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitUser": {
+            "type": "string",
+            "nullable": true
+          },
+          "gitPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "appSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "appId": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientId": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationAccountLogin": {
+            "type": "string",
+            "nullable": true
+          },
+          "installationAccountType": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientSecret": {
+            "type": "string",
+            "nullable": true
+          },
+          "privateKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "webhookSecret": {
+            "type": "string",
+            "nullable": true
+          }
+        }
       },
       "HealthDto": {
         "type": "object",
@@ -8100,426 +8982,6 @@
             "type": "number",
             "nullable": true,
             "description": "USD. Null removes it."
-          }
-        }
-      },
-      "RepoConnectionDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "provider": {
-            "type": "string",
-            "enum": [
-              "github",
-              "gitlab"
-            ]
-          },
-          "baseUrl": {
-            "type": "object",
-            "nullable": true
-          },
-          "htmlUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "apiUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitUser": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitPort": {
-            "type": "number",
-            "nullable": true
-          },
-          "repoIdentifier": {
-            "type": "string"
-          },
-          "defaultBranch": {
-            "type": "string"
-          },
-          "tokenSet": {
-            "type": "boolean"
-          },
-          "lastValidatedAt": {
-            "type": "object",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "provider",
-          "repoIdentifier",
-          "defaultBranch",
-          "tokenSet",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "UpsertRepoConnectionBodyDto": {
-        "type": "object",
-        "properties": {
-          "provider": {
-            "type": "string",
-            "enum": [
-              "github",
-              "gitlab"
-            ]
-          },
-          "baseUrl": {
-            "type": "object",
-            "nullable": true
-          },
-          "htmlUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "apiUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitUser": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitPort": {
-            "type": "number",
-            "nullable": true
-          },
-          "repoIdentifier": {
-            "type": "string"
-          },
-          "token": {
-            "type": "string",
-            "description": "Personal access token. Optional on update to keep the stored one."
-          },
-          "defaultBranch": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "provider",
-          "repoIdentifier"
-        ]
-      },
-      "TestRepoConnectionBodyDto": {
-        "type": "object",
-        "properties": {
-          "provider": {
-            "type": "string",
-            "enum": [
-              "github",
-              "gitlab"
-            ]
-          },
-          "baseUrl": {
-            "type": "object",
-            "nullable": true
-          },
-          "htmlUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "apiUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitUser": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitPort": {
-            "type": "number",
-            "nullable": true
-          },
-          "repoIdentifier": {
-            "type": "string"
-          },
-          "token": {
-            "type": "string"
-          }
-        }
-      },
-      "TestRepoConnectionResultDto": {
-        "type": "object",
-        "properties": {
-          "ok": {
-            "type": "boolean"
-          },
-          "defaultBranch": {
-            "type": "object",
-            "nullable": true
-          },
-          "error": {
-            "type": "object",
-            "nullable": true
-          }
-        },
-        "required": [
-          "ok"
-        ]
-      },
-      "OrganizationGithubAppSettingsDto": {
-        "type": "object",
-        "properties": {
-          "mode": {
-            "type": "string",
-            "enum": [
-              "cloud",
-              "enterprise"
-            ]
-          },
-          "htmlUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "apiUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitUser": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitPort": {
-            "type": "number",
-            "nullable": true
-          },
-          "appSlug": {
-            "type": "string",
-            "nullable": true
-          },
-          "appId": {
-            "type": "string",
-            "nullable": true
-          },
-          "clientId": {
-            "type": "string",
-            "nullable": true
-          },
-          "installationId": {
-            "type": "string",
-            "nullable": true
-          },
-          "installationAccountLogin": {
-            "type": "string",
-            "nullable": true
-          },
-          "installationAccountType": {
-            "type": "string",
-            "nullable": true
-          },
-          "clientSecretSet": {
-            "type": "boolean"
-          },
-          "privateKeySet": {
-            "type": "boolean"
-          },
-          "webhookSecretSet": {
-            "type": "boolean"
-          },
-          "maskedClientSecret": {
-            "type": "string",
-            "nullable": true
-          },
-          "maskedWebhookSecret": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "mode",
-          "clientSecretSet",
-          "privateKeySet",
-          "webhookSecretSet"
-        ]
-      },
-      "GithubAppInstallUrlDto": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "url"
-        ]
-      },
-      "CreateGithubAppManifestBodyDto": {
-        "type": "object",
-        "properties": {
-          "githubOrganization": {
-            "type": "string",
-            "description": "GitHub organization that should own the App. Empty uses the personal account."
-          }
-        }
-      },
-      "GithubAppManifestDto": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "state": {
-            "type": "string"
-          },
-          "manifest": {
-            "type": "string",
-            "description": "JSON-encoded GitHub App manifest."
-          }
-        },
-        "required": [
-          "action",
-          "state",
-          "manifest"
-        ]
-      },
-      "CompleteGithubAppManifestBodyDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "state": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "state"
-        ]
-      },
-      "GithubAppManifestResultDto": {
-        "type": "object",
-        "properties": {
-          "installUrl": {
-            "type": "string"
-          },
-          "settings": {
-            "$ref": "#/components/schemas/OrganizationGithubAppSettingsDto"
-          }
-        },
-        "required": [
-          "installUrl",
-          "settings"
-        ]
-      },
-      "GithubAppRepositoryDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "number"
-          },
-          "fullName": {
-            "type": "string"
-          },
-          "defaultBranch": {
-            "type": "string"
-          },
-          "private": {
-            "type": "boolean"
-          },
-          "archived": {
-            "type": "boolean"
-          },
-          "disabled": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "id",
-          "fullName",
-          "defaultBranch",
-          "private",
-          "archived",
-          "disabled"
-        ]
-      },
-      "CompleteGithubAppInstallationBodyDto": {
-        "type": "object",
-        "properties": {
-          "installationId": {
-            "type": "string"
-          },
-          "state": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "installationId"
-        ]
-      },
-      "UpdateOrganizationGithubAppSettingsBodyDto": {
-        "type": "object",
-        "properties": {
-          "mode": {
-            "type": "string",
-            "enum": [
-              "cloud",
-              "enterprise"
-            ]
-          },
-          "htmlUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "apiUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitUser": {
-            "type": "string",
-            "nullable": true
-          },
-          "gitPort": {
-            "type": "number",
-            "nullable": true
-          },
-          "appSlug": {
-            "type": "string",
-            "nullable": true
-          },
-          "appId": {
-            "type": "string",
-            "nullable": true
-          },
-          "clientId": {
-            "type": "string",
-            "nullable": true
-          },
-          "installationId": {
-            "type": "string",
-            "nullable": true
-          },
-          "installationAccountLogin": {
-            "type": "string",
-            "nullable": true
-          },
-          "installationAccountType": {
-            "type": "string",
-            "nullable": true
-          },
-          "clientSecret": {
-            "type": "string",
-            "nullable": true
-          },
-          "privateKey": {
-            "type": "string",
-            "nullable": true
-          },
-          "webhookSecret": {
-            "type": "string",
-            "nullable": true
           }
         }
       },

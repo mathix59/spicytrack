@@ -25,9 +25,15 @@ export async function verifyConnection(config) {
   return response.json();
 }
 
-export async function createRelease(config, release) {
+export async function createRelease(config, release, commitSha = null) {
   await apiRequest(config, `${projectPath(config)}/releases/${encodeURIComponent(release)}`, {
     method: "PUT",
+    ...(commitSha
+      ? {
+          body: JSON.stringify({ commitSha }),
+          headers: { "content-type": "application/json" },
+        }
+      : {}),
   });
 }
 

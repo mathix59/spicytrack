@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { ReleaseCommitsSection } from "@/components/commits/release-commits-section";
+
 import { ReleaseArtifactsSection } from "./release-artifacts-section";
 import { ReleaseIssuesSection } from "./release-issues-section";
 import { compactDate } from "./utils";
@@ -22,6 +24,8 @@ function ReleaseDetailSkeleton() {
 }
 
 function ReleaseDetailCard({
+  orgSlug,
+  projectSlug,
   hasReleases,
   selectedReleaseVersion,
   releaseDetail,
@@ -38,6 +42,8 @@ function ReleaseDetailCard({
   onUploadArtifact,
   onDeleteArtifact,
 }: {
+  orgSlug: string;
+  projectSlug: string;
   hasReleases: boolean;
   selectedReleaseVersion: string;
   releaseDetail: ProjectReleaseDetailDto | undefined;
@@ -99,6 +105,11 @@ function ReleaseDetailCard({
       </CardHeader>
       <CardContent className="grid gap-6">
         <ReleaseIssuesSection issues={issues} onOpenIssue={onOpenIssue} />
+        <ReleaseCommitsSection
+          orgSlug={orgSlug}
+          projectSlug={projectSlug}
+          releaseVersion={release.version}
+        />
         <ReleaseArtifactsSection
           artifacts={artifacts}
           error={artifactsError}

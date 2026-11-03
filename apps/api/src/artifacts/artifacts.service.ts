@@ -4,6 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { releaseArtifacts, releases } from "../database/schema";
+import { ReleaseCommitsService } from "../release-commits/release-commits.service";
 import { STORAGE_SERVICE } from "../storage/storage.service";
 import type { StorageService } from "../storage/storage.service";
 
@@ -14,14 +15,25 @@ export class ArtifactsService {
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
     @Inject(STORAGE_SERVICE) private readonly storageService: StorageService,
+    private readonly releaseCommitsService: ReleaseCommitsService,
   ) {}
 
   async upsertRelease(input: {
     organizationId: string;
     projectId: string;
     releaseVersion: string;
+    commitSha?: string;
   }) {
-    const [existing] = await this.db
+    // Concurrent CI jobs can create the same release: the unique index decides, never a 500.
+    await this.db
+      .insert(releases)
+      .values({
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+        version: input.releaseVersion,
+      })
+      .onConflictDoNothing({ target: [releases.projectId, releases.version] });
+    const [release] = await this.db
       .select()
       .from(releases)
       .where(
@@ -29,20 +41,8 @@ export class ArtifactsService {
       )
       .limit(1);
 
-    if (existing) {
-      return { ...existing, eventCount: 0 };
-    }
-
-    const [release] = await this.db
-      .insert(releases)
-      .values({
-        organizationId: input.organizationId,
-        projectId: input.projectId,
-        version: input.releaseVersion,
-      })
-      .returning();
-
-    return { ...release, eventCount: 0 };
+    const updated = await this.releaseCommitsService.setCommitSha(release, input.commitSha);
+    return { ...updated, eventCount: 0 };
   }
 
   private async getReleaseOrThrow(input: { projectId: string; releaseVersion: string }) {

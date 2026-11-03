@@ -415,6 +415,14 @@ export const releases = pgTable(
     organizationId: uuid("organization_id").notNull(),
     projectId: uuid("project_id").notNull(),
     version: varchar("version", { length: 255 }).notNull(),
+    // The commit the release was built from; a 40-character SHA version counts as one.
+    commitSha: varchar("commit_sha", { length: 64 }),
+    // null (never fetched) | pending | synced | unavailable | failed
+    commitsStatus: varchar("commits_status", { length: 16 }),
+    commitsError: text("commits_error"),
+    commitsBaseSha: varchar("commits_base_sha", { length: 64 }),
+    commitsTruncated: boolean("commits_truncated").notNull().default(false),
+    commitsSyncedAt: timestamp("commits_synced_at", { withTimezone: true }),
     firstSeenAt: timestamp("first_seen_at", { withTimezone: true }),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -422,6 +430,39 @@ export const releases = pgTable(
   },
   (table) => ({
     releaseIdx: uniqueIndex("releases_project_version_idx").on(table.projectId, table.version),
+  }),
+);
+
+export type ReleaseCommitFile = {
+  path: string;
+  status: "added" | "modified" | "removed" | "renamed";
+  previousPath?: string;
+};
+
+/** Commits between a release and the previous one, read from the connected repository. */
+export const releaseCommits = pgTable(
+  "release_commits",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    releaseId: uuid("release_id")
+      .notNull()
+      .references(() => releases.id, { onDelete: "cascade" }),
+    // Newest first.
+    position: integer("position").notNull(),
+    sha: varchar("sha", { length: 64 }).notNull(),
+    message: text("message").notNull(),
+    authorName: text("author_name"),
+    authorEmail: text("author_email"),
+    authorLogin: text("author_login"),
+    committedAt: timestamp("committed_at", { withTimezone: true }),
+    url: text("url"),
+    files: jsonb("files").$type<ReleaseCommitFile[]>().notNull().default([]),
+    filesTruncated: boolean("files_truncated").notNull().default(false),
+  },
+  (table) => ({
+    releaseShaIdx: uniqueIndex("release_commits_release_sha_idx").on(table.releaseId, table.sha),
   }),
 );
 

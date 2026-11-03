@@ -29,7 +29,12 @@ test("creates a release then uploads every artifact with bearer authentication",
   const requests = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, init) => {
-    requests.push({ method: init.method, url: String(url), auth: init.headers.authorization });
+    requests.push({
+      method: init.method,
+      url: String(url),
+      auth: init.headers.authorization,
+      body: typeof init.body === "string" ? init.body : null,
+    });
     return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
   };
   try {
@@ -40,11 +45,13 @@ test("creates a release then uploads every artifact with bearer authentication",
       project: "storefront",
       token: "pat_secret",
       release: "release-123",
+      commitSha: "ABCDEF1234567",
       roots: [".next"],
       concurrency: 1,
     });
     assert.equal(result.artifacts.length, 2);
     assert.equal(requests[0].method, "PUT");
+    assert.deepEqual(JSON.parse(requests[0].body), { commitSha: "abcdef1234567" });
     assert.equal(requests[0].auth, "Bearer pat_secret");
     assert.equal(
       requests.slice(1).every((request) => request.method === "POST"),
@@ -58,5 +65,22 @@ test("creates a release then uploads every artifact with bearer authentication",
     );
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("resolves the commit SHA from SpicyTrack, then CI, then Git", async () => {
+  const { resolveCommitSha } = await import("../src/config.js");
+  const saved = { ...process.env };
+  try {
+    delete process.env.SPICYTRACK_COMMIT_SHA;
+    process.env.GITHUB_SHA = "1111111111111111111111111111111111111111";
+    assert.equal(resolveCommitSha({}), "1111111111111111111111111111111111111111");
+    assert.equal(resolveCommitSha({ commitSha: "2222222" }), "2222222");
+    process.env.SPICYTRACK_COMMIT_SHA = "3333333";
+    assert.equal(resolveCommitSha({ commitSha: "2222222" }), "3333333");
+    process.env.SPICYTRACK_COMMIT_SHA = "not-a-sha";
+    assert.equal(resolveCommitSha({}), null);
+  } finally {
+    process.env = saved;
   }
 });

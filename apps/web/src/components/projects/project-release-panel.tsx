@@ -34,6 +34,8 @@ function ProjectReleasePanel(props: ProjectReleasePanelProps) {
         onRetry={state.retryReleaseDetail}
         onRetryArtifacts={state.retryArtifacts}
         onUploadArtifact={(event) => void state.uploadArtifact(event)}
+        orgSlug={props.orgSlug}
+        projectSlug={props.projectSlug}
         releaseDetail={state.releaseDetail}
         selectedReleaseVersion={props.selectedReleaseVersion}
         uploadError={state.uploadError}

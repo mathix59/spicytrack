@@ -511,6 +511,60 @@ describe("RBAC authorization matrix (e2e)", () => {
     expect(response.json().message).toBe("Only an analyzed run can generate a fix.");
   });
 
+  it("creates a release once under concurrent CI jobs and records its commit", async () => {
+    const releaseUrl = `/api/organizations/${organizationSlug}/projects/${projectSlug}/releases/ci-${suffix}`;
+    const put = (payload?: Record<string, unknown>) =>
+      app.inject({
+        method: "PUT",
+        url: releaseUrl,
+        headers: {
+          ...authorization("owner"),
+          ...(payload ? { "content-type": "application/json" } : {}),
+        },
+        ...(payload ? { payload } : {}),
+      });
+
+    const responses = await Promise.all(Array.from({ length: 5 }, () => put()));
+    expect(responses.map((response) => response.statusCode)).toEqual([200, 200, 200, 200, 200]);
+    expect(new Set(responses.map((response) => response.json().id)).size).toBe(1);
+
+    expect((await put({ commitSha: "not-a-sha" })).statusCode).toBe(400);
+    const withCommit = await put({ commitSha: "ABCDEF1234567890ABCDEF1234567890ABCDEF12" });
+    expect(withCommit.statusCode).toBe(200);
+    expect(withCommit.json()).toMatchObject({
+      commitSha: "abcdef1234567890abcdef1234567890abcdef12",
+      commitsStatus: "pending",
+    });
+
+    const sync = await app.inject({
+      method: "POST",
+      url: `${releaseUrl}/commits/sync`,
+      headers: { ...authorization("viewer"), "content-type": "application/json" },
+      payload: {},
+    });
+    expect(sync.statusCode).toBe(403);
+    const commits = await app.inject({
+      method: "GET",
+      url: `${releaseUrl}/commits`,
+      headers: authorization("viewer"),
+    });
+    expect(commits.statusCode).toBe(200);
+    // A running worker may already have found that no repository is connected.
+    expect(["pending", "unavailable"]).toContain(commits.json().status);
+    expect(commits.json().commits).toEqual([]);
+  });
+
+  it("never reads commits or suspects through another project", async () => {
+    const base = `/api/organizations/${organizationSlug}/projects/${projectSlug}`;
+    for (const url of [
+      `${base}/releases/sibling-only/commits`,
+      `${base}/issues/${siblingIssueId}/suspect-commits`,
+    ]) {
+      const response = await app.inject({ method: "GET", url, headers: authorization("owner") });
+      expect(response.statusCode).toBe(404);
+    }
+  });
+
   it("rejects foreign resource ids across saved searches, keys, alerts, releases and artifacts", async () => {
     const cases: Array<{
       method: "GET" | "PATCH" | "DELETE";

@@ -281,4 +281,139 @@ describe("VCS providers", () => {
       ).rejects.toBeInstanceOf(VcsRequestError);
     });
   });
+
+  describe("listCommits", () => {
+    const head = "a".repeat(40);
+    const base = "b".repeat(40);
+    const connection = { baseUrl: null, repoIdentifier: "o/r", token: "tok" };
+    const ghCommit = (sha: string) => ({
+      sha,
+      html_url: `https://github.com/o/r/commit/${sha}`,
+      commit: {
+        message: `fix ${sha}`,
+        author: { name: "Ada", email: "ada@x", date: "2026-11-01T00:00:00Z" },
+      },
+      author: { login: "ada" },
+    });
+
+    it("lists the GitHub compare range newest first, with each commit's files", async () => {
+      fetchMock.mockImplementation(async (url: string) => {
+        if (url.includes("/compare/")) {
+          return jsonResponse({ commits: [ghCommit("c1"), ghCommit("c2")], total_commits: 2 });
+        }
+        const sha = url.split("/commits/")[1];
+        return jsonResponse({
+          ...ghCommit(sha),
+          files: [
+            { filename: `src/${sha}.ts`, status: "modified" },
+            { filename: "src/new.ts", status: "renamed", previous_filename: "src/old.ts" },
+          ],
+        });
+      });
+
+      const result = await new GithubProvider().listCommits(connection, { head, base, limit: 50 });
+
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        `https://api.github.com/repos/o/r/compare/${base}...${head}`,
+      );
+      expect(result.base).toBe(base);
+      expect(result.truncated).toBe(false);
+      expect(result.commits.map((commit) => commit.sha)).toEqual(["c2", "c1"]);
+      expect(result.commits[0]).toMatchObject({
+        authorLogin: "ada",
+        committedAt: "2026-11-01T00:00:00Z",
+        files: [
+          { path: "src/c2.ts", status: "modified" },
+          { path: "src/new.ts", status: "renamed", previousPath: "src/old.ts" },
+        ],
+      });
+    });
+
+    it("falls back to the ancestors of head when GitHub cannot compare", async () => {
+      fetchMock.mockImplementation(async (url: string) => {
+        if (url.includes("/compare/")) return jsonResponse({ message: "Not Found" }, 404);
+        if (url.includes("/commits?sha="))
+          return jsonResponse([ghCommit("c1"), ghCommit("c2"), ghCommit("c3")]);
+        return jsonResponse({ ...ghCommit("x"), files: [] });
+      });
+
+      const result = await new GithubProvider().listCommits(connection, { head, base, limit: 2 });
+
+      expect(fetchMock.mock.calls[1][0]).toBe(
+        `https://api.github.com/repos/o/r/commits?sha=${head}&per_page=3`,
+      );
+      expect(result.base).toBeNull();
+      expect(result.truncated).toBe(true);
+      expect(result.commits).toHaveLength(2);
+    });
+
+    it("rejects an invalid SHA before any request", async () => {
+      await expect(
+        new GithubProvider().listCommits(connection, { head: "main; rm", base: null, limit: 5 }),
+      ).rejects.toThrow("Commit SHA is invalid");
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("maps GitLab compare commits and diffs", async () => {
+      fetchMock.mockImplementation(async (url: string) => {
+        if (url.includes("/repository/compare?")) {
+          return jsonResponse({
+            commits: [
+              {
+                id: "g1",
+                message: "one",
+                author_name: "Bob",
+                committed_date: "2026-11-01T00:00:00Z",
+              },
+              {
+                id: "g2",
+                message: "two",
+                author_name: "Bob",
+                web_url: "https://gitlab.example.com/c/g2",
+              },
+            ],
+          });
+        }
+        return jsonResponse([
+          {
+            old_path: "a.ts",
+            new_path: "a.ts",
+            new_file: true,
+            renamed_file: false,
+            deleted_file: false,
+          },
+          {
+            old_path: "b.ts",
+            new_path: "c.ts",
+            new_file: false,
+            renamed_file: true,
+            deleted_file: false,
+          },
+          {
+            old_path: "d.ts",
+            new_path: "d.ts",
+            new_file: false,
+            renamed_file: false,
+            deleted_file: true,
+          },
+        ]);
+      });
+
+      const result = await new GitlabProvider().listCommits(
+        { baseUrl: "https://gitlab.example.com", repoIdentifier: "grp/app", token: "tok" },
+        { head, base, limit: 50 },
+      );
+
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        `https://gitlab.example.com/api/v4/projects/grp%2Fapp/repository/compare?from=${base}&to=${head}`,
+      );
+      expect(result.commits.map((commit) => commit.sha)).toEqual(["g2", "g1"]);
+      expect(result.commits[0].files).toEqual([
+        { path: "a.ts", status: "added" },
+        { path: "c.ts", status: "renamed", previousPath: "b.ts" },
+        { path: "d.ts", status: "removed" },
+      ]);
+      expect(result.commits[0].authorLogin).toBeNull();
+    });
+  });
 });

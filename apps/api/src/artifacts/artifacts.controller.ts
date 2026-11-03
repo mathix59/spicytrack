@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
@@ -25,7 +26,12 @@ import { AuthGuard } from "../auth/auth.guard";
 import { CurrentOrganization } from "../common/current-organization.decorator";
 import { CurrentProject } from "../common/current-project.decorator";
 import type { OrganizationRecord, ProjectRecord } from "../common/request-context";
-import { ProjectReleaseDto, ReleaseArtifactDto, SuccessDto } from "../openapi/contracts";
+import {
+  ProjectReleaseDto,
+  ReleaseArtifactDto,
+  SuccessDto,
+  UpsertReleaseBodyDto,
+} from "../openapi/contracts";
 import { OrganizationContextGuard } from "../rbac/organization-context.guard";
 import { PermissionGuard } from "../rbac/permission.guard";
 import { ProjectContextGuard } from "../rbac/project-context.guard";
@@ -60,6 +66,7 @@ export class ArtifactsController {
   @Put(":releaseVersion")
   @ApiOperation({ operationId: "upsertProjectRelease" })
   @ApiParam({ name: "releaseVersion", type: String })
+  @ApiBody({ type: UpsertReleaseBodyDto, required: false })
   @ApiOkResponse({ type: ProjectReleaseDto })
   @RequirePermissions("project.releases.manage")
   @UseGuards(PermissionGuard)
@@ -67,11 +74,21 @@ export class ArtifactsController {
     @CurrentOrganization() organization: OrganizationRecord,
     @CurrentProject() project: ProjectRecord,
     @Param("releaseVersion") releaseVersion: string,
+    @Body() body: Record<string, unknown> | undefined,
   ) {
+    const commitSha = body?.commitSha;
+    if (
+      commitSha !== undefined &&
+      commitSha !== null &&
+      (typeof commitSha !== "string" || !/^[0-9a-f]{7,64}$/i.test(commitSha))
+    ) {
+      throw new BadRequestException("commitSha must be 7 to 64 hexadecimal characters");
+    }
     return this.artifactsService.upsertRelease({
       organizationId: organization.id,
       projectId: project.id,
       releaseVersion,
+      commitSha: typeof commitSha === "string" ? commitSha : undefined,
     });
   }
 

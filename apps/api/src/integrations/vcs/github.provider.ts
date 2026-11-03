@@ -1,7 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import {
+  COMMIT_FETCH_CONCURRENCY,
   type CommitCheck,
   type CommitChecks,
+  type ListCommitsOptions,
+  type ListCommitsResult,
+  MAX_COMMIT_FILES,
+  type VcsCommit,
+  type VcsCommitFile,
+  assertCommitSha,
+  mapLimit,
   CreatePullRequestOptions,
   PullRequestResult,
   RepoConnectionInput,
@@ -14,9 +22,24 @@ import { assertAllowedVcsEndpoints } from "./vcs-url-policy";
 
 const PASSING_CONCLUSIONS = new Set(["success", "neutral", "skipped"]);
 
-function assertSha(sha: string) {
-  if (!/^[0-9a-f]{7,64}$/i.test(sha)) throw new VcsRequestError(400, "Commit SHA is invalid");
-}
+const assertSha = assertCommitSha;
+
+type GithubCommit = {
+  sha: string;
+  html_url?: string;
+  commit: { message: string; author?: { name?: string; email?: string; date?: string } | null };
+  author?: { login?: string } | null;
+};
+
+type GithubCommitDetail = GithubCommit & {
+  files?: Array<{ filename: string; status: string; previous_filename?: string }>;
+};
+
+const GITHUB_FILE_STATUS: Record<string, VcsCommitFile["status"]> = {
+  added: "added",
+  removed: "removed",
+  renamed: "renamed",
+};
 
 @Injectable()
 export class GithubProvider implements VcsProvider {
@@ -156,5 +179,74 @@ export class GithubProvider implements VcsProvider {
       })),
     ];
     return summarizeChecks(checks);
+  }
+
+  /**
+   * Commits in base...head (GitHub returns up to 250, oldest first), or the latest ancestors of
+   * head without a base. Files come from one request per commit.
+   */
+  async listCommits(
+    connection: RepoConnectionInput,
+    options: ListCommitsOptions,
+  ): Promise<ListCommitsResult> {
+    assertSha(options.head);
+    const repo = `/repos/${connection.repoIdentifier}`;
+    let listed: GithubCommit[] | null = null;
+    let truncated = false;
+    let base = options.base;
+
+    if (base) {
+      assertSha(base);
+      try {
+        const compare = await this.request<{ commits: GithubCommit[]; total_commits: number }>(
+          connection,
+          "GET",
+          `${repo}/compare/${base}...${options.head}`,
+        );
+        listed = compare.commits.reverse();
+        truncated = compare.total_commits > listed.length || listed.length > options.limit;
+      } catch (error) {
+        // The previous commit can be gone (force push) or unrelated: fall back to ancestors.
+        if (!(error instanceof VcsRequestError) || error.status !== 404) throw error;
+        base = null;
+      }
+    }
+    if (!listed) {
+      listed = await this.request<GithubCommit[]>(
+        connection,
+        "GET",
+        `${repo}/commits?sha=${options.head}&per_page=${options.limit + 1}`,
+      );
+      truncated = listed.length > options.limit;
+    }
+
+    const commits = await mapLimit(
+      listed.slice(0, options.limit),
+      COMMIT_FETCH_CONCURRENCY,
+      async (commit): Promise<VcsCommit> => {
+        const detail = await this.request<GithubCommitDetail>(
+          connection,
+          "GET",
+          `${repo}/commits/${commit.sha}`,
+        );
+        const files = detail.files ?? [];
+        return {
+          sha: commit.sha,
+          message: commit.commit.message,
+          authorName: commit.commit.author?.name ?? null,
+          authorEmail: commit.commit.author?.email ?? null,
+          authorLogin: commit.author?.login ?? null,
+          committedAt: commit.commit.author?.date ?? null,
+          url: commit.html_url ?? null,
+          files: files.slice(0, MAX_COMMIT_FILES).map((file) => ({
+            path: file.filename,
+            status: GITHUB_FILE_STATUS[file.status] ?? "modified",
+            ...(file.previous_filename ? { previousPath: file.previous_filename } : {}),
+          })),
+          filesTruncated: files.length > MAX_COMMIT_FILES,
+        };
+      },
+    );
+    return { commits, truncated, base };
   }
 }
