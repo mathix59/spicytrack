@@ -64,7 +64,7 @@ Typical commands:
   - `pnpm --filter web format:check`
   - `pnpm --filter web exec tsc -b`
   - `pnpm --filter web build`
-  - `pnpm --filter web test` (Vitest, `*.spec.ts` next to the code)
+  - `pnpm --filter web test` (Vitest, `*.spec.ts` next to the code; hooks and components in `*.spec.tsx` with `// @vitest-environment jsdom` and Testing Library)
 
 ## Tooling Constraints
 
