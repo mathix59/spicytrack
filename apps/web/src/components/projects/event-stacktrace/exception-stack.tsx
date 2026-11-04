@@ -2,6 +2,7 @@ import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 
 import { StackFrameList } from "./stack-frame-list";
@@ -22,16 +23,19 @@ function ExceptionTitle({
           Caused by
         </p>
       ) : null}
-      <p className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-sm font-semibold text-foreground [overflow-wrap:anywhere]">
-          {exception.type ?? "Error"}
-        </span>
-        {exception.handled === false ? <Badge variant="danger">unhandled</Badge> : null}
-        {exception.mechanism ? <Badge variant="muted">{exception.mechanism}</Badge> : null}
+      <p className="whitespace-pre-wrap text-sm text-foreground [overflow-wrap:anywhere]">
+        <span className="font-mono font-semibold">{exception.type ?? "Error"}</span>
+        {exception.value ? (
+          <>
+            <span className="font-mono font-semibold">: </span>
+            {exception.value}
+          </>
+        ) : null}
       </p>
-      {exception.value ? (
-        <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground [overflow-wrap:anywhere]">
-          {exception.value}
+      {exception.handled === false || exception.mechanism ? (
+        <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          {exception.handled === false ? <Badge variant="danger">unhandled</Badge> : null}
+          {exception.mechanism ? <Badge variant="muted">{exception.mechanism}</Badge> : null}
         </p>
       ) : null}
     </div>
@@ -41,9 +45,12 @@ function ExceptionTitle({
 function ExceptionStack({
   exception,
   causedBy = false,
+  copyText,
 }: {
   exception: EventException;
   causedBy?: boolean;
+  /** Whole-event stack trace offered by the copy action, when this card hosts it. */
+  copyText?: string;
 }) {
   const stack = useExceptionStack(exception);
   const hasFrames = exception.frames.length > 0;
@@ -58,6 +65,13 @@ function ExceptionStack({
               {exception.frames.length} frames · most recent call first
             </p>
             <div className="flex items-center gap-1">
+              {copyText ? (
+                <CopyButton
+                  label="Copy stack trace"
+                  successMessage="Stack trace copied"
+                  value={copyText}
+                />
+              ) : null}
               {stack.hasLibraryFrames && stack.appFrameCount > 0 ? (
                 <SegmentedControl<StackView>
                   label="Stack frames to show"
@@ -83,6 +97,12 @@ function ExceptionStack({
           </div>
         ) : null}
       </header>
+      {exception.resolutionSkipped ? (
+        <p className="border-b border-border bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
+          Source map resolution was skipped: resolved frames did not line up with the raw stack
+          trace.
+        </p>
+      ) : null}
       {hasFrames && !stack.hasResolvableAppSource ? (
         <p className="border-b border-border bg-warning/5 px-4 py-2.5 text-xs text-warning">
           No application source could be resolved in this stack. Check the release artifacts and

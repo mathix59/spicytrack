@@ -1,4 +1,4 @@
-import type { PackageEntry, PayloadRecord } from "./types";
+import type { ContextSummaryItem, PackageEntry, PayloadRecord } from "./types";
 
 function asRecord(value: unknown): PayloadRecord | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -62,6 +62,44 @@ function toPackages(...sources: unknown[]): PackageEntry[] {
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
+function text(value: unknown) {
+  if (typeof value === "number") return String(value);
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function joinText(...values: unknown[]) {
+  const parts = values.map(text).filter((part) => part !== null);
+  return parts.length > 0 ? parts.join(" ") : null;
+}
+
+/** "Chrome 120" from a context with a name; a bare version says nothing on its own. */
+function nameAndVersion(context: PayloadRecord | null) {
+  return text(context?.name) ? joinText(context?.name, context?.version) : text(context?.raw);
+}
+
+/**
+ * The few context values that identify where an event happened (browser, OS, runtime, device,
+ * user), for a one-line summary above the stack trace. Absent values are left out.
+ */
+function toContextSummary(rawPayload: PayloadRecord): ContextSummaryItem[] {
+  const contexts = asRecord(rawPayload.contexts);
+  const context = (name: string) => asRecord(contexts?.[name]);
+  const browser = context("browser");
+  const os = context("os") ?? context("client_os");
+  const runtime = context("runtime");
+  const device = context("device");
+  const user = asRecord(rawPayload.user);
+
+  const items: [string, string | null][] = [
+    ["Browser", nameAndVersion(browser)],
+    ["OS", nameAndVersion(os)],
+    ["Runtime", nameAndVersion(runtime)],
+    ["Device", joinText(device?.brand, device?.model ?? device?.name ?? device?.family)],
+    ["User", text(user?.email) ?? text(user?.username) ?? text(user?.id) ?? text(user?.ip_address)],
+  ];
+  return items.flatMap(([label, value]) => (value ? [{ label, value }] : []));
+}
+
 function omit(value: PayloadRecord, ...keys: string[]) {
   return Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key)));
 }
@@ -86,6 +124,7 @@ export {
   omit,
   toBreadcrumbs,
   toContextEntries,
+  toContextSummary,
   toEntries,
   toPackages,
 };

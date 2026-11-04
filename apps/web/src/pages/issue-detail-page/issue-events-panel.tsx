@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 import { QueryError } from "@/components/common/query-error";
 import { EventStacktrace } from "@/components/projects/event-stacktrace";
@@ -40,6 +40,18 @@ function IssueEventsPanel({ events }: { events: EventPagerState }) {
           </p>
           <div className="flex items-center gap-1">
             <Button
+              aria-label="Newest event"
+              disabled={!events.canGoNewer}
+              onClick={events.goNewest}
+              size="sm"
+              title="Newest event"
+              type="button"
+              variant="ghost"
+            >
+              <ChevronsLeft />
+              <span className="hidden sm:inline">Newest</span>
+            </Button>
+            <Button
               aria-keyshortcuts="["
               disabled={!events.canGoNewer}
               onClick={events.goNewer}
@@ -64,6 +76,18 @@ function IssueEventsPanel({ events }: { events: EventPagerState }) {
               <Kbd className="hidden md:inline-flex">]</Kbd>
               Older
               <ChevronRight />
+            </Button>
+            <Button
+              aria-label="Oldest event"
+              disabled={!events.canGoOlder}
+              onClick={events.goOldest}
+              size="sm"
+              title="Oldest event"
+              type="button"
+              variant="ghost"
+            >
+              <span className="hidden sm:inline">Oldest</span>
+              <ChevronsRight />
             </Button>
           </div>
         </div>

@@ -36,6 +36,8 @@ type EventPagerState = {
   canGoOlder: boolean;
   goNewer: () => void;
   goOlder: () => void;
+  goNewest: () => void;
+  goOldest: () => void;
 };
 
 type IssueCommentsState = {

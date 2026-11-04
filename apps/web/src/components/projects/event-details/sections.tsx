@@ -3,9 +3,10 @@ import { useState } from "react";
 import { CollapsibleSection } from "@/components/common/collapsible-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-import type { PackageEntry, PayloadRecord } from "./types";
+import type { ContextSummaryItem, PackageEntry, PayloadRecord } from "./types";
 import { asRecord, displayValue, formatLabel } from "./utils";
 
 const PREVIEW_LIMIT = 12;
@@ -103,6 +104,7 @@ function breadcrumbTime(value: unknown) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    hourCycle: "h23",
   });
 }
 
@@ -143,12 +145,16 @@ function BreadcrumbSummary({ breadcrumb }: { breadcrumb: PayloadRecord }) {
   return <span className="truncate">{data ? JSON.stringify(data) : ""}</span>;
 }
 
+function breadcrumbCategory(breadcrumb: PayloadRecord) {
+  return displayValue(breadcrumb.category ?? breadcrumb.type ?? "event");
+}
+
 function BreadcrumbRow({ breadcrumb }: { breadcrumb: PayloadRecord }) {
   const [open, setOpen] = useState(false);
   const data = asRecord(breadcrumb.data);
   const status = Number(data?.status_code);
   const failed = status >= 400 || status === 0 || breadcrumb.level === "error";
-  const category = displayValue(breadcrumb.category ?? breadcrumb.type ?? "event");
+  const category = breadcrumbCategory(breadcrumb);
   const time = breadcrumbTime(breadcrumb.timestamp);
   const details = data && Object.keys(data).length > 0;
 
@@ -165,7 +171,9 @@ function BreadcrumbRow({ breadcrumb }: { breadcrumb: PayloadRecord }) {
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
-        <span className="font-mono tabular-nums text-muted-foreground">{time ?? "—"}</span>
+        <span className="whitespace-nowrap font-mono tabular-nums text-muted-foreground">
+          {time ?? "—"}
+        </span>
         <span
           className={cn(
             "truncate font-medium",
@@ -187,19 +195,52 @@ function BreadcrumbRow({ breadcrumb }: { breadcrumb: PayloadRecord }) {
   );
 }
 
+const ALL_CATEGORIES = "";
+
 function BreadcrumbsSection({ breadcrumbs }: { breadcrumbs: PayloadRecord[] }) {
   const [showAll, setShowAll] = useState(false);
+  const [selectedCategory, setCategory] = useState(ALL_CATEGORIES);
   if (breadcrumbs.length === 0) return null;
 
-  // Most recent activity first: the crumbs closest to the error matter most.
-  const ordered = [...breadcrumbs].reverse();
+  const categories = [...new Set(breadcrumbs.map(breadcrumbCategory))].sort();
+  // The section outlives event changes; a category the new event lacks falls back to all.
+  const category = categories.includes(selectedCategory) ? selectedCategory : ALL_CATEGORIES;
+  // Most recent activity first: the crumbs closest to the error matter most. The category filter
+  // applies before the preview limit so a rare category is not hidden behind "show more".
+  const ordered = [...breadcrumbs]
+    .reverse()
+    .filter((breadcrumb) => !category || breadcrumbCategory(breadcrumb) === category);
   const visible = showAll ? ordered : ordered.slice(0, PREVIEW_LIMIT);
 
   return (
-    <CollapsibleSection summary={`${breadcrumbs.length} · most recent first`} title="Breadcrumbs">
+    <CollapsibleSection
+      actions={
+        categories.length > 1 ? (
+          <Select
+            aria-label="Filter breadcrumbs by category"
+            className="h-7 max-w-40 py-0 pl-2 text-xs"
+            onChange={(event) => setCategory(event.target.value)}
+            value={category}
+          >
+            <option value={ALL_CATEGORIES}>All categories</option>
+            {categories.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </Select>
+        ) : null
+      }
+      summary={
+        category
+          ? `${ordered.length} of ${breadcrumbs.length} · most recent first`
+          : `${breadcrumbs.length} · most recent first`
+      }
+      title="Breadcrumbs"
+    >
       <ol className="min-w-0">
         {visible.map((breadcrumb, index) => (
-          <BreadcrumbRow breadcrumb={breadcrumb} key={index} />
+          <BreadcrumbRow breadcrumb={breadcrumb} key={`${category}:${index}`} />
         ))}
       </ol>
       {ordered.length > PREVIEW_LIMIT ? (
@@ -210,6 +251,26 @@ function BreadcrumbsSection({ breadcrumbs }: { breadcrumbs: PayloadRecord[] }) {
         />
       ) : null}
     </CollapsibleSection>
+  );
+}
+
+function ContextSummary({ items }: { items: ContextSummaryItem[] }) {
+  if (items.length === 0) return null;
+
+  return (
+    <ul aria-label="Event context" className="flex min-w-0 flex-wrap gap-1.5">
+      {items.map((item) => (
+        <li
+          className="inline-flex min-w-0 max-w-full items-baseline gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs"
+          key={item.label}
+        >
+          <span className="shrink-0 text-muted-foreground">{item.label}</span>
+          <span className="min-w-0 truncate font-medium text-foreground" title={item.value}>
+            {item.value}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -311,6 +372,7 @@ function ContextsSection({ contextEntries }: { contextEntries: [string, PayloadR
 
 export {
   BreadcrumbsSection,
+  ContextSummary,
   ContextsSection,
   HttpRequestSection,
   KeyValueList,

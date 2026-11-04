@@ -1,10 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
-test("stepping to older events crosses into the next event page and stays there", async ({
-  page,
-}) => {
-  const total = 45;
-  const pageSize = 20;
+const total = 45;
+const pageSize = 20;
+
+/** Mocks an issue with `total` events served in pages of `pageSize`; returns requested pages. */
+async function mockPagedIssue(page: Page) {
   const issue = {
     id: "issue",
     title: "TypeError: x is undefined",
@@ -56,6 +56,13 @@ test("stepping to older events crosses into the next event page and stays there"
       };
     await route.fulfill({ json });
   });
+  return eventPages;
+}
+
+test("stepping to older events crosses into the next event page and stays there", async ({
+  page,
+}) => {
+  const eventPages = await mockPagedIssue(page);
 
   await page.goto("/orgs/acme/projects/front/issues/issue");
   await expect(page.getByText(`Event 1 of ${total}`, { exact: true })).toBeVisible();
@@ -70,4 +77,43 @@ test("stepping to older events crosses into the next event page and stays there"
   await expect(page.getByText(`Event ${pageSize + 1} of ${total}`, { exact: true })).toBeVisible();
   expect(eventPages).toContain(2);
   expect(eventPages.at(-1)).toBe(2);
+});
+
+test("jumping to the oldest and newest events loads their pages and keeps the selection", async ({
+  page,
+}) => {
+  const eventPages = await mockPagedIssue(page);
+  const lastPage = Math.ceil(total / pageSize);
+  const eventLabel = (number: number) => page.getByText(`Event ${number} of ${total}`, { exact: true });
+  const newest = page.getByRole("button", { name: "Newest event" });
+  const oldest = page.getByRole("button", { name: "Oldest event" });
+
+  await page.goto("/orgs/acme/projects/front/issues/issue");
+  await expect(eventLabel(1)).toBeVisible();
+  await expect(newest).toBeDisabled();
+
+  await oldest.click();
+  await expect(eventLabel(total)).toBeVisible();
+  await page.waitForTimeout(1_000);
+  await expect(eventLabel(total)).toBeVisible();
+  await expect(oldest).toBeDisabled();
+  await expect(page.getByRole("button", { name: /Older/ })).toBeDisabled();
+  expect(eventPages.at(-1)).toBe(lastPage);
+
+  // Stepping newer from the first event of a page lands on the last event of the page before.
+  const newer = page.getByRole("button", { name: /Newer/ });
+  const firstOfLastPage = (lastPage - 1) * pageSize + 1;
+  for (let number = total - 1; number >= firstOfLastPage - 1; number -= 1) {
+    await newer.click();
+    await expect(eventLabel(number)).toBeVisible();
+  }
+  await page.waitForTimeout(1_000);
+  await expect(eventLabel(firstOfLastPage - 1)).toBeVisible();
+
+  await newest.click();
+  await expect(eventLabel(1)).toBeVisible();
+  await page.waitForTimeout(1_000);
+  await expect(eventLabel(1)).toBeVisible();
+  await expect(newest).toBeDisabled();
+  expect(eventPages.at(-1)).toBe(1);
 });

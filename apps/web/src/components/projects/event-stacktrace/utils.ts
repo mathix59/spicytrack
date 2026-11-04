@@ -33,6 +33,37 @@ function framesOf(value: unknown): PayloadRecord[] {
     : [];
 }
 
+/**
+ * Paths of third-party and standard-library code across platforms, used when a frame does not
+ * say whether it is application code: package caches (npm, pip, Go modules, Cargo, gems),
+ * vendored dependencies, the Rust standard library and browser-injected scripts.
+ */
+const LIBRARY_PATH_PATTERNS: readonly RegExp[] = [
+  /(?:^|[\\/])node_modules[\\/]/,
+  /(?:^|[\\/])(?:site|dist)-packages[\\/]/,
+  /(?:^|\/)usr\/(?:local\/)?lib\/python[\d.]*\//,
+  /(?:^|[\\/])vendor[\\/]/,
+  /(?:^|[\\/])go[\\/]pkg[\\/]mod[\\/]/,
+  /(?:^|[\\/])\.cargo[\\/]registry[\\/]/,
+  /^\/rustc\//,
+  /(?:^|[\\/])gems[\\/]/,
+  /^webpack-internal:\/\/\/\(webpack\)/,
+  /^(?:chrome|moz)-extension:\/\//,
+];
+
+/** JVM standard-library packages, matched on a frame's module. */
+const LIBRARY_MODULE_PATTERN = /^(?:java|javax|jdk|sun|kotlin|kotlinx)\./;
+
+/** Whether a frame without an explicit `in_app` looks like library code. */
+function isLibraryFrame(paths: (string | null)[], module: string | null) {
+  return (
+    paths.some(
+      (path) => path !== null && LIBRARY_PATH_PATTERNS.some((pattern) => pattern.test(path)),
+    ) ||
+    (module !== null && LIBRARY_MODULE_PATTERN.test(module))
+  );
+}
+
 function toStackFrame(frame: PayloadRecord, resolvedFrame: ResolvedFrameDto | undefined) {
   const resolved = resolvedFrame?.resolved ? resolvedFrame : undefined;
   const filename =
@@ -52,7 +83,10 @@ function toStackFrame(frame: PayloadRecord, resolvedFrame: ResolvedFrameDto | un
       : typeof frame.colno === "number"
         ? frame.colno
         : null,
-    inApp: frame.in_app !== false && !/(?:^|[\\/])node_modules[\\/]/.test(filename),
+    inApp:
+      typeof frame.in_app === "boolean"
+        ? frame.in_app
+        : !isLibraryFrame([filename, asString(frame.abs_path)], asString(frame.module)),
     preContext: mapped ? (resolved.preContext ?? []) : asStringArray(frame.pre_context),
     contextLine: mapped
       ? (resolved.contextLine ?? null)
@@ -93,6 +127,9 @@ function extractExceptions(
 
   const totalFrames = sources.reduce((sum, source) => sum + source.frames.length, 0);
   const canMatchResolved = !!resolvedFrames && resolvedFrames.length === totalFrames;
+  // Misaligned frames are never matched (they would point at the wrong code), but the user is
+  // told why the stack shows minified locations.
+  const resolutionSkipped = !!resolvedFrames?.length && !canMatchResolved;
 
   let offset = 0;
   const exceptions = sources.map(({ value, frames }) => {
@@ -108,6 +145,7 @@ function extractExceptions(
       handled: typeof mechanism?.handled === "boolean" ? mechanism.handled : null,
       mechanism: asString(mechanism?.type),
       frames: stackFrames.reverse(),
+      resolutionSkipped: resolutionSkipped && frames.length > 0,
     } satisfies EventException;
   });
 
@@ -155,4 +193,33 @@ function splitPath(filename: string) {
     : { directory: "", basename: filename };
 }
 
-export { extractExceptions, languageForFilename, splitPath };
+function formatFrameLocation(frame: StackFrame) {
+  return `${frame.filename}:${frame.lineno}${frame.colno != null ? `:${frame.colno}` : ""}`;
+}
+
+/**
+ * Plain-text stack trace for pasting into tickets and chats: the thrown exception first, then
+ * its causes, each with frames most recent call first in the conventional `at` notation.
+ */
+function formatStackTrace(exceptions: EventException[]) {
+  return exceptions
+    .flatMap((exception, index) => {
+      const title = `${exception.type ?? "Error"}${exception.value ? `: ${exception.value}` : ""}`;
+      return [
+        index > 0 ? `Caused by: ${title}` : title,
+        ...exception.frames.map(
+          (frame) => `  at ${frame.function ?? "<anonymous>"} (${formatFrameLocation(frame)})`,
+        ),
+      ];
+    })
+    .join("\n");
+}
+
+export {
+  extractExceptions,
+  formatFrameLocation,
+  formatStackTrace,
+  isLibraryFrame,
+  languageForFilename,
+  splitPath,
+};

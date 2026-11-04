@@ -58,6 +58,9 @@ function useIssueDetailPage(): IssuePageData {
   const listContext = useMemo(() => new URLSearchParams(listContextKey), [listContextKey]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [eventPage, setEventPage] = useState(1);
+  // Which end of a newly loaded event page to select when no event is selected yet: the last
+  // one when stepping or jumping towards older events across a page, the first otherwise.
+  const [pageEntryEdge, setPageEntryEdge] = useState<"first" | "last">("first");
   const [commentError, setCommentError] = useState<string | null>(null);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
 
@@ -171,7 +174,7 @@ function useIssueDetailPage(): IssuePageData {
   const eventsSettled = Boolean(issueDetail) && !issueQuery.isPlaceholderData;
   const safeEventPage = eventsSettled ? Math.min(eventPage, totalEventPages) : eventPage;
   const selectedEvent = eventQuery.data?.data;
-  const firstEventId = events[0]?.id;
+  const entryEventId = (pageEntryEdge === "last" ? events.at(-1) : events[0])?.id;
   const projectPath = `/orgs/${orgSlug}/projects/${projectSlug}`;
   const issuePath = (id: string) =>
     withIssueListContext(`${projectPath}/issues/${id}`, listContext);
@@ -199,8 +202,8 @@ function useIssueDetailPage(): IssuePageData {
 
   // Keep the selection and page consistent with the loaded events. These adjust state during
   // render (each is guarded, so it settles after at most one extra render) instead of in effects.
-  if (eventsSettled && !selectedEventId && firstEventId) {
-    setSelectedEventId(firstEventId);
+  if (eventsSettled && !selectedEventId && entryEventId) {
+    setSelectedEventId(entryEventId);
   } else if (eventsSettled && selectedEventId && !hasSelectedEvent) {
     setSelectedEventId(null);
   }
@@ -209,6 +212,14 @@ function useIssueDetailPage(): IssuePageData {
     setEventPage(safeEventPage);
   }
 
+  // The selection clears until the page's events arrive, then the render-time sync above picks
+  // the requested end of that page.
+  const enterEventPage = (page: number, edge: "first" | "last") => {
+    setEventPage(page);
+    setPageEntryEdge(edge);
+    setSelectedEventId(null);
+  };
+
   const goNewer = () => {
     if (selectedEventIndex > 0) {
       setSelectedEventId(events[selectedEventIndex - 1].id);
@@ -216,8 +227,7 @@ function useIssueDetailPage(): IssuePageData {
     }
 
     if (safeEventPage > 1) {
-      setEventPage(safeEventPage - 1);
-      setSelectedEventId(null);
+      enterEventPage(safeEventPage - 1, "last");
     }
   };
 
@@ -228,9 +238,18 @@ function useIssueDetailPage(): IssuePageData {
     }
 
     if (safeEventPage < totalEventPages) {
-      setEventPage(safeEventPage + 1);
-      setSelectedEventId(null);
+      enterEventPage(safeEventPage + 1, "first");
     }
+  };
+
+  const goNewest = () => {
+    if (safeEventPage > 1) enterEventPage(1, "first");
+    else if (events.length > 0) setSelectedEventId(events[0].id);
+  };
+
+  const goOldest = () => {
+    if (safeEventPage < totalEventPages) enterEventPage(totalEventPages, "last");
+    else if (events.length > 0) setSelectedEventId(events[events.length - 1].id);
   };
 
   const triggerAutofix = async () => {
@@ -417,6 +436,8 @@ function useIssueDetailPage(): IssuePageData {
       canGoOlder,
       goNewer,
       goOlder,
+      goNewest,
+      goOldest,
     },
     comments: {
       comments,

@@ -1,5 +1,6 @@
 import {
   BreadcrumbsSection,
+  ContextSummary,
   ContextsSection,
   HttpRequestSection,
   PackagesSection,
@@ -12,6 +13,7 @@ import {
   omit,
   toBreadcrumbs,
   toContextEntries,
+  toContextSummary,
   toEntries,
   toPackages,
 } from "./event-details/utils";
@@ -45,4 +47,9 @@ function EventTags({ rawPayload }: { rawPayload: PayloadRecord }) {
   return <TagsSection tags={toEntries(rawPayload.tags)} />;
 }
 
-export { EventDetails, EventTags };
+/** Browser, OS, runtime, device and user at a glance; the full contexts stay below. */
+function EventContextSummary({ rawPayload }: { rawPayload: PayloadRecord }) {
+  return <ContextSummary items={toContextSummary(rawPayload)} />;
+}
+
+export { EventContextSummary, EventDetails, EventTags };

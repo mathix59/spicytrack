@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { FrameSource } from "./frame-source";
 import type { StackFrame } from "./types";
 import type { FrameRow } from "./use-event-stacktrace";
-import { splitPath } from "./utils";
+import { formatFrameLocation, splitPath } from "./utils";
 
 function resolutionLabel(resolution: StackFrame["resolution"]) {
   if (resolution === "sourcemap") return "source map";
@@ -44,7 +44,7 @@ const FrameItem = memo(function FrameItem({
 }) {
   const { directory, basename } = splitPath(frame.filename);
   const badgeLabel = frame.resolved ? resolutionLabel(frame.resolution) : null;
-  const location = `${frame.filename}:${frame.lineno}${frame.colno != null ? `:${frame.colno}` : ""}`;
+  const location = formatFrameLocation(frame);
 
   return (
     <li className="border-b border-border last:border-b-0">
@@ -73,12 +73,18 @@ const FrameItem = memo(function FrameItem({
           >
             {frame.function ?? "<anonymous>"}
           </span>
-          <span className="min-w-0 truncate text-muted-foreground">
-            <span className="text-muted-foreground">{directory}</span>
-            <span className={frame.inApp ? "text-foreground" : undefined}>{basename}</span>
-            <span className="text-muted-foreground">
-              :{frame.lineno}
-              {frame.colno != null ? `:${frame.colno}` : ""}
+          {/* Only the directory shrinks, so the file name and line stay readable; the file name
+              truncates only when it alone is wider than the row. */}
+          <span className="flex min-w-0 text-muted-foreground">
+            <span className="min-w-0 truncate">{directory}</span>
+            <span className="flex max-w-full shrink-0">
+              <span className={cn("min-w-0 truncate", frame.inApp && "text-foreground")}>
+                {basename}
+              </span>
+              <span className="shrink-0">
+                :{frame.lineno}
+                {frame.colno != null ? `:${frame.colno}` : ""}
+              </span>
             </span>
           </span>
         </span>

@@ -22,6 +22,8 @@ type EventException = {
   mechanism: string | null;
   /** Most recent call first. */
   frames: StackFrame[];
+  /** Resolved frames were available but did not line up with the raw frames, so none applied. */
+  resolutionSkipped: boolean;
 };
 
 type EventStacktraceProps = {
