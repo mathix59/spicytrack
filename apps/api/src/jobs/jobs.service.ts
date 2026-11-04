@@ -179,6 +179,17 @@ export class JobsService {
     };
   }
 
+  /** How long the oldest due job has waited past its run time: the queue's lag. */
+  async getOldestDueAgeSeconds(): Promise<number> {
+    const [row] = await this.db
+      .select({
+        age: sql<number>`coalesce(extract(epoch from now() - min(${jobs.runAt})), 0)::float8`,
+      })
+      .from(jobs)
+      .where(and(eq(jobs.status, "pending"), lte(jobs.runAt, sql`now()`)));
+    return Math.max(0, row?.age ?? 0);
+  }
+
   async getOrganizationQueueSummary(organizationId: string): Promise<JobQueueSummary> {
     const [row] = await this.db
       .select({

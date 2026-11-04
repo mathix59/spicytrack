@@ -11,6 +11,7 @@ const DEVELOPMENT_AUTH_SECRET = "development-only-better-auth-secret-change-me";
 /** Integer settings: `min` is inclusive. */
 const INTEGER_SETTINGS: Record<string, number> = {
   PORT: 1,
+  WORKER_HEALTH_PORT: 0,
   JOBS_CONCURRENCY: 1,
   JOBS_POLL_INTERVAL_MS: 1,
   JOBS_TIMEOUT_MS: 1,

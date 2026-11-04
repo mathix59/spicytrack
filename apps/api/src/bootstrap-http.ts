@@ -13,6 +13,7 @@ import { BrowserIngestCorsService } from "./ingest/browser-ingest-cors.service";
 import { setupSwagger } from "./openapi/swagger";
 import { artifactMaxUploadBytes } from "./artifacts/artifact-upload-limits";
 import { createServiceLogging } from "./common/logger";
+import { httpRequestDuration } from "./common/metrics";
 import { auditRequestFrom, runWithAuditRequest, trustProxySetting } from "./common/audit-request";
 
 type HttpBootstrapOptions = {
@@ -67,6 +68,18 @@ async function createHttpApplication(
   // caller's IP and user agent, so audit entries need no plumbing.
   fastify.addHook("onRequest", (request, _reply, done) => {
     runWithAuditRequest(auditRequestFrom(request), done);
+  });
+  fastify.addHook("onResponse", (request, reply, done) => {
+    httpRequestDuration.observe(
+      {
+        method: request.method,
+        // The route template, never the raw URL: ids and keys would explode the series.
+        route: request.routeOptions.url ?? "unmatched",
+        status: `${Math.floor(reply.statusCode / 100)}xx`,
+      },
+      reply.elapsedTime / 1000,
+    );
+    done();
   });
   fastify.addHook("onSend", (_request, reply, _payload, done) => {
     reply.header("X-Content-Type-Options", "nosniff");

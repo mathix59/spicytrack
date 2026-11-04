@@ -4,6 +4,7 @@ import { DATABASE_POOL, DATABASE_READ_REPLICA_POOL } from "./database/database.p
 import { JobsService } from "./jobs/jobs.service";
 import { ingestLimits } from "./ingest/ingest-limits";
 import { renderIngestMetrics } from "./ingest/ingest-metrics";
+import { gauge, httpRequestDuration, processMetrics } from "./common/metrics";
 import { STORAGE_SERVICE, type StorageService } from "./storage/storage.service";
 
 const HEALTH_TIMEOUT_MS = 3_000;
@@ -81,19 +82,7 @@ export class AppService {
   }
 
   async getMetrics(): Promise<string> {
-    const memory = process.memoryUsage();
-    const lines = [
-      "# HELP spicytrack_process_uptime_seconds Process uptime in seconds.",
-      "# TYPE spicytrack_process_uptime_seconds gauge",
-      `spicytrack_process_uptime_seconds ${process.uptime()}`,
-      "# HELP spicytrack_process_resident_memory_bytes Resident memory size in bytes.",
-      "# TYPE spicytrack_process_resident_memory_bytes gauge",
-      `spicytrack_process_resident_memory_bytes ${memory.rss}`,
-      "# HELP spicytrack_process_heap_used_bytes Used JavaScript heap in bytes.",
-      "# TYPE spicytrack_process_heap_used_bytes gauge",
-      `spicytrack_process_heap_used_bytes ${memory.heapUsed}`,
-      ...renderIngestMetrics(),
-    ];
+    const lines = [...processMetrics(), ...httpRequestDuration.render(), ...renderIngestMetrics()];
 
     const limits = ingestLimits();
     lines.push(
@@ -113,6 +102,11 @@ export class AppService {
         `spicytrack_jobs{status="running"} ${summary.running}`,
         `spicytrack_jobs{status="failed"} ${summary.failed}`,
         `spicytrack_jobs{status="due"} ${summary.due}`,
+        ...gauge(
+          "spicytrack_jobs_oldest_due_seconds",
+          "Age of the oldest job waiting past its run time; 0 when none is late.",
+          await this.jobsService.getOldestDueAgeSeconds(),
+        ),
       );
     }
 

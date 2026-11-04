@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
+import { jobDuration } from "../common/metrics";
 import { RetentionCleanupHandler } from "./handlers/retention-cleanup.handler";
 import { JobsService } from "./jobs.service";
 import type { Job } from "./jobs.service";
@@ -39,6 +40,9 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
   private draining = false;
   private slowJobActive = false;
   private lastStalledSweep = 0;
+  /** When the polling timer last fired, and when a drain last started or finished a job. */
+  private lastPollAt = Date.now();
+  private lastProgressAt = Date.now();
   private readonly handlers: Record<string, JobHandler>;
   // Long-running jobs (minutes) get their own lane so they never block the
   // regular lane; at most one slow job runs per worker instance.
@@ -51,6 +55,20 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
     this.handlers = {
       retention_cleanup: (_job, signal) => this.retentionCleanupHandler.run(signal),
     };
+  }
+
+  /**
+   * Null while the worker polls and its jobs finish; otherwise why it looks stuck. Each job is
+   * bounded by its timeout, so a drain that makes no progress for longer than that is wedged.
+   */
+  stuckReason(now = Date.now()): string | null {
+    const window = Math.max(
+      60_000,
+      5 * positiveIntegerFromEnv("JOBS_POLL_INTERVAL_MS", DEFAULT_POLL_INTERVAL_MS),
+    );
+    if (now - this.lastPollAt > window) return "job polling stopped";
+    if (now - this.lastProgressAt > this.jobTimeout() + window) return "job queue drain is stuck";
+    return null;
   }
 
   registerHandler(type: string, handler: JobHandler): void {
@@ -91,10 +109,13 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
 
   /** Drains every due job with up to JOBS_CONCURRENCY jobs in flight. */
   async tick(): Promise<void> {
+    this.lastPollAt = Date.now();
+
     if (this.draining) {
       return;
     }
 
+    this.lastProgressAt = Date.now();
     this.draining = true;
 
     try {
@@ -115,6 +136,7 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
       }
 
       await this.execute(job, this.handlers[job.type], this.jobTimeout());
+      this.lastProgressAt = Date.now();
 
       if (job.type === "retention_cleanup") {
         await this.jobsService.enqueue(
@@ -158,13 +180,18 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
       }, timeoutMs);
     });
 
+    const started = performance.now();
+    let result = "succeeded";
+
     try {
       await Promise.race([handler(job, controller.signal), timeout]);
       await this.jobsService.markSucceeded(job.id);
     } catch (error) {
+      result = error instanceof JobTimeoutError ? "timed_out" : "failed";
       await this.handleFailure(job, error);
     } finally {
       clearTimeout(timer);
+      jobDuration.observe({ type: job.type, result }, (performance.now() - started) / 1000);
     }
   }
 

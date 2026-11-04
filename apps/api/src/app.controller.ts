@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import {
   Controller,
   Get,
@@ -9,14 +8,9 @@ import {
 } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AppService } from "./app.service";
+import { bearerMatches } from "./common/metrics";
 import { EndpointAccess } from "./auth/endpoint-access.decorator";
 import { HealthDto } from "./openapi/contracts";
-
-function bearerMatches(authorization: string | undefined, token: string): boolean {
-  const provided = authorization?.match(/^Bearer\s+(.+)$/i)?.[1] ?? "";
-  const digest = (value: string) => createHash("sha256").update(value).digest();
-  return timingSafeEqual(digest(provided), digest(token));
-}
 
 @ApiTags("system")
 @EndpointAccess("public")

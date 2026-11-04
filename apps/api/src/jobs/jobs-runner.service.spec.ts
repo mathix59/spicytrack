@@ -126,4 +126,24 @@ describe("JobsRunnerService", () => {
       5,
     );
   });
+
+  it("reports a stuck worker when polling stops or a drain makes no progress", async () => {
+    jest.useFakeTimers({ now: 0 });
+    process.env.JOBS_TIMEOUT_MS = "120000";
+    const jobsService = createJobsService();
+    const runner = createRunner(jobsService);
+
+    await runner.tick();
+    expect(runner.stuckReason(30_000)).toBeNull();
+    expect(runner.stuckReason(61_000)).toBe("job polling stopped");
+
+    // A drain that started and never finishes a job: polling continues, progress does not.
+    jobsService.claimNext.mockImplementation(() => new Promise(() => undefined));
+    void runner.tick();
+    for (let time = 2_000; time <= 190_000; time += 2_000) {
+      jest.setSystemTime(time);
+      await runner.tick();
+    }
+    expect(runner.stuckReason(190_000)).toBe("job queue drain is stuck");
+  });
 });

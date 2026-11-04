@@ -218,6 +218,22 @@ smoke_test() {
     || fail "ingest route returned an unexpected 404 response"
 
   client_ip_test "$base_url"
+  worker_health_test
+}
+
+# The worker's probes go through its health port; a failing liveness probe would restart it.
+worker_health_test() {
+  local selector="app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/component=worker-admin"
+  local ready restarts
+  ready="$(kubectl -n "$NAMESPACE" get pods -l "$selector" \
+    -o jsonpath='{range .items[*]}{.status.containerStatuses[0].ready}{"\n"}{end}')"
+  restarts="$(kubectl -n "$NAMESPACE" get pods -l "$selector" \
+    -o jsonpath='{range .items[*]}{.status.containerStatuses[0].restartCount}{"\n"}{end}')"
+  grep -qx true <<<"$ready" || fail "worker-admin is not ready"
+  if grep -qvx 0 <<<"$restarts"; then
+    fail "worker-admin restarted: its liveness probe failed"
+  fi
+  log "worker-admin is ready through its health probe"
 }
 
 # The API must see the client as the ingress controller saw it: not a proxy pod (TRUST_PROXY

@@ -46,7 +46,10 @@ describe("AppService health", () => {
   });
 
   it("exports lightweight Prometheus process and job metrics", async () => {
-    const jobs = { getQueueSummary: jest.fn().mockResolvedValue(summary) };
+    const jobs = {
+      getQueueSummary: jest.fn().mockResolvedValue(summary),
+      getOldestDueAgeSeconds: jest.fn().mockResolvedValue(12.5),
+    };
     const service = new AppService(
       { query: jest.fn() } as never,
       { checkHealth: jest.fn() } as never,
@@ -56,6 +59,8 @@ describe("AppService health", () => {
     const metrics = await service.getMetrics();
     expect(metrics).toContain("# TYPE spicytrack_process_uptime_seconds gauge");
     expect(metrics).toContain('spicytrack_jobs{status="pending"} 1');
+    expect(metrics).toContain("spicytrack_jobs_oldest_due_seconds 12.5");
+    expect(metrics).toContain("# TYPE spicytrack_http_request_duration_seconds histogram");
     expect(metrics.endsWith("\n")).toBe(true);
   });
 });

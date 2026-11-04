@@ -208,6 +208,11 @@ spec:
           ports:
             - name: http
               containerPort: {{ $component.port }}
+          {{- else if eq $component.name "worker-admin" }}
+          # Probes and Prometheus metrics only; no Service exposes this port.
+          ports:
+            - name: health
+              containerPort: 3002
           {{- end }}
           volumeMounts:
             - name: tmp
@@ -220,7 +225,15 @@ spec:
             httpGet: { path: /, port: http }
           readinessProbe:
             httpGet: { path: /, port: http }
-          {{- else if ne $component.name "worker-admin" }}
+          {{- else if eq $component.name "worker-admin" }}
+          # Live fails when job polling stops or a drain stops making progress.
+          livenessProbe:
+            httpGet: { path: /health/live, port: health }
+            periodSeconds: 30
+            failureThreshold: 4
+          readinessProbe:
+            httpGet: { path: /health/ready, port: health }
+          {{- else }}
           livenessProbe:
             httpGet: { path: /api/health/live, port: http }
           readinessProbe:

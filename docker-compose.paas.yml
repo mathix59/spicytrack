@@ -147,6 +147,12 @@ services:
       api-web:
         condition: service_healthy
     environment: *api-environment
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:3002/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
 
   web:
     image: ${IMAGE_REPOSITORY_PREFIX:-ghcr.io/mathix59/spicytrack}-web:${VERSION:-latest}
