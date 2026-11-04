@@ -67,6 +67,12 @@ web:
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
 
+# Proxy hops the API trusts for client IPs (X-Forwarded-For), used for audit logs and rate
+# limits. Empty: 2 with the ingress (ingress controller + the web pod's nginx), 1 without it.
+# Add one per extra proxy in front of the ingress controller that appends to X-Forwarded-For,
+# such as a cloud load balancer. A value here overrides TRUST_PROXY from the env Secrets.
+trustProxy: ""
+
 ingress:
   enabled: true
   className: ""

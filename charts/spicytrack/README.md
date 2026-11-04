@@ -142,6 +142,14 @@ Same-email linking to an existing verified account is enabled by default and can
 
 The web pod routes `/api/:projectId/store` and `/api/:projectId/envelope` internally to the ingestion API, and all other `/api` requests to the product API. This keeps the public Ingress portable across ingress controllers.
 
+## Client IPs
+
+Audit logs and rate limits use the client IP from `X-Forwarded-For`. The API trusts as many proxy
+hops as `trustProxy` says: by default 2 with the Ingress (the ingress controller and the web pod's
+nginx) and 1 without it. Add one for each extra proxy in front of the ingress controller that appends
+to `X-Forwarded-For`, such as a cloud load balancer, or set a CIDR list instead of a count. The value
+overrides a `TRUST_PROXY` set in the env Secrets.
+
 ## Migrations
 
 With an external database, the migration Job runs as a `pre-install` and `pre-upgrade` Helm hook.
@@ -155,7 +163,8 @@ init container.
 The repository includes an isolated K3s test powered by k3d. It builds the four local images, pushes
 them by digest to an ephemeral registry, enables the chart's bundled PostgreSQL and storage, installs
 and upgrades this chart, waits for the real probes, and checks the frontend, ingress routing, API
-readiness, storage, database, and disabled-until-configured SMTP state.
+readiness, the client IP the API sees through the ingress, storage, database, and
+disabled-until-configured SMTP state.
 
 Install Docker, kubectl, Helm, and k3d, then run from the repository root:
 

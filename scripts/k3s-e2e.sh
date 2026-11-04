@@ -216,6 +216,33 @@ smoke_test() {
   fi
   grep -q 'Project key not found' /tmp/spicytrack-k3s-ingest.json \
     || fail "ingest route returned an unexpected 404 response"
+
+  client_ip_test "$base_url"
+}
+
+# The API must see the client as the ingress controller saw it: not a proxy pod (TRUST_PROXY
+# too low) and not a header the client forged (too high).
+client_ip_test() {
+  local probe="/api/k3s-client-ip-probe-${RANDOM}${RANDOM}" line remote proxies
+  curl -sS -o /dev/null -H "Host: ${INGRESS_HOST}" -H 'X-Forwarded-For: 6.6.6.6' "$1$probe"
+  for _ in $(seq 1 10); do
+    line="$(kubectl -n "$NAMESPACE" logs -c api-web --tail=-1 --prefix=false \
+      -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/component=api-web" \
+      | grep -F "$probe" | grep -F '"remoteAddress"' | tail -n 1 || true)"
+    [[ -n "$line" ]] && break
+    sleep 1
+  done
+  [[ -n "$line" ]] || fail "the client IP probe was not logged by api-web"
+  remote="$(sed -E 's/.*"remoteAddress":"([^"]*)".*/\1/' <<<"$line")"
+  proxies="$(kubectl get pods -A -o jsonpath='{range .items[*]}{.status.podIP}{"\n"}{end}' \
+    -l 'app.kubernetes.io/name=traefik')
+$(kubectl -n "$NAMESPACE" get pods -o jsonpath='{range .items[*]}{.status.podIP}{"\n"}{end}' \
+    -l "app.kubernetes.io/instance=${RELEASE_NAME},app.kubernetes.io/component=web")"
+  [[ "$remote" != 6.6.6.6 ]] || fail "api-web trusted a forged X-Forwarded-For header"
+  if grep -Fxq "$remote" <<<"$proxies"; then
+    fail "api-web logged the proxy pod $remote as the client: TRUST_PROXY is too low"
+  fi
+  log "api-web sees the client as $remote"
 }
 
 for command in docker k3d kubectl helm curl sed grep; do

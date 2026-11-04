@@ -172,6 +172,9 @@ spec:
             {{- if and $component.port (ne $component.name "web") }}
             - name: PORT
               value: {{ $component.port | quote }}
+            # Proxies in front of the API: the web pod's nginx, plus the ingress controller.
+            - name: TRUST_PROXY
+              value: {{ $root.Values.trustProxy | default (ternary "2" "1" $root.Values.ingress.enabled) | quote }}
             {{- end }}
             {{- if and $root.Values.postgresql.enabled (ne $component.name "web") }}
             - name: DATABASE_URL
