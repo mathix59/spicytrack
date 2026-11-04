@@ -45,12 +45,14 @@ const FrameItem = memo(function FrameItem({
   const { directory, basename } = splitPath(frame.filename);
   const badgeLabel = frame.resolved ? resolutionLabel(frame.resolution) : null;
   const location = formatFrameLocation(frame);
-  // The row splits the path into flex items, which screen readers would read as separate words.
+  // The row splits the path into flex items, which screen readers would read as separate words,
+  // so they get the whole row as one text and the visual pieces are hidden from them.
   const accessibleName = [
     frame.function ?? "<anonymous>",
     location,
     frame.inApp ? "app" : null,
     badgeLabel,
+    frame.resolved === false && frame.inApp ? "no symbols" : null,
   ]
     .filter(Boolean)
     .join(" ");
@@ -59,7 +61,6 @@ const FrameItem = memo(function FrameItem({
     <li className="border-b border-border last:border-b-0">
       <button
         aria-expanded={expanded}
-        aria-label={accessibleName}
         className={cn(
           "group flex w-full min-w-0 items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-accent/40 sm:items-center",
           expanded && "bg-accent/20",
@@ -74,7 +75,11 @@ const FrameItem = memo(function FrameItem({
             expanded && "rotate-90",
           )}
         />
-        <span className="grid min-w-0 flex-1 gap-0.5 font-mono text-xs sm:flex sm:items-baseline sm:gap-2">
+        <span className="sr-only">{accessibleName}</span>
+        <span
+          aria-hidden="true"
+          className="grid min-w-0 flex-1 gap-0.5 font-mono text-xs sm:flex sm:items-baseline sm:gap-2"
+        >
           <span
             className={cn(
               "truncate font-medium",
@@ -98,7 +103,7 @@ const FrameItem = memo(function FrameItem({
             </span>
           </span>
         </span>
-        <span className="hidden shrink-0 items-center gap-1 sm:flex">
+        <span aria-hidden="true" className="hidden shrink-0 items-center gap-1 sm:flex">
           {frame.inApp ? <Badge variant="accent">app</Badge> : null}
           {badgeLabel ? <Badge variant="muted">{badgeLabel}</Badge> : null}
           {frame.resolved === false && frame.inApp ? (
