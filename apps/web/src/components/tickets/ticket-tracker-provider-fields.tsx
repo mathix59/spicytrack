@@ -15,7 +15,7 @@ function ProviderFields({ provider }: { provider: Provider }) {
           <Input name="repository" placeholder="owner/name" />
         </Field>
         <Field
-          hint="Needed with a repository: a fine-grained token with Issues read and write."
+          hint="Required if you enter a repository above (fine-grained, with Issues: read and write); not needed when using the connected repository."
           label="Token"
         >
           <Input autoComplete="off" name="token" type="password" />

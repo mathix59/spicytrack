@@ -26,7 +26,9 @@ describe("CopyButton", () => {
       fireEvent.click(screen.getByRole("button", { name: "Copy DSN" }));
     });
 
-    expect(copyToClipboard).toHaveBeenCalledWith("https://dsn", "DSN copied");
+    expect(copyToClipboard).toHaveBeenCalledWith("https://dsn", "DSN copied", {
+      selectOnFailure: undefined,
+    });
     expect(screen.getByRole("button").textContent).toBe("Copied");
     act(() => vi.advanceTimersByTime(1500));
     expect(screen.getByRole("button").textContent).toBe("Copy DSN");

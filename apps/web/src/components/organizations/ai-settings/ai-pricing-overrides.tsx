@@ -13,7 +13,7 @@ function AiPricingOverrides({ state }: { state: OrgAiSettingsState }) {
   const hintId = useId();
 
   return (
-    <div className="grid gap-2 rounded-lg border border-border p-3">
+    <div className="grid gap-2 p-3">
       <div className="grid gap-0.5">
         <span className="text-sm font-medium" id={labelId}>
           Pricing overrides
@@ -36,13 +36,11 @@ function AiPricingOverrides({ state }: { state: OrgAiSettingsState }) {
           <AlertDescription>{state.overridesError}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           disabled={state.isSavingOverrides}
           onClick={() => void state.saveOverrides()}
-          size="sm"
           type="button"
-          variant="outline"
         >
           {state.isSavingOverrides ? "Saving…" : "Save overrides"}
         </Button>
@@ -54,7 +52,7 @@ function AiPricingOverrides({ state }: { state: OrgAiSettingsState }) {
             successMessage="Pricing overrides cleared"
             title="Clear pricing overrides?"
             trigger={
-              <Button disabled={state.isSavingOverrides} size="sm" type="button" variant="ghost">
+              <Button disabled={state.isSavingOverrides} type="button" variant="ghost">
                 Clear overrides
               </Button>
             }

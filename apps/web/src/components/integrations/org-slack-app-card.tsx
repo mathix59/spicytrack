@@ -1,4 +1,5 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ExternalLink, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
@@ -24,6 +25,8 @@ import { SkeletonRows } from "@/components/ui/skeleton";
 function OrgSlackAppCard({ orgSlug, canManage }: { orgSlug: string; canManage: boolean }) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const requestUrlId = useId();
+  const requestUrlRef = useRef<HTMLInputElement>(null);
   const settingsQuery = useGetOrganizationSlackSettings(orgSlug, {
     query: { enabled: canManage, retry: false },
   });
@@ -144,20 +147,40 @@ function OrgSlackAppCard({ orgSlug, canManage }: { orgSlug: string; canManage: b
                       value={settings.manifest}
                     />
                   </div>
-                  <span className="flex min-w-0 items-center gap-1 text-muted-foreground">
-                    Interactivity Request URL:
-                    <code className="truncate text-xs">{settings.requestUrl}</code>
-                    <CopyButton
-                      label="Copy Request URL"
-                      successMessage="Request URL copied"
-                      value={settings.requestUrl}
-                    />
-                  </span>
+                  <div className="grid min-w-0 gap-1.5">
+                    <label className="text-sm font-medium" htmlFor={requestUrlId}>
+                      Interactivity Request URL
+                    </label>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Input
+                        className="min-w-0 flex-1 font-mono text-xs"
+                        id={requestUrlId}
+                        onFocus={(event) => event.currentTarget.select()}
+                        readOnly
+                        ref={requestUrlRef}
+                        value={settings.requestUrl}
+                      />
+                      <CopyButton
+                        label="Copy Request URL"
+                        selectOnFailure={requestUrlRef}
+                        successMessage="Request URL copied"
+                        variant="outline"
+                        value={settings.requestUrl}
+                      />
+                    </div>
+                  </div>
                 </div>
               </li>
               <li>
-                Use the incoming webhook URL Slack gives you as the destination of your Slack alert
-                rules.
+                Use the incoming webhook URL Slack gives you as the destination of a Slack alert
+                rule, in each project&apos;s Alerts tab (open a project from the{" "}
+                <Link
+                  className="font-medium text-primary-accent hover:underline"
+                  to={`/orgs/${orgSlug}?tab=projects`}
+                >
+                  project list
+                </Link>
+                ).
               </li>
               <li>
                 <div className="grid gap-3">

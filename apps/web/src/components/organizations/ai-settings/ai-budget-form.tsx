@@ -70,7 +70,8 @@ function AiBudgetForm({ state }: { state: OrgAiSettingsState }) {
         <Alert variant="warning">
           <AlertDescription>
             SpicyTrack has no price for the selected model, so it cannot measure spend: AI runs are
-            refused while limits are set. Add a pricing override below, or remove the limits.
+            refused while limits are set. Add a pricing override under Advanced below, or remove the
+            limits.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -113,7 +114,7 @@ function AiBudgetForm({ state }: { state: OrgAiSettingsState }) {
         </Alert>
       ) : null}
       <div>
-        <Button disabled={state.isSaving} size="sm" type="submit" variant="outline">
+        <Button disabled={state.isSaving} type="submit">
           {state.isSaving ? "Saving…" : "Save limits"}
         </Button>
       </div>

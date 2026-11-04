@@ -16,7 +16,6 @@ import {
   useTestRepoConnection,
   useUpsertRepoConnection,
 } from "@/generated/api";
-import { HttpError } from "@/lib/orval-fetch";
 
 import {
   asGitHubMode,
@@ -50,9 +49,8 @@ function useRepoConnection({
   const githubAppSettingsQuery = useGetOrganizationGithubAppSettings(orgSlug, {
     query: { enabled: canManage, retry: false },
   });
-  const connectionMissing =
-    connectionQuery.error instanceof HttpError && connectionQuery.error.status === 404;
-  const connection = connectionMissing ? null : connectionQuery.data?.data;
+  // The API answers null when the project has no repository connection yet.
+  const connection = connectionQuery.data?.data ?? null;
   const githubAppSettings = githubAppSettingsQuery.data?.data;
   const githubAppReady =
     provider === "github" && Boolean(githubAppSettings?.installationId && githubAppSettings?.appId);
@@ -182,7 +180,7 @@ function useRepoConnection({
   return {
     connection,
     isLoading: connectionQuery.isLoading,
-    loadError: connectionMissing ? null : connectionQuery.error,
+    loadError: connectionQuery.error,
     retry: () => void connectionQuery.refetch(),
     error,
     provider,

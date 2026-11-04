@@ -21,9 +21,8 @@ function tokenHint(state: RepoConnectionState) {
   if (state.providerChanged) return "Enter a token for the new provider.";
   if (state.connection) return "Leave empty to keep the stored token.";
   if (state.provider === "gitlab") return "Needs api + write_repository scopes.";
-  return state.githubMode === "enterprise"
-    ? "Personal access token for this GitHub Enterprise instance."
-    : "Personal access token for now. GitHub App install flow comes next.";
+  const instance = state.githubMode === "enterprise" ? " on this GitHub Enterprise instance" : "";
+  return `Fine-grained token${instance}: Contents read for source context; Contents and Pull requests read and write for Autofix. Or set up the organization's GitHub App instead.`;
 }
 
 function tokenPlaceholder(state: RepoConnectionState) {
@@ -71,18 +70,14 @@ function RepositoryFields({ state, disabled }: { state: RepoConnectionState; dis
         </Field>
       ) : (
         <Field
-          hint={
-            provider === "gitlab"
-              ? "Full project path, e.g. group/subgroup/project"
-              : "owner/repository"
-          }
+          hint={provider === "gitlab" ? "Full project path, including any subgroups." : undefined}
           label="Repository"
         >
           <Input
             defaultValue={connection?.repoIdentifier ?? ""}
             disabled={disabled}
             name="repoIdentifier"
-            placeholder={provider === "gitlab" ? "group/project" : "owner/repo"}
+            placeholder={provider === "gitlab" ? "group/subgroup/project" : "owner/repository"}
             required
           />
         </Field>

@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Ticket, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -17,6 +18,7 @@ import {
   type CreateTicketTrackerBodyDto,
   CreateTicketTrackerBodyDtoProvider,
   getListTicketTrackersQueryKey,
+  type TicketTrackerDto,
   useCreateTicketTracker,
   useDeleteTicketTracker,
   useListTicketTrackers,
@@ -29,6 +31,12 @@ import { type Provider, ProviderFields } from "./ticket-tracker-provider-fields"
 function formValue(form: FormData, name: string) {
   const value = form.get(name);
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function trackerTargetLabel(tracker: TicketTrackerDto) {
+  return tracker.provider === "jira" && tracker.baseUrl
+    ? `${tracker.target} · ${tracker.baseUrl}`
+    : tracker.target;
 }
 
 /** Project issue trackers: where "Create ticket" on an issue sends it. */
@@ -49,6 +57,11 @@ function TicketTrackersCard({
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const trackers = trackersQuery.data?.data ?? [];
+  const empty = !trackersQuery.isLoading && !trackersQuery.error && trackers.length === 0;
+  const startAdding = () => {
+    setError(null);
+    setAdding(true);
+  };
 
   const refresh = () =>
     queryClient.invalidateQueries({
@@ -91,8 +104,8 @@ function TicketTrackersCard({
               Credentials are checked when you add a tracker and stored encrypted.
             </CardDescription>
           </div>
-          {canManage && !adding ? (
-            <Button onClick={() => setAdding(true)} size="sm" type="button" variant="outline">
+          {canManage && !adding && !empty ? (
+            <Button onClick={startAdding} size="sm" type="button" variant="outline">
               <Plus />
               Add tracker
             </Button>
@@ -108,9 +121,25 @@ function TicketTrackersCard({
             onRetry={() => void trackersQuery.refetch()}
             title="Could not load issue trackers"
           />
-        ) : trackers.length === 0 && !adding ? (
-          <p className="text-sm text-muted-foreground">No issue tracker yet.</p>
-        ) : (
+        ) : empty && !adding ? (
+          <EmptyState
+            action={
+              canManage ? (
+                <Button onClick={startAdding} size="sm" type="button">
+                  <Plus />
+                  Add tracker
+                </Button>
+              ) : undefined
+            }
+            description={
+              canManage
+                ? "Connect GitHub Issues, Linear or Jira to create a ticket from any issue in this project."
+                : "Ask a project admin to add an issue tracker."
+            }
+            icon={Ticket}
+            title="No issue tracker yet"
+          />
+        ) : empty ? null : (
           <ul className="grid gap-2">
             {trackers.map((tracker) => (
               <li
@@ -119,12 +148,18 @@ function TicketTrackersCard({
               >
                 <div className="grid min-w-0 flex-1 gap-0.5">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-medium">{tracker.name}</span>
-                    <Badge variant="muted">{PROVIDER_LABELS[tracker.provider]}</Badge>
+                    <span className="truncate text-sm font-medium" title={tracker.name}>
+                      {tracker.name}
+                    </span>
+                    {tracker.name === PROVIDER_LABELS[tracker.provider] ? null : (
+                      <Badge variant="muted">{PROVIDER_LABELS[tracker.provider]}</Badge>
+                    )}
                   </div>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {tracker.target}
-                    {tracker.provider === "jira" && tracker.baseUrl ? ` · ${tracker.baseUrl}` : ""}
+                  <span
+                    className="text-xs text-muted-foreground [overflow-wrap:anywhere]"
+                    title={trackerTargetLabel(tracker)}
+                  >
+                    {trackerTargetLabel(tracker)}
                   </span>
                 </div>
                 {canManage ? (
@@ -162,7 +197,6 @@ function TicketTrackersCard({
         {adding ? (
           <form
             className="grid gap-4 rounded-lg border border-border p-4"
-            key={provider}
             onSubmit={(event) => void submit(event)}
           >
             <div className="grid gap-4 sm:grid-cols-2">
@@ -186,7 +220,8 @@ function TicketTrackersCard({
                 <Input maxLength={80} name="name" placeholder={PROVIDER_LABELS[provider]} />
               </Field>
             </div>
-            <ProviderFields provider={provider} />
+            {/* Remount only the provider-specific inputs, so switching tracker keeps the name. */}
+            <ProviderFields key={provider} provider={provider} />
             {error ? (
               <Alert variant="destructive">
                 <AlertDescription className="[overflow-wrap:anywhere]">{error}</AlertDescription>

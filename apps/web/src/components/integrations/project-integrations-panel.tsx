@@ -16,13 +16,30 @@ function ProjectIntegrationsPanel({
   canManage: boolean;
   hasRepoConnection: boolean;
 }) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get("integration");
+  // Driven by the URL so in-page links (e.g. Autofix → Repository) switch the tab.
+  const active = requested === "tickets" || requested === "autofix" ? requested : "repository";
+  const integrationHref = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("integration", value);
+    return `?${next.toString()}`;
+  };
 
   return (
     <Tabs
       className="grid gap-4"
-      defaultValue={requested === "tickets" || requested === "autofix" ? requested : "repository"}
+      onValueChange={(value) =>
+        setSearchParams(
+          (current) => {
+            const next = new URLSearchParams(current);
+            next.set("integration", value);
+            return next;
+          },
+          { replace: true },
+        )
+      }
+      value={active}
     >
       <TabsList>
         <TabsTrigger value="repository">Repository</TabsTrigger>
@@ -50,6 +67,7 @@ function ProjectIntegrationsPanel({
           hasConnection={hasRepoConnection}
           orgSlug={orgSlug}
           projectSlug={projectSlug}
+          repositoryHref={integrationHref("repository")}
         />
       </TabsContent>
 

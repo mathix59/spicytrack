@@ -1,13 +1,9 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
-import {
-  getGetAutofixConfigQueryKey,
-  useGetAutofixConfig,
-  useUpdateAutofixConfig,
-} from "@/generated/api";
-import { HttpError } from "@/lib/orval-fetch";
+import { useGetAutofixAvailability } from "@/generated/api";
+import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { QueryError } from "@/components/common/query-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,9 +13,13 @@ import { Input } from "@/components/ui/input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 
-function asOptionalString(value: unknown) {
-  return typeof value === "string" ? value : "";
-}
+import { useAutofixConfigForm } from "./autofix-config/use-autofix-config-form";
+
+const LINK_CLASS_NAME = "font-medium underline underline-offset-2";
+const TARGET_BRANCH_HINT =
+  "Base branch for pull requests. Leave empty to use the repository's default branch.";
+const AUTO_MERGE_TARGET_BRANCH_HINT =
+  "Base branch for pull requests. Required for automatic merge: fixes are squashed into it.";
 
 function ToggleRow({
   label,
@@ -55,77 +55,25 @@ function AutofixConfigCard({
   projectSlug,
   canManage,
   hasConnection,
+  repositoryHref,
 }: {
   orgSlug: string;
   projectSlug: string;
   canManage: boolean;
   hasConnection: boolean;
+  /** Where the "connect a repository" alert sends people: the Repository integration tab. */
+  repositoryHref: string;
 }) {
-  const queryClient = useQueryClient();
-  const [error, setError] = useState<string | null>(null);
-  const [enabled, setEnabled] = useState(false);
-  const [autoTrigger, setAutoTrigger] = useState(false);
-  const [autoMerge, setAutoMerge] = useState(false);
-  const [autoFix, setAutoFix] = useState(false);
-  const [requireChecks, setRequireChecks] = useState(true);
-
-  const configQuery = useGetAutofixConfig(orgSlug, projectSlug);
-  const config = configQuery.data?.data;
-
-  // Re-seed the form whenever the query yields a new config (initial load or refetch).
-  const [seededConfig, setSeededConfig] = useState<typeof config>(undefined);
-  if (config !== seededConfig) {
-    setSeededConfig(config);
-    if (config) {
-      setEnabled(config.enabled);
-      setAutoTrigger(config.autoTriggerOnNewIssue);
-      setAutoMerge(config.autoMerge);
-      setAutoFix(config.autoFixAfterAnalysis);
-      setRequireChecks(config.requirePassingChecks);
-    }
-  }
-
-  const updateMutation = useUpdateAutofixConfig({
-    mutation: {
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: getGetAutofixConfigQueryKey(orgSlug, projectSlug),
-        });
-      },
-    },
+  const form = useAutofixConfigForm({ orgSlug, projectSlug });
+  const { configQuery, values, setValue } = form;
+  const [confirmAutoMerge, setConfirmAutoMerge] = useState(false);
+  const availabilityQuery = useGetAutofixAvailability(orgSlug, projectSlug, {
+    query: { retry: false },
   });
+  const missingAiKey = availabilityQuery.data?.data.missing.includes("ai_key") ?? false;
 
-  const save = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-
-    const formData = new FormData(event.currentTarget);
-    const dailyCap = Number(formData.get("dailyCap") ?? 5);
-    const targetBranch = String(formData.get("targetBranch") ?? "").trim();
-
-    try {
-      await updateMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        data: {
-          enabled,
-          autoTriggerOnNewIssue: autoTrigger,
-          autoMerge,
-          autoFixAfterAnalysis: autoFix,
-          requirePassingChecks: requireChecks,
-          dailyCap: Number.isFinite(dailyCap) ? dailyCap : 5,
-          targetBranch: (targetBranch || null) as never,
-        },
-      });
-      toast.success("Autofix configuration saved");
-    } catch (submitError) {
-      setError(
-        submitError instanceof HttpError
-          ? submitError.message
-          : "Failed to save the autofix configuration",
-      );
-    }
-  };
+  const locked = !canManage || !hasConnection;
+  const optionsLocked = locked || !values.enabled;
 
   return (
     <Card>
@@ -140,7 +88,24 @@ function AutofixConfigCard({
       <CardContent className="grid gap-4">
         {!hasConnection ? (
           <Alert variant="warning">
-            <AlertDescription>Connect a repository first to enable autofix.</AlertDescription>
+            <AlertDescription>
+              Autofix needs a repository.{" "}
+              <Link className={LINK_CLASS_NAME} to={repositoryHref}>
+                Connect one in the Repository tab
+              </Link>{" "}
+              to turn it on.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        {missingAiKey ? (
+          <Alert variant="warning">
+            <AlertDescription>
+              The organization has no AI provider key, so analyses and fixes cannot run. Add one in{" "}
+              <Link className={LINK_CLASS_NAME} to={`/orgs/${orgSlug}?tab=settings&section=ai`}>
+                Organization settings → AI
+              </Link>
+              .
+            </AlertDescription>
           </Alert>
         ) : null}
 
@@ -153,83 +118,109 @@ function AutofixConfigCard({
             title="Could not load the autofix configuration"
           />
         ) : (
-          <form className="grid gap-4" onSubmit={save}>
+          <form className="grid gap-4" onSubmit={(event) => void form.save(event)}>
             <ToggleRow
-              checked={enabled}
+              checked={values.enabled}
               description="Allow AI root-cause analyses and fixes for issues in this project."
-              disabled={!canManage}
+              disabled={locked}
               label="Enable autofix"
-              onCheckedChange={setEnabled}
+              onCheckedChange={(checked) => setValue("enabled", checked)}
             />
             <ToggleRow
-              checked={autoTrigger}
+              checked={values.autoTriggerOnNewIssue}
               description="Analyze the root cause of each new issue automatically. Analyses never change code."
-              disabled={!canManage || !enabled}
+              disabled={optionsLocked}
               label="Analyze new issues automatically"
-              onCheckedChange={setAutoTrigger}
+              onCheckedChange={(checked) => setValue("autoTriggerOnNewIssue", checked)}
             />
             <ToggleRow
-              checked={autoFix}
+              checked={values.autoFixAfterAnalysis}
               description="Generate the fix without waiting for someone when the analysis is fixable with medium or high confidence."
-              disabled={!canManage || !enabled}
+              disabled={optionsLocked}
               label="Generate fixes automatically"
-              onCheckedChange={setAutoFix}
+              onCheckedChange={(checked) => setValue("autoFixAfterAnalysis", checked)}
             />
             <ToggleRow
-              checked={requireChecks}
+              checked={values.requirePassingChecks}
               description="Without any CI check on the fix branch, fail the run instead of opening an unverified pull request."
-              disabled={!canManage || !enabled}
+              disabled={optionsLocked}
               label="Require passing CI checks"
-              onCheckedChange={setRequireChecks}
+              onCheckedChange={(checked) => setValue("requirePassingChecks", checked)}
             />
             <ToggleRow
-              checked={autoMerge}
+              checked={values.autoMerge}
               description="Squash the pull request into the explicit target branch, only after CI passed on it. Branch protections still apply."
-              disabled={!canManage || !enabled}
+              disabled={optionsLocked}
               label="Merge automatically when CI passes"
-              onCheckedChange={setAutoMerge}
+              onCheckedChange={(checked) =>
+                checked ? setConfirmAutoMerge(true) : setValue("autoMerge", false)
+              }
+            />
+            <ConfirmDialog
+              confirmLabel="Turn on automatic merge"
+              description="Fix pull requests will be squash-merged into the target branch as soon as CI passes on them, without waiting for a review. Branch protections still apply. The change takes effect when you save."
+              destructive={false}
+              onConfirm={() => setValue("autoMerge", true)}
+              onOpenChange={setConfirmAutoMerge}
+              open={confirmAutoMerge}
+              title="Merge fixes automatically?"
             />
 
             <Field hint="Maximum automatic analyses per day for this project." label="Daily cap">
               <Input
-                defaultValue={config?.dailyCap ?? 5}
-                disabled={!canManage}
-                key={config?.dailyCap ?? "cap"}
+                disabled={locked}
                 max={100}
                 min={1}
                 name="dailyCap"
+                onChange={(event) => setValue("dailyCap", event.target.value)}
                 type="number"
+                value={values.dailyCap}
               />
             </Field>
 
             <Field
-              hint={
-                autoMerge
-                  ? "Required for automatic merge. Example: autofixe."
-                  : "Branch PRs are opened against. Empty = repository default branch."
-              }
+              hint={values.autoMerge ? AUTO_MERGE_TARGET_BRANCH_HINT : TARGET_BRANCH_HINT}
               label="Target branch"
             >
               <Input
-                defaultValue={asOptionalString(config?.targetBranch)}
-                disabled={!canManage}
-                key={asOptionalString(config?.targetBranch) || "branch"}
+                disabled={locked}
                 name="targetBranch"
-                placeholder={autoMerge ? "autofixe" : "main"}
-                required={autoMerge}
+                onChange={(event) => setValue("targetBranch", event.target.value)}
+                placeholder="e.g. autofix"
+                required={values.autoMerge}
+                value={values.targetBranch}
               />
             </Field>
 
-            {error ? (
+            {form.error ? (
               <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>{form.error}</AlertDescription>
               </Alert>
             ) : null}
 
-            <div>
-              <Button disabled={!canManage || updateMutation.isPending} type="submit">
-                {updateMutation.isPending ? "Saving…" : "Save"}
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-2",
+                // While there are unsaved changes, the actions stay in view as the page scrolls.
+                form.dirty && "sticky bottom-0 z-10 -mx-6 border-t border-border bg-card px-6 py-3",
+              )}
+            >
+              <Button disabled={locked || !form.dirty || form.isSaving} type="submit">
+                {form.isSaving ? "Saving…" : "Save"}
               </Button>
+              {form.dirty ? (
+                <Button
+                  disabled={form.isSaving}
+                  onClick={form.discard}
+                  type="button"
+                  variant="ghost"
+                >
+                  Discard
+                </Button>
+              ) : null}
+              <span className="text-sm font-medium text-warning" role="status">
+                {form.dirty ? "Unsaved changes" : ""}
+              </span>
             </div>
           </form>
         )}

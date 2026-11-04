@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type RefObject, useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ function CopyButton({
   successMessage,
   className,
   variant = "ghost",
+  selectOnFailure,
 }: {
   value: string;
   label?: string;
@@ -19,6 +20,8 @@ function CopyButton({
   successMessage?: string;
   className?: string;
   variant?: "ghost" | "secondary" | "outline";
+  /** Element whose text gets selected when the clipboard is unavailable, for a manual copy. */
+  selectOnFailure?: RefObject<HTMLElement | null>;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -34,7 +37,13 @@ function CopyButton({
     <Button
       aria-label={showLabel ? undefined : label}
       className={cn(copied && "text-success", className)}
-      onClick={async () => setCopied(await copyToClipboard(value, successMessage))}
+      onClick={async () =>
+        setCopied(
+          await copyToClipboard(value, successMessage, {
+            selectOnFailure: selectOnFailure?.current,
+          }),
+        )
+      }
       size={showLabel ? "sm" : "icon-sm"}
       title={label}
       type="button"

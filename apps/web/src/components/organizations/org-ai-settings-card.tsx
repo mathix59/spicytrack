@@ -1,17 +1,23 @@
+import { useRef } from "react";
+import { KeyRound } from "lucide-react";
+
+import { CollapsibleSection } from "@/components/common/collapsible-section";
 import { QueryError } from "@/components/common/query-error";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonRows } from "@/components/ui/skeleton";
 
 import { AiBudgetForm } from "./ai-settings/ai-budget-form";
 import { AiPricingOverrides } from "./ai-settings/ai-pricing-overrides";
 import { AiProviderForm } from "./ai-settings/ai-provider-form";
-import { asOptionalString } from "./ai-settings/ai-settings-constants";
 import { AiUsageSummary } from "./ai-settings/ai-usage-summary";
 import { useOrgAiSettings } from "./ai-settings/use-org-ai-settings";
 
 function OrgAiSettingsCard({ orgSlug, canManage }: { orgSlug: string; canManage: boolean }) {
   const state = useOrgAiSettings({ orgSlug, canManage });
   const { settings, settingsQuery } = state;
+  const keyInputRef = useRef<HTMLInputElement>(null);
 
   if (!canManage) {
     return (
@@ -27,6 +33,8 @@ function OrgAiSettingsCard({ orgSlug, canManage }: { orgSlug: string; canManage:
       </Card>
     );
   }
+
+  const hasKey = Boolean(settings?.apiKeySet);
 
   return (
     <Card>
@@ -48,20 +56,33 @@ function OrgAiSettingsCard({ orgSlug, canManage }: { orgSlug: string; canManage:
           />
         ) : (
           <>
-            {settings?.apiKeySet ? (
-              <p className="text-sm">
-                Current key ({settings.provider}):{" "}
-                <code className="rounded bg-muted/30 px-1.5 py-0.5 text-xs">
-                  {asOptionalString(settings.maskedKey)}
-                </code>
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">No API key configured.</p>
+            {hasKey ? null : (
+              <EmptyState
+                action={
+                  <Button onClick={() => keyInputRef.current?.focus()} type="button">
+                    <KeyRound />
+                    Add an API key
+                  </Button>
+                }
+                description="Autofix and AI triage need an API key from Anthropic, OpenAI or Google. One key serves every project in this organization; usage and spending limits appear once it is saved."
+                icon={KeyRound}
+                title="No AI provider key yet"
+              />
             )}
-            {state.usage ? <AiUsageSummary usage={state.usage} /> : null}
-            <AiBudgetForm state={state} />
-            <AiPricingOverrides state={state} />
-            <AiProviderForm state={state} />
+            <AiProviderForm keyInputRef={keyInputRef} state={state} />
+            {hasKey ? (
+              <>
+                {state.usage ? <AiUsageSummary usage={state.usage} /> : null}
+                <AiBudgetForm state={state} />
+                <CollapsibleSection
+                  defaultOpen={false}
+                  summary="Pricing overrides"
+                  title="Advanced"
+                >
+                  <AiPricingOverrides state={state} />
+                </CollapsibleSection>
+              </>
+            ) : null}
           </>
         )}
       </CardContent>

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Highlight } from "prism-react-renderer";
 
 import { codeTheme } from "@/lib/code-theme";
@@ -16,16 +17,24 @@ function CopyableCode({
   value: string;
   language?: string;
 }) {
+  // Selected for a manual copy when the clipboard is unavailable (plain-HTTP self-hosting).
+  const codeRef = useRef<HTMLPreElement>(null);
+
   return (
     <div className="grid min-w-0 gap-1.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        <CopyButton label={`Copy ${label}`} successMessage={`${label} copied`} value={value} />
+        <CopyButton
+          label={`Copy ${label}`}
+          selectOnFailure={codeRef}
+          successMessage={`${label} copied`}
+          value={value}
+        />
       </div>
       {language ? (
         <Highlight code={value} language={language} theme={codeTheme}>
           {({ tokens, getLineProps, getTokenProps }) => (
-            <pre aria-label={`${label} code`} className={PRE_CLASS_NAME} tabIndex={0}>
+            <pre aria-label={`${label} code`} className={PRE_CLASS_NAME} ref={codeRef} tabIndex={0}>
               <code>
                 {tokens.map((line, lineIndex) => (
                   <div key={lineIndex} {...getLineProps({ line })}>
@@ -42,6 +51,7 @@ function CopyableCode({
         <pre
           aria-label={`${label} code`}
           className={`${PRE_CLASS_NAME} text-foreground`}
+          ref={codeRef}
           tabIndex={0}
         >
           <code>{value}</code>
