@@ -24,9 +24,9 @@ import {
   asProvider,
   errorMessage,
   type GitHubMode,
-  inputsChanged,
   readRepoConnectionForm,
 } from "./utils";
+import { useSeedRepoConnectionForm } from "./use-seed-repo-connection-form";
 
 function useRepoConnection({
   orgSlug,
@@ -100,51 +100,16 @@ function useRepoConnection({
     connection?.provider === "github" &&
     githubMode !== asGitHubMode(connection);
 
-  // Form state is seeded from the saved connection and re-seeded when its inputs change.
-  // Each block below adjusts state during render when its inputs differ from the ones it last
-  // saw (null = never ran, so the first render seeds like a mount effect would).
-  const [seenProviderInputs, setSeenProviderInputs] = useState<unknown[] | null>(null);
-  const providerInputs = [connection?.provider];
-  if (inputsChanged(seenProviderInputs, providerInputs)) {
-    setSeenProviderInputs(providerInputs);
-    if (connection?.provider) {
-      setProvider(connection.provider);
-    }
-  }
-
-  const [seenGithubModeInputs, setSeenGithubModeInputs] = useState<unknown[] | null>(null);
-  const githubModeInputs = [connection];
-  if (inputsChanged(seenGithubModeInputs, githubModeInputs)) {
-    setSeenGithubModeInputs(githubModeInputs);
-    if (connection?.provider === "github") {
-      setGithubMode(asGitHubMode(connection));
-    }
-  }
-
-  const [seenRepoInputs, setSeenRepoInputs] = useState<unknown[] | null>(null);
-  const repoInputs = [connection?.repoIdentifier, githubAppReady, provider];
-  if (inputsChanged(seenRepoInputs, repoInputs)) {
-    setSeenRepoInputs(repoInputs);
-    if (provider === "github" && githubAppReady) {
-      setSelectedGithubRepo(connection?.repoIdentifier ?? "");
-    }
-  }
-
-  const [seenBranchInputs, setSeenBranchInputs] = useState<unknown[] | null>(null);
-  const branchInputs = [
-    connection?.defaultBranch,
-    githubAppReady,
+  useSeedRepoConnectionForm({
+    connection,
     provider,
+    githubAppReady,
     selectedGithubRepository,
-  ];
-  if (inputsChanged(seenBranchInputs, branchInputs)) {
-    setSeenBranchInputs(branchInputs);
-    if (provider === "github" && githubAppReady) {
-      setSelectedDefaultBranch(
-        selectedGithubRepository?.defaultBranch || (connection?.defaultBranch ?? ""),
-      );
-    }
-  }
+    setProvider,
+    setGithubMode,
+    setSelectedGithubRepo,
+    setSelectedDefaultBranch,
+  });
 
   const readForm = (form: HTMLFormElement) =>
     readRepoConnectionForm(form, { githubAppReady, selectedGithubRepo, selectedDefaultBranch });

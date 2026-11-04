@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { RotateCcw, Workflow } from "lucide-react";
+import { Workflow } from "lucide-react";
 
 import {
   getGetOrganizationJobQueueOverviewQueryKey,
@@ -9,30 +9,18 @@ import {
   useGetOrganizationJobQueueOverview,
   useRequeueOrganizationJob,
 } from "@/generated/api";
-import { formatLocalDateTime, getErrorMessage } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
-type OrganizationJobFilters = {
-  status: "" | "pending" | "running" | "failed";
-  type: string;
-  projectId: string;
-  limit: string;
-};
+import {
+  OrganizationJobQueueFilters,
+  type OrganizationJobFilters,
+} from "./organization-job-queue-filters";
+import { OrganizationJobQueueTable } from "./organization-job-queue-table";
 
 const DEFAULT_FILTERS: OrganizationJobFilters = {
   status: "",
@@ -40,30 +28,6 @@ const DEFAULT_FILTERS: OrganizationJobFilters = {
   projectId: "",
   limit: "25",
 };
-
-function statusVariant(status: string) {
-  if (status === "failed") {
-    return "default";
-  }
-
-  if (status === "running") {
-    return "accent";
-  }
-
-  return "muted";
-}
-
-function summarizePayload(payload: Record<string, unknown>) {
-  const entries = Object.entries(payload).slice(0, 2);
-
-  if (entries.length === 0) {
-    return "No payload";
-  }
-
-  return entries
-    .map(([key, value]) => `${key}:${typeof value === "string" ? value : JSON.stringify(value)}`)
-    .join(" · ");
-}
 
 function SummaryBadge({
   label,
@@ -108,6 +72,15 @@ function OrganizationJobQueueCard({ orgSlug, canManage }: { orgSlug: string; can
     },
   });
 
+  const requeueJob = async (jobId: string) => {
+    setError(null);
+
+    try {
+      await requeueMutation.mutateAsync({ orgSlug, jobId });
+    } catch (mutationError) {
+      setError(getErrorMessage(mutationError));
+    }
+  };
   if (!canManage) {
     return (
       <Card>
@@ -155,55 +128,7 @@ function OrganizationJobQueueCard({ orgSlug, canManage }: { orgSlug: string; can
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="grid gap-3 md:grid-cols-4">
-          <Field label="Status">
-            <Select
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  status: event.target.value as OrganizationJobFilters["status"],
-                }))
-              }
-              value={filters.status}
-            >
-              <option value="">Any active/failed</option>
-              <option value="pending">Pending</option>
-              <option value="running">Running</option>
-              <option value="failed">Failed</option>
-            </Select>
-          </Field>
-          <Field label="Type">
-            <Input
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, type: event.target.value }))
-              }
-              placeholder="autofix"
-              value={filters.type}
-            />
-          </Field>
-          <Field label="Project ID">
-            <Input
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, projectId: event.target.value }))
-              }
-              placeholder="uuid"
-              value={filters.projectId}
-            />
-          </Field>
-          <Field label="Limit">
-            <Select
-              onChange={(event) =>
-                setFilters((current) => ({ ...current, limit: event.target.value }))
-              }
-              value={filters.limit}
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </Select>
-          </Field>
-        </div>
+        <OrganizationJobQueueFilters filters={filters} setFilters={setFilters} />
 
         {error ? (
           <Alert variant="destructive">
@@ -228,70 +153,11 @@ function OrganizationJobQueueCard({ orgSlug, canManage }: { orgSlug: string; can
             title="Queue is clear"
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Payload</TableHead>
-                <TableHead>Attempts</TableHead>
-                <TableHead>Run at</TableHead>
-                <TableHead>Error</TableHead>
-                <TableHead className="w-[1%] whitespace-nowrap">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobs.map((job) => (
-                <TableRow key={job.id}>
-                  <TableCell>
-                    <div className="font-medium">{job.type}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {job.projectId ?? "No project"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant(job.status)}>{job.status}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[18rem]">
-                    <div className="truncate text-sm">{summarizePayload(job.payload)}</div>
-                    {job.dedupeKey ? (
-                      <div className="mt-1 truncate text-xs text-muted-foreground">
-                        dedupe: {job.dedupeKey}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>{job.attempts}</TableCell>
-                  <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                    {formatLocalDateTime(job.runAt)}
-                  </TableCell>
-                  <TableCell className="max-w-[16rem]">
-                    <div className="truncate text-sm text-muted-foreground">
-                      {job.lastError ?? "—"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      disabled={job.status !== "failed" || requeueMutation.isPending}
-                      onClick={async () => {
-                        setError(null);
-
-                        try {
-                          await requeueMutation.mutateAsync({ orgSlug, jobId: job.id });
-                        } catch (mutationError) {
-                          setError(getErrorMessage(mutationError));
-                        }
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      <RotateCcw className="size-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <OrganizationJobQueueTable
+            isRequeuePending={requeueMutation.isPending}
+            jobs={jobs}
+            onRequeue={(jobId) => void requeueJob(jobId)}
+          />
         )}
       </CardContent>
     </Card>
