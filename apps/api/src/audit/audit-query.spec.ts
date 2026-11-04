@@ -1,6 +1,7 @@
 import { BadRequestException } from "@nestjs/common";
 
-import { auditRequestFrom, trustProxySetting } from "../common/audit-request";
+import Fastify from "fastify";
+import { auditRequestFrom, isPrivateAddress, trustProxySetting } from "../common/audit-request";
 import {
   csvCell,
   decodeAuditCursor,
@@ -108,7 +109,54 @@ describe("audit request context", () => {
   it("parses TRUST_PROXY", () => {
     expect(trustProxySetting(undefined)).toBe(false);
     expect(trustProxySetting("true")).toBe(true);
-    expect(trustProxySetting("2")).toBe(2);
+    expect(typeof trustProxySetting("2")).toBe("function");
     expect(trustProxySetting("10.0.0.0/8, 127.0.0.1")).toEqual(["10.0.0.0/8", "127.0.0.1"]);
+  });
+
+  it("treats only loopback, private, CGNAT and link-local addresses as proxies", () => {
+    for (const address of ["10.42.0.7", "172.18.0.5", "192.168.1.1", "127.0.0.1", "::1"]) {
+      expect(isPrivateAddress(address)).toBe(true);
+    }
+    for (const address of ["100.64.0.1", "fd00::1", "fe80::1", "::ffff:10.0.0.1"]) {
+      expect(isPrivateAddress(address)).toBe(true);
+    }
+    for (const address of ["203.0.113.9", "172.32.0.1", "2001:db8::1", "::ffff:8.8.8.8", "x"]) {
+      expect(isPrivateAddress(address)).toBe(false);
+    }
+  });
+
+  describe("client IP through Fastify", () => {
+    const clientIp = async (
+      trustProxy: string,
+      remoteAddress: string,
+      forwardedFor?: string,
+    ): Promise<string> => {
+      const app = Fastify({ trustProxy: trustProxySetting(trustProxy) });
+      app.get("/", (request) => ({ ip: request.ip }));
+      const response = await app.inject({
+        url: "/",
+        remoteAddress,
+        headers: forwardedFor ? { "x-forwarded-for": forwardedFor } : {},
+      });
+      await app.close();
+      return response.json().ip;
+    };
+
+    it("walks back as many private hops as configured", async () => {
+      // Ingress controller, then the web pod's nginx: the client is two hops back.
+      expect(await clientIp("2", "172.18.0.5", "6.6.6.6, 203.0.113.9, 10.42.0.7")).toBe(
+        "203.0.113.9",
+      );
+      expect(await clientIp("1", "172.18.0.5", "6.6.6.6, 203.0.113.9")).toBe("203.0.113.9");
+    });
+
+    it("ignores X-Forwarded-For sent straight to the API from a public address", async () => {
+      expect(await clientIp("2", "198.51.100.1", "6.6.6.6, 10.0.0.1")).toBe("198.51.100.1");
+      expect(await clientIp("2", "172.18.0.5", "6.6.6.6, 198.51.100.1")).toBe("198.51.100.1");
+    });
+
+    it("trusts nothing when TRUST_PROXY is unset", async () => {
+      expect(await clientIp("", "172.18.0.5", "203.0.113.9")).toBe("172.18.0.5");
+    });
   });
 });

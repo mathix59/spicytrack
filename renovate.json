@@ -1,0 +1,63 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommitTypeAll(chore)", "helpers:pinGitHubActionDigests"],
+  "baseBranches": ["develop"],
+  "timezone": "Europe/Paris",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null,
+    "labels": ["security"]
+  },
+  "packageRules": [
+    {
+      "description": "One weekly pull request for every minor and patch npm update.",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "non-major dependencies",
+      "groupSlug": "non-major"
+    },
+    {
+      "description": "Packages that must move together.",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@nestjs/**"],
+      "groupName": "NestJS"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["drizzle-orm", "drizzle-kit"],
+      "groupName": "Drizzle"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["better-auth", "@better-auth/**"],
+      "groupName": "better-auth"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@playwright/test", "playwright"],
+      "groupName": "Playwright"
+    },
+    {
+      "description": "GitHub Actions and Docker base images, grouped, every week.",
+      "matchManagers": ["github-actions", "dockerfile", "docker-compose", "helm-values"],
+      "groupName": "CI and images"
+    },
+    {
+      "description": "The bundled PostgreSQL major version changes the data format: upgrade it by hand.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["postgres", "**/postgresql"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
+}

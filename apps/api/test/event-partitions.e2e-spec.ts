@@ -1,24 +1,16 @@
 import { randomUUID } from "node:crypto";
-import { resolve } from "node:path";
-import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { sql } from "drizzle-orm";
 import * as schema from "../src/database/schema";
 import { EventPartitionsService, weekStart } from "../src/jobs/handlers/event-partitions";
+import { privateDatabase } from "./private-database";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
 
-// A private schema, since this test drops whole partitions of the events table.
+// A private database, since this test drops whole partitions of the events table.
 describe("event partitions (e2e)", () => {
-  const schemaName = `partitions_test_${randomUUID().replaceAll("-", "")}`;
-  const admin = new Pool({ connectionString: process.env.DATABASE_URL });
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    options: `-c search_path=${schemaName}`,
-  });
-  const db = drizzle(pool, { schema });
+  const database = privateDatabase("partitions_test");
+  const db = database.db;
   const service = new EventPartitionsService(db as never);
   const organizationId = randomUUID();
   const projectId = randomUUID();
@@ -44,11 +36,7 @@ describe("event partitions (e2e)", () => {
   const names = async () => (await service.partitions()).map((partition) => partition.name).sort();
 
   beforeAll(async () => {
-    await admin.query(`CREATE SCHEMA "${schemaName}"`);
-    await migrate(db, {
-      migrationsFolder: resolve(__dirname, "../drizzle"),
-      migrationsSchema: schemaName,
-    });
+    await database.create();
     // The longest retention decides which partitions can go.
     await db.insert(schema.projects).values([
       { id: projectId, organizationId, name: "P", slug: "p", retentionDays: 30 },
@@ -57,9 +45,7 @@ describe("event partitions (e2e)", () => {
   });
 
   afterAll(async () => {
-    await pool.end();
-    await admin.query(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
-    await admin.end();
+    await database.drop();
   });
 
   it("migrates to a legacy partition, four weeks ahead and a default", async () => {

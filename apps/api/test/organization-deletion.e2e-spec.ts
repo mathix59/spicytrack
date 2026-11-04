@@ -1,22 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { resolve } from "node:path";
 import { ForbiddenException } from "@nestjs/common";
-import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { eq } from "drizzle-orm";
 import * as schema from "../src/database/schema";
 import { OrganizationDeletionService } from "../src/organizations/organization-deletion.service";
+import { privateDatabase } from "./private-database";
 
-// A private schema keeps this regression isolated from development data.
+// A private database keeps this regression isolated from development data.
 describe("organization deletion persistence", () => {
-  const schemaName = `deletion_test_${randomUUID().replaceAll("-", "")}`;
-  const admin = new Pool({ connectionString: process.env.DATABASE_URL });
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    options: `-c search_path=${schemaName}`,
-  });
-  const db = drizzle(pool, { schema });
+  const database = privateDatabase("deletion_test");
+  const db = database.db;
   const ownerId = randomUUID();
   const memberId = randomUUID();
   const orgId = randomUUID();
@@ -26,11 +18,7 @@ describe("organization deletion persistence", () => {
   const keyId = randomUUID();
 
   beforeAll(async () => {
-    await admin.query(`CREATE SCHEMA "${schemaName}"`);
-    await migrate(db, {
-      migrationsFolder: resolve(__dirname, "../drizzle"),
-      migrationsSchema: schemaName,
-    });
+    await database.create();
     await db.insert(schema.organizations).values([
       { id: orgId, name: "Delete", slug: "delete", ownerUserId: ownerId },
       { id: otherOrgId, name: "Keep", slug: "keep", ownerUserId: ownerId },
@@ -101,9 +89,7 @@ describe("organization deletion persistence", () => {
     ]);
   });
   afterAll(async () => {
-    await pool.end();
-    await admin.query(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
-    await admin.end();
+    await database.drop();
   });
   it("rejects admins without deleting data, then removes only the owner's target organization", async () => {
     const service = new OrganizationDeletionService(db);

@@ -21,5 +21,5 @@ ALTER TABLE "releases" ADD COLUMN "commits_error" text;--> statement-breakpoint
 ALTER TABLE "releases" ADD COLUMN "commits_base_sha" varchar(64);--> statement-breakpoint
 ALTER TABLE "releases" ADD COLUMN "commits_truncated" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "releases" ADD COLUMN "commits_synced_at" timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "release_commits" ADD CONSTRAINT "release_commits_release_id_releases_id_fk" FOREIGN KEY ("release_id") REFERENCES "public"."releases"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "release_commits" ADD CONSTRAINT "release_commits_release_id_releases_id_fk" FOREIGN KEY ("release_id") REFERENCES "releases"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "release_commits_release_sha_idx" ON "release_commits" USING btree ("release_id","sha");

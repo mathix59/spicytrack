@@ -3,7 +3,13 @@ packages:
   - "packages/*"
 
 overrides:
-  fastify: 5.11.3
+  fastify: 5.12.8
+  # Patched releases of vulnerable transitive build and test tooling (pnpm audit).
+  js-yaml@3: ^3.15.2
+  brace-expansion@1: ^1.1.20
+  brace-expansion@2: ^2.1.6
+  browserslist: ^4.28.7
+  markdown-it@14: ^14.3.3
 
 allowBuilds:
   '@parcel/watcher': false
