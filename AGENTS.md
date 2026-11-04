@@ -53,6 +53,7 @@ Typical commands:
   - `node scripts/run-checks.mjs typecheck`
   - `node scripts/run-checks.mjs build`
   - `node scripts/run-checks.mjs test:api`
+  - `node scripts/run-checks.mjs test:web`
   - `node scripts/run-checks.mjs test:api:e2e` when local infra is up
 - API:
   - `pnpm --filter api lint`
@@ -63,6 +64,7 @@ Typical commands:
   - `pnpm --filter web format:check`
   - `pnpm --filter web exec tsc -b`
   - `pnpm --filter web build`
+  - `pnpm --filter web test` (Vitest, `*.spec.ts` next to the code)
 
 ## Tooling Constraints
 

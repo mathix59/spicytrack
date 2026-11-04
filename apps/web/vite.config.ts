@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import react from "@vitejs/plugin-react";
@@ -33,5 +34,9 @@ export default defineConfig({
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
     },
+  },
+  test: {
+    include: ['src/**/*.spec.ts'],
+    environment: 'node',
   },
 });

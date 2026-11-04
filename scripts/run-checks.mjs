@@ -104,6 +104,9 @@ const checks = {
   "test:api": async () => {
     await run("node", [...jestNodeArgs], apiDir);
   },
+  "test:web": async () => {
+    await run("./node_modules/.bin/vitest", ["run"], webDir);
+  },
   "test:api:e2e": async () => {
     process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5433/spicytrack";
     process.env.STORAGE_ENDPOINT ??= "http://localhost:9002";
@@ -120,7 +123,7 @@ const target = process.argv[2];
 
 if (!target || !(target in checks)) {
   console.error(
-    "Usage: node scripts/run-checks.mjs <lint:fast|format:check|typecheck|build|test:api|test:api:e2e>",
+    "Usage: node scripts/run-checks.mjs <lint:fast|format:check|typecheck|build|test:api|test:web|test:api:e2e>",
   );
   process.exit(1);
 }

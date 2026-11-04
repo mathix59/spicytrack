@@ -78,6 +78,9 @@ jobs:
       - name: API unit tests
         run: node scripts/run-checks.mjs test:api
 
+      - name: Web unit tests
+        run: node scripts/run-checks.mjs test:web
+
       - name: Build package tests
         run: node --test packages/build/test/*.test.js
 

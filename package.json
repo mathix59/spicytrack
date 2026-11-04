@@ -33,6 +33,7 @@
     "test:e2e:k3s": "bash scripts/k3s-e2e.sh",
     "test:e2e:web": "playwright test",
     "test:api:local": "node scripts/run-checks.mjs test:api",
+    "test:web:local": "node scripts/run-checks.mjs test:web",
     "test:api:e2e:local": "node scripts/run-checks.mjs test:api:e2e",
     "db:generate": "pnpm --filter api db:generate",
     "db:migrate": "pnpm --filter api db:migrate",
