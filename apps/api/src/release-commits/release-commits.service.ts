@@ -163,6 +163,10 @@ export class ReleaseCommitsService {
 
   async listForRelease(projectId: string, version: string) {
     const release = await this.getRelease(projectId, version);
+    // A release created by ingestion with a SHA version has never been read: start now.
+    if (release.commitsStatus === null && effectiveSha(release)) {
+      release.commitsStatus = await this.requestSync(release);
+    }
     const commits = await this.db
       .select()
       .from(releaseCommits)

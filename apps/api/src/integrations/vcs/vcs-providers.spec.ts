@@ -359,6 +359,29 @@ describe("VCS providers", () => {
       });
     });
 
+    it("pages to the newest commits of a range GitHub truncates", async () => {
+      fetchMock.mockImplementation(async (url: string) => {
+        if (url.endsWith("&page=150")) {
+          return jsonResponse({
+            commits: [ghCommit("n299"), ghCommit("n300")],
+            total_commits: 300,
+          });
+        }
+        if (url.includes("/compare/")) {
+          return jsonResponse({ commits: [ghCommit("o1"), ghCommit("o2")], total_commits: 300 });
+        }
+        return jsonResponse({ ...ghCommit(url.split("/commits/")[1]), files: [] });
+      });
+
+      const result = await new GithubProvider().listCommits(connection, { head, base, limit: 2 });
+
+      expect(fetchMock.mock.calls[1][0]).toBe(
+        `https://api.github.com/repos/o/r/compare/${base}...${head}?per_page=2&page=150`,
+      );
+      expect(result.truncated).toBe(true);
+      expect(result.commits.map((commit) => commit.sha)).toEqual(["n300", "n299"]);
+    });
+
     it("falls back to the ancestors of head when GitHub cannot compare", async () => {
       fetchMock.mockImplementation(async (url: string) => {
         if (url.includes("/compare/")) return jsonResponse({ message: "Not Found" }, 404);

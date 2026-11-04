@@ -221,13 +221,29 @@ export class GithubProvider implements VcsProvider {
     if (base) {
       assertSha(base);
       try {
-        const compare = await this.request<{ commits: GithubCommit[]; total_commits: number }>(
-          connection,
-          "GET",
-          `${repo}/compare/${base}...${options.head}`,
-        );
-        listed = compare.commits.reverse();
-        truncated = compare.total_commits > listed.length || listed.length > options.limit;
+        type Compare = { commits: GithubCommit[]; total_commits: number };
+        const comparePath = `${repo}/compare/${base}...${options.head}`;
+        const compare = await this.request<Compare>(connection, "GET", comparePath);
+        let oldestFirst = compare.commits;
+        if (compare.total_commits > compare.commits.length) {
+          // Past 250 commits GitHub returns the oldest ones: page from the end for the newest.
+          const perPage = Math.min(100, options.limit);
+          const lastPage = Math.ceil(compare.total_commits / perPage);
+          const page = async (number: number) =>
+            (
+              await this.request<Compare>(
+                connection,
+                "GET",
+                `${comparePath}?per_page=${perPage}&page=${number}`,
+              )
+            ).commits;
+          const last = await page(lastPage);
+          const previous =
+            lastPage > 1 && last.length < options.limit ? await page(lastPage - 1) : [];
+          oldestFirst = [...previous, ...last];
+        }
+        listed = [...oldestFirst].reverse();
+        truncated = compare.total_commits > options.limit;
       } catch (error) {
         // The previous commit can be gone (force push) or unrelated: fall back to ancestors.
         if (!(error instanceof VcsRequestError) || error.status !== 404) throw error;
