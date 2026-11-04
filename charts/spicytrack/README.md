@@ -158,6 +158,10 @@ pods wait for its completion marker before starting. Set `migrations.enabled=fal
 deployment process owns schema migrations; in that mode the chart does not add the migration wait
 init container.
 
+Pending migrations run in one transaction and block ingestion while they run. Rebuilding the
+`events` indexes takes roughly 8 seconds per million events, and Helm waits 5 minutes for a hook by
+default: on a large external database, pass a longer `--timeout` to `helm upgrade`.
+
 ## K3s end-to-end test
 
 The repository includes an isolated K3s test powered by k3d. It builds the four local images, pushes
