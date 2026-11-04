@@ -222,34 +222,46 @@ describe("Ingestion security and concurrency (e2e)", () => {
     expect(rejection).toMatchObject({ status: "rejected", reason: { status: 429 } });
   });
 
-  it("queues the post-ingest job only for a new issue or a project with active alert rules", async () => {
+  it("queues post-ingest jobs per new issue, and per issue and window for threshold rules", async () => {
     const message = `Post-ingest job ${randomUUID()}`;
-    const send = async () => {
-      const { eventId } = await ingest.ingestStore(
+    const queued = async () =>
+      db
+        .select({ dedupeKey: jobs.dedupeKey })
+        .from(jobs)
+        .where(and(eq(jobs.type, "post_ingest_admin"), eq(jobs.projectId, siblingProjectId)));
+    const send = () =>
+      ingest.ingestStore(
         String(siblingPublicId),
         { ...event(randomUUID().replaceAll("-", "")), message },
         siblingKey,
       );
-      const queued = await db
-        .select({ id: jobs.id })
-        .from(jobs)
-        .where(and(eq(jobs.type, "post_ingest_admin"), eq(jobs.dedupeKey, eventId!)));
-      return queued.length;
-    };
     const rule = {
       organizationId,
       projectId: siblingProjectId,
       name: "Post-ingest job",
-      triggerTypes: ["new_issue"],
       destinationTarget: "https://example.test/hook",
     };
 
-    expect(await send()).toBe(1);
-    expect(await send()).toBe(0);
-    await db.insert(alertRules).values({ ...rule, isActive: false });
-    expect(await send()).toBe(0);
-    await db.insert(alertRules).values(rule);
-    expect(await send()).toBe(1);
+    const { eventId: createdEventId, issueId } = await send();
+    expect(await queued()).toEqual([{ dedupeKey: createdEventId }]);
+    // Rules without an event threshold only need the event that creates or regresses an issue.
+    await db.insert(alertRules).values({ ...rule, triggerTypes: ["new_issue", "regression"] });
+    await db
+      .insert(alertRules)
+      .values({ ...rule, triggerTypes: ["event_threshold"], threshold: 10, isActive: false });
+    await send();
+    expect(await queued()).toHaveLength(1);
+
+    await db
+      .insert(alertRules)
+      .values({ ...rule, triggerTypes: ["event_threshold"], threshold: 10 });
+    await Promise.all([send(), send(), send()]);
+    const coalesced = (await queued()).filter(({ dedupeKey }) => dedupeKey !== createdEventId);
+    expect(coalesced.length).toBeGreaterThanOrEqual(1);
+    expect(coalesced.length).toBeLessThanOrEqual(2);
+    expect(coalesced.every(({ dedupeKey }) => dedupeKey?.startsWith(`issue:${issueId}:`))).toBe(
+      true,
+    );
   });
 
   it("serializes reciprocal issue merges without losing counters", async () => {

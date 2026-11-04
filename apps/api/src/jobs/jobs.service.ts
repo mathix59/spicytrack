@@ -1,6 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
-import { isUniqueViolation } from "../common/postgres-errors";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { jobs } from "../database/schema";
@@ -51,22 +50,24 @@ export class JobsService {
     runAt: Date = new Date(),
     options: EnqueueOptions = {},
   ): Promise<void> {
-    try {
-      await (options.executor ?? this.db).insert(jobs).values({
-        organizationId: options.organizationId ?? null,
-        projectId: options.projectId ?? null,
-        type,
-        dedupeKey: options.dedupeKey ?? null,
-        payload,
-        runAt,
-      });
-    } catch (error) {
-      if (options.dedupeKey && isUniqueViolation(error)) {
-        return;
-      }
-
-      throw error;
+    const insert = (options.executor ?? this.db).insert(jobs).values({
+      organizationId: options.organizationId ?? null,
+      projectId: options.projectId ?? null,
+      type,
+      dedupeKey: options.dedupeKey ?? null,
+      payload,
+      runAt,
+    });
+    if (!options.dedupeKey) {
+      await insert;
+      return;
     }
+    // Checked against the pending-dedupe index before any row is written: a duplicate costs an
+    // index lookup, and does not abort the caller's transaction.
+    await insert.onConflictDoNothing({
+      target: [jobs.type, jobs.dedupeKey],
+      where: sql`${jobs.dedupeKey} is not null and ${jobs.status} in ('pending', 'running')`,
+    });
   }
 
   async hasPending(type: string): Promise<boolean> {

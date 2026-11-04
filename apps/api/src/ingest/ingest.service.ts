@@ -331,9 +331,10 @@ export class IngestService {
         inboundRules: projects.inboundRules,
         ownershipRules: projects.ownershipRules,
         piiScrubFields: projects.piiScrubFields,
-        hasActiveAlertRules: sql<boolean>`exists (
+        hasThresholdRules: sql<boolean>`exists (
           select 1 from ${alertRules}
           where ${alertRules.projectId} = ${projects.id} and ${alertRules.isActive}
+            and 'event_threshold' = any(${alertRules.triggerTypes}) and ${alertRules.threshold} > 0
         )`,
       })
       .from(projects)
@@ -422,9 +423,10 @@ export class IngestService {
     }
 
     const timesSeen = await this.flushIssueCounts(result.issue.id);
-    // The post-ingest job only runs alert rules and, for a new issue, autofix: without either it
-    // has nothing to do. Counts a skipped flush left pending are swept by the jobs worker.
-    if (project.hasActiveAlertRules || result.issueWasCreated) {
+    // The post-ingest job runs alert rules and, for a new issue, autofix. Any other event only
+    // matters to event-threshold rules. Counts a skipped flush left pending are swept by the
+    // jobs worker.
+    if (result.issueWasCreated || result.issueRegressed || project.hasThresholdRules) {
       await this.dispatchPostIngestEffects({
         context,
         issueId: result.issue.id,
