@@ -1,19 +1,12 @@
 import { useMemo, useState } from "react";
-import type { FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { keepPreviousData } from "@tanstack/react-query";
 
 import {
   type EventDto,
   type IssueActivityDto,
   type IssueCommentDto,
   type OrganizationMemberDto,
-  getGetIssueQueryKey,
-  getListIssueActivityQueryKey,
-  getListIssueCommentsQueryKey,
-  getListIssueAutofixRunsQueryKey,
-  useCreateIssueComment,
   useGetEvent,
   useGetIssue,
   useGetProject,
@@ -22,15 +15,7 @@ import {
   useListIssueComments,
   useGetIssueNeighbors,
   useListOrganizationMembers,
-  useTriggerAutofix,
-  useUpdateIssueAssignee,
-  useUpdateIssuePriority,
-  useUpdateIssueStatus,
-  useUpdateIssueExternalLink,
-  useMergeIssue,
-  useUnmergeIssue,
 } from "@/generated/api";
-import { invalidateQueryKeys } from "@/lib/query-utils";
 import {
   issueListContext,
   issueListContextFilters,
@@ -38,9 +23,11 @@ import {
 } from "@/features/issues/issue-list-context";
 import { useIssueTrends } from "@/features/issues/use-issue-trends";
 import { useHotkeys } from "@/lib/use-hotkeys";
-import { getErrorMessage } from "@/lib/utils";
 
+import { createEventNavigation, type EventPageEdge } from "./event-navigation";
 import type { IssuePageData } from "./types";
+import { useIssueActions } from "./use-issue-actions";
+import { useIssueWorkflowActions } from "./use-issue-workflow-actions";
 import { buildTimelineEntries } from "./utils";
 
 const EVENT_PAGE_SIZE = 20;
@@ -51,7 +38,6 @@ const EMPTY_EVENTS: EventDto[] = [];
 
 function useIssueDetailPage(): IssuePageData {
   const { orgSlug = "", projectSlug = "", issueId = "" } = useParams();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const listContextKey = issueListContext(searchParams).toString();
@@ -60,9 +46,7 @@ function useIssueDetailPage(): IssuePageData {
   const [eventPage, setEventPage] = useState(1);
   // Which end of a newly loaded event page to select when no event is selected yet: the last
   // one when stepping or jumping towards older events across a page, the first otherwise.
-  const [pageEntryEdge, setPageEntryEdge] = useState<"first" | "last">("first");
-  const [commentError, setCommentError] = useState<string | null>(null);
-  const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [pageEntryEdge, setPageEntryEdge] = useState<EventPageEdge>("first");
 
   const projectQuery = useGetProject(orgSlug, projectSlug);
   const membersQuery = useListOrganizationMembers(orgSlug);
@@ -94,68 +78,6 @@ function useIssueDetailPage(): IssuePageData {
   const commentsQuery = useListIssueComments(orgSlug, projectSlug, issueId);
   const activityQuery = useListIssueActivity(orgSlug, projectSlug, issueId);
   const autofixRunsQuery = useListIssueAutofixRuns(orgSlug, projectSlug, issueId);
-
-  const triggerAutofixMutation = useTriggerAutofix({
-    mutation: {
-      onSuccess: async () => {
-        await invalidateQueryKeys(queryClient, [
-          getListIssueAutofixRunsQueryKey(orgSlug, projectSlug, issueId),
-        ]);
-      },
-    },
-  });
-  const updateIssueStatusMutation = useUpdateIssueStatus({
-    mutation: {
-      onSuccess: async () => {
-        await invalidateQueryKeys(queryClient, [
-          getGetIssueQueryKey(orgSlug, projectSlug, issueId),
-          getListIssueActivityQueryKey(orgSlug, projectSlug, issueId),
-        ]);
-      },
-    },
-  });
-  const updateIssueAssigneeMutation = useUpdateIssueAssignee({
-    mutation: {
-      onSuccess: async () => {
-        await invalidateQueryKeys(queryClient, [
-          getGetIssueQueryKey(orgSlug, projectSlug, issueId),
-          getListIssueActivityQueryKey(orgSlug, projectSlug, issueId),
-        ]);
-      },
-    },
-  });
-  const updateIssuePriorityMutation = useUpdateIssuePriority({
-    mutation: {
-      onSuccess: async () => {
-        await invalidateQueryKeys(queryClient, [
-          getGetIssueQueryKey(orgSlug, projectSlug, issueId),
-        ]);
-      },
-    },
-  });
-  const createCommentMutation = useCreateIssueComment({
-    mutation: {
-      onSuccess: async () => {
-        await invalidateQueryKeys(queryClient, [
-          getListIssueCommentsQueryKey(orgSlug, projectSlug, issueId),
-          getListIssueActivityQueryKey(orgSlug, projectSlug, issueId),
-        ]);
-      },
-    },
-  });
-  const invalidateIssueWorkflow = async () => {
-    await invalidateQueryKeys(queryClient, [
-      getGetIssueQueryKey(orgSlug, projectSlug, issueId),
-      getListIssueActivityQueryKey(orgSlug, projectSlug, issueId),
-    ]);
-  };
-  const updateExternalLinkMutation = useUpdateIssueExternalLink({
-    mutation: { onSuccess: invalidateIssueWorkflow },
-  });
-  const mergeIssueMutation = useMergeIssue();
-  const unmergeIssueMutation = useUnmergeIssue({
-    mutation: { onSuccess: invalidateIssueWorkflow },
-  });
 
   const projectName = projectQuery.data?.data?.name ?? "Project";
   const members = membersQuery.data?.data ?? EMPTY_MEMBERS;
@@ -212,185 +134,30 @@ function useIssueDetailPage(): IssuePageData {
     setEventPage(safeEventPage);
   }
 
-  // The selection clears until the page's events arrive, then the render-time sync above picks
-  // the requested end of that page.
-  const enterEventPage = (page: number, edge: "first" | "last") => {
-    setEventPage(page);
-    setPageEntryEdge(edge);
-    setSelectedEventId(null);
-  };
+  const { goNewer, goOlder, goNewest, goOldest } = createEventNavigation({
+    events,
+    selectedEventIndex,
+    safeEventPage,
+    totalEventPages,
+    setSelectedEventId,
+    setEventPage,
+    setPageEntryEdge,
+  });
 
-  const goNewer = () => {
-    if (selectedEventIndex > 0) {
-      setSelectedEventId(events[selectedEventIndex - 1].id);
-      return;
-    }
-
-    if (safeEventPage > 1) {
-      enterEventPage(safeEventPage - 1, "last");
-    }
-  };
-
-  const goOlder = () => {
-    if (selectedEventIndex >= 0 && selectedEventIndex < events.length - 1) {
-      setSelectedEventId(events[selectedEventIndex + 1].id);
-      return;
-    }
-
-    if (safeEventPage < totalEventPages) {
-      enterEventPage(safeEventPage + 1, "first");
-    }
-  };
-
-  const goNewest = () => {
-    if (safeEventPage > 1) enterEventPage(1, "first");
-    else if (events.length > 0) setSelectedEventId(events[0].id);
-  };
-
-  const goOldest = () => {
-    if (safeEventPage < totalEventPages) enterEventPage(totalEventPages, "last");
-    else if (events.length > 0) setSelectedEventId(events[events.length - 1].id);
-  };
-
-  const triggerAutofix = async () => {
-    try {
-      await triggerAutofixMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        issueId,
-      });
-      toast.success("Root-cause analysis started", {
-        description: "It reads your code without changing it. You decide on the fix next.",
-      });
-    } catch (error) {
-      toast.error("Could not start Autofix", { description: getErrorMessage(error) });
-    }
-  };
-
-  const updateStatus = async (
-    status: string,
-    ignoredUntil?: string | null,
-    {
-      undoable = true,
-      resolution,
-    }: { undoable?: boolean; resolution?: "now" | "next_release" } = {},
-  ) => {
-    const previousStatus = issue?.status;
-
-    try {
-      await updateIssueStatusMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        issueId,
-        data: { status, ignoredUntil, ...(resolution ? { resolution } : {}) },
-      });
-      const label =
-        resolution === "next_release"
-          ? "Issue resolved in the next release"
-          : statusToastLabel(status, ignoredUntil);
-      toast.success(label, {
-        action:
-          undoable && previousStatus && previousStatus !== status
-            ? {
-                label: "Undo",
-                onClick: () => void updateStatus(previousStatus, null, { undoable: false }),
-              }
-            : undefined,
-      });
-    } catch (error) {
-      toast.error("Could not update the issue status", { description: getErrorMessage(error) });
-    }
-  };
-
-  const updateAssignee = async (assignedUserId: string) => {
-    try {
-      await updateIssueAssigneeMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        issueId,
-        data: { assignedUserId: assignedUserId.length > 0 ? assignedUserId : null },
-      });
-      const member = memberByUserId.get(assignedUserId);
-      toast.success(member ? `Assigned to ${member.name || member.email}` : "Issue unassigned");
-    } catch (error) {
-      toast.error("Could not update the assignee", { description: getErrorMessage(error) });
-    }
-  };
-
-  const updatePriority = async (priority: string) => {
-    try {
-      await updateIssuePriorityMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        issueId,
-        data: { priority: priority as never },
-      });
-    } catch (error) {
-      toast.error("Could not update the priority", { description: getErrorMessage(error) });
-    }
-  };
-
-  const createComment = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setCommentError(null);
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-
-    try {
-      await createCommentMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        issueId,
-        data: { body: String(formData.get("body") ?? "") },
-      });
-      form.reset();
-    } catch (error) {
-      setCommentError(getErrorMessage(error));
-    }
-  };
-
-  const updateExternalLink = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setWorkflowError(null);
-    const formData = new FormData(event.currentTarget);
-    try {
-      await updateExternalLinkMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        issueId,
-        data: { externalIssueUrl: String(formData.get("externalIssueUrl") ?? "") || null },
-      });
-      toast.success("External ticket saved");
-    } catch (error) {
-      setWorkflowError(getErrorMessage(error));
-    }
-  };
-
-  const mergeIssue = async (targetIssueId: string) => {
-    setWorkflowError(null);
-    try {
-      const response = await mergeIssueMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        issueId,
-        data: { targetIssueId },
-      });
-      toast.success("Issues merged");
-      navigate(issuePath(response.data.id));
-    } catch (error) {
-      setWorkflowError(getErrorMessage(error));
-    }
-  };
-
-  const unmergeIssue = async () => {
-    setWorkflowError(null);
-    try {
-      await unmergeIssueMutation.mutateAsync({ orgSlug, projectSlug, issueId });
-      toast.success("Issue split back out with its original events");
-    } catch (error) {
-      setWorkflowError(getErrorMessage(error));
-    }
-  };
+  const issueActions = useIssueActions({
+    orgSlug,
+    projectSlug,
+    issueId,
+    issueStatus: issue?.status,
+    memberByUserId,
+  });
+  const workflowActions = useIssueWorkflowActions({
+    orgSlug,
+    projectSlug,
+    issueId,
+    navigate,
+    issuePath,
+  });
 
   useHotkeys({
     j: () => nextIssueHref && navigate(nextIssueHref),
@@ -441,47 +208,34 @@ function useIssueDetailPage(): IssuePageData {
     },
     comments: {
       comments,
-      commentError,
-      createComment,
-      isSubmitting: createCommentMutation.isPending,
+      commentError: issueActions.commentError,
+      createComment: issueActions.createComment,
+      isSubmitting: issueActions.isSubmittingComment,
     },
     sidebar: {
       members,
       memberByUserId,
       timelineEntries,
-      workflowError,
-      updateAssignee,
-      updatePriority,
-      updateExternalLink,
-      mergeIssue,
-      unmergeIssue,
-      isUpdatingAssignee: updateIssueAssigneeMutation.isPending,
-      isUpdatingPriority: updateIssuePriorityMutation.isPending,
-      isUpdatingWorkflow:
-        updateExternalLinkMutation.isPending ||
-        mergeIssueMutation.isPending ||
-        unmergeIssueMutation.isPending,
+      workflowError: workflowActions.workflowError,
+      updateAssignee: issueActions.updateAssignee,
+      updatePriority: issueActions.updatePriority,
+      updateExternalLink: workflowActions.updateExternalLink,
+      mergeIssue: workflowActions.mergeIssue,
+      unmergeIssue: workflowActions.unmergeIssue,
+      isUpdatingAssignee: issueActions.isUpdatingAssignee,
+      isUpdatingPriority: issueActions.isUpdatingPriority,
+      isUpdatingWorkflow: workflowActions.isUpdatingWorkflow,
     },
     actions: {
       autofixInFlight,
-      triggerAutofix,
-      updateStatus,
-      resolveInNextRelease: () => updateStatus("resolved", null, { resolution: "next_release" }),
-      isUpdatingStatus: updateIssueStatusMutation.isPending,
-      isTriggeringAutofix: triggerAutofixMutation.isPending,
+      triggerAutofix: issueActions.triggerAutofix,
+      updateStatus: issueActions.updateStatus,
+      resolveInNextRelease: () =>
+        issueActions.updateStatus("resolved", null, { resolution: "next_release" }),
+      isUpdatingStatus: issueActions.isUpdatingStatus,
+      isTriggeringAutofix: issueActions.isTriggeringAutofix,
     },
   };
 }
 
 export { useIssueDetailPage };
-
-function statusToastLabel(status: string, ignoredUntil?: string | null) {
-  if (status === "resolved") return "Issue resolved";
-  if (status === "open") return "Issue reopened";
-  if (status === "ignored") {
-    return ignoredUntil
-      ? `Issue snoozed until ${new Date(ignoredUntil).toLocaleString()}`
-      : "Issue ignored";
-  }
-  return "Issue updated";
-}

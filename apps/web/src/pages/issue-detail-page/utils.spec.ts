@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { IssueActivityDto, IssueCommentDto, OrganizationMemberDto } from "@/generated/api";
 
-import { buildTimelineEntries } from "./utils";
+import { buildTimelineEntries, statusToastLabel } from "./utils";
 
 const member = (userId: string, name: string | null, email: string): OrganizationMemberDto => ({
   memberId: `m-${userId}`,
@@ -90,5 +90,15 @@ describe("buildTimelineEntries", () => {
       { label: "Ticket OPS-12 created", actor: "Ada" },
       { label: "issue.merged", actor: "gone" },
     ]);
+  });
+});
+
+describe("statusToastLabel", () => {
+  it("describes each status change", () => {
+    expect(statusToastLabel("resolved")).toBe("Issue resolved");
+    expect(statusToastLabel("open")).toBe("Issue reopened");
+    expect(statusToastLabel("ignored", null)).toBe("Issue ignored");
+    expect(statusToastLabel("ignored", "2026-11-05T10:00:00Z")).toMatch(/^Issue snoozed until /);
+    expect(statusToastLabel("archived")).toBe("Issue updated");
   });
 });

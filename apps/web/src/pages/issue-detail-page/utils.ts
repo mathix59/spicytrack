@@ -83,4 +83,16 @@ function buildTimelineEntries(
   ].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
 }
 
-export { buildTimelineEntries, formatTimelineDate };
+/** Toast confirming a status change. */
+function statusToastLabel(status: string, ignoredUntil?: string | null) {
+  if (status === "resolved") return "Issue resolved";
+  if (status === "open") return "Issue reopened";
+  if (status === "ignored") {
+    return ignoredUntil
+      ? `Issue snoozed until ${new Date(ignoredUntil).toLocaleString()}`
+      : "Issue ignored";
+  }
+  return "Issue updated";
+}
+
+export { buildTimelineEntries, formatTimelineDate, statusToastLabel };
