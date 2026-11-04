@@ -324,6 +324,59 @@ describe("RBAC authorization matrix (e2e)", () => {
     expect(response.statusCode).toBe(200);
   });
 
+  it("renames the organization for settings managers only, keeping its slug", async () => {
+    const rename = (label: string, payload: unknown) =>
+      app.inject({
+        method: "PATCH",
+        url: `/api/organizations/${organizationSlug}`,
+        headers: { ...authorization(label), "content-type": "application/json" },
+        payload: payload as Record<string, unknown>,
+      });
+
+    const denied = await rename("member", { name: "Member rename" });
+    expect(denied.statusCode).toBe(403);
+    for (const name of ["", "   ", "a".repeat(101)]) {
+      expect((await rename("owner", { name })).statusCode).toBe(400);
+    }
+    expect((await rename("owner", {})).statusCode).toBe(400);
+
+    const renamed = await rename("owner", { name: "  RBAC Renamed  ", slug: "ignored" });
+    expect(renamed.statusCode).toBe(200);
+    expect(renamed.json()).toMatchObject({
+      id: organizationId,
+      name: "RBAC Renamed",
+      slug: organizationSlug,
+    });
+
+    const fetched = await app.inject({
+      method: "GET",
+      url: `/api/organizations/${organizationSlug}`,
+      headers: authorization("admin"),
+    });
+    expect(fetched.json()).toMatchObject({ name: "RBAC Renamed", slug: organizationSlug });
+
+    const audit = await pool.query<{ actor_user_id: string; target_id: string; payload: unknown }>(
+      `SELECT actor_user_id, target_id, payload FROM audit_logs
+       WHERE organization_id = $1 AND action = 'organization.updated'`,
+      [organizationId],
+    );
+    expect(audit.rows).toEqual([
+      {
+        actor_user_id: userIdByLabel.get("owner"),
+        target_id: organizationId,
+        payload: { previousName: "RBAC E2E", name: "RBAC Renamed" },
+      },
+    ]);
+
+    // An unchanged name is a no-op: no second audit row.
+    expect((await rename("owner", { name: "RBAC Renamed" })).statusCode).toBe(200);
+    const unchanged = await pool.query(
+      `SELECT 1 FROM audit_logs WHERE organization_id = $1 AND action = 'organization.updated'`,
+      [organizationId],
+    );
+    expect(unchanged.rowCount).toBe(1);
+  });
+
   it("synchronizes stale system-role permissions when roles are listed", async () => {
     const response = await app.inject({
       method: "GET",

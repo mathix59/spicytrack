@@ -33,6 +33,7 @@ import {
   parseCreateOrganizationBody,
   parseOrganizationJobQueueQuery,
   parseUpdateMemberRoleBody,
+  parseUpdateOrganizationBody,
   resolveOrganizationActorRole,
 } from "./organizations-controller.utils";
 import { OrganizationDeletionService } from "./organization-deletion.service";
@@ -54,6 +55,7 @@ import {
   OrganizationMemberDto,
   SuccessDto,
   UpdateMemberRoleBodyDto,
+  UpdateOrganizationBodyDto,
 } from "../openapi/contracts";
 import { BadRequestException } from "@nestjs/common";
 import { assertSlug, assertString, optionalDescription } from "../common/validators";
@@ -133,6 +135,25 @@ export class OrganizationsController {
   @ApiOkResponse({ type: OrganizationDto })
   get(@CurrentOrganization() organization: OrganizationRecord) {
     return organization;
+  }
+
+  @Patch(":orgSlug")
+  @ApiOperation({ operationId: "updateOrganization" })
+  @ApiParam({ name: "orgSlug", type: String })
+  @ApiBody({ type: UpdateOrganizationBodyDto })
+  @ApiOkResponse({ type: OrganizationDto })
+  @UseGuards(OrganizationContextGuard, PermissionGuard)
+  @RequirePermissions("org.settings.manage")
+  async update(
+    @CurrentOrganization() organization: OrganizationRecord,
+    @CurrentUser() user: UserRecord,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.organizationsService.renameOrganization({
+      organization,
+      actorUserId: user.id,
+      ...parseUpdateOrganizationBody(body),
+    });
   }
 
   @Delete(":orgSlug")

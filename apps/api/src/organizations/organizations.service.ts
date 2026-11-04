@@ -116,6 +116,33 @@ export class OrganizationsService {
     return organization;
   }
 
+  /** Renames the organization; the slug, and so every URL, stays the same. */
+  async renameOrganization(input: {
+    organization: { id: string; name: string };
+    actorUserId: string;
+    name: string;
+  }) {
+    const previousName = input.organization.name;
+    if (input.name === previousName) return this.getOrganization(input.organization.id);
+
+    const [updated] = await this.db
+      .update(organizations)
+      .set({ name: input.name, updatedAt: new Date() })
+      .where(eq(organizations.id, input.organization.id))
+      .returning();
+    if (!updated) throw new NotFoundException("Organization not found");
+
+    await this.auditService.record({
+      organizationId: updated.id,
+      actorUserId: input.actorUserId,
+      action: "organization.updated",
+      targetType: "organization",
+      targetId: updated.id,
+      payload: { previousName, name: updated.name },
+    });
+    return updated;
+  }
+
   async listMembers(organizationId: string) {
     return this.db
       .select({

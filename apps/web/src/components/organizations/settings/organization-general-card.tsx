@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 
+import { OrganizationRenameForm } from "./organization-rename-form";
+
 function DetailRow({
   label,
   value,
@@ -25,8 +27,14 @@ function DetailRow({
   );
 }
 
-/** Read-only identity of the organization (no rename endpoint exists yet). */
-function OrganizationGeneralCard({ organization }: { organization: OrganizationDto }) {
+/** Identity of the organization; settings managers can rename it, everyone else reads it. */
+function OrganizationGeneralCard({
+  organization,
+  canManage,
+}: {
+  organization: OrganizationDto;
+  canManage: boolean;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -40,9 +48,12 @@ function OrganizationGeneralCard({ organization }: { organization: OrganizationD
           Identifiers used in URLs, the API and SDK tooling for this organization.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="grid gap-4">
+        {canManage ? (
+          <OrganizationRenameForm key={organization.id} organization={organization} />
+        ) : null}
         <dl>
-          <DetailRow label="Name" value={organization.name} />
+          {canManage ? null : <DetailRow label="Name" value={organization.name} />}
           <DetailRow copyLabel="Copy slug" label="Slug" value={organization.slug} />
           <DetailRow
             copyLabel="Copy organization ID"

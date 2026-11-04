@@ -1909,6 +1909,15 @@ export class CreateOrganizationBodyDto {
   slug!: string;
 }
 
+export class UpdateOrganizationBodyDto {
+  @ApiProperty({
+    minLength: 1,
+    maxLength: 100,
+    description: "Display name; the slug never changes.",
+  })
+  name!: string;
+}
+
 export class AcceptInvitationBodyDto {
   @ApiProperty()
   token!: string;

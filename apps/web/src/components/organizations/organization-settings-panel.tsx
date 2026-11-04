@@ -71,7 +71,7 @@ function OrganizationSettingsPanel({
       </TabsList>
 
       <TabsContent className="mt-0 grid grid-cols-[minmax(0,1fr)] gap-6" value="general">
-        <OrganizationGeneralCard organization={organization} />
+        <OrganizationGeneralCard canManage={canManage} organization={organization} />
         <OrgGithubAppCard canManage={canManage} orgSlug={orgSlug} />
         <OrgSlackAppCard canManage={canManage} orgSlug={orgSlug} />
       </TabsContent>

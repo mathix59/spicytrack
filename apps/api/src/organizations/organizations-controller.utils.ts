@@ -10,6 +10,19 @@ function parseCreateOrganizationBody(body: Record<string, unknown>) {
   };
 }
 
+/** Display names only; the slug never changes on rename. */
+const ORGANIZATION_NAME_MAX_LENGTH = 100;
+
+function parseUpdateOrganizationBody(body: Record<string, unknown>) {
+  const name = assertString(body?.name, "name");
+  if (name.length > ORGANIZATION_NAME_MAX_LENGTH) {
+    throw new BadRequestException(
+      `name must contain at most ${ORGANIZATION_NAME_MAX_LENGTH} characters`,
+    );
+  }
+  return { name };
+}
+
 function parseCreateInvitationBody(body: Record<string, unknown>) {
   return {
     email: assertEmail(body.email),
@@ -98,10 +111,12 @@ function normalizeJobStatus(value: string | undefined) {
 }
 
 export {
+  ORGANIZATION_NAME_MAX_LENGTH,
   parseAcceptInvitationBody,
   parseCreateInvitationBody,
   parseCreateOrganizationBody,
   parseOrganizationJobQueueQuery,
   parseUpdateMemberRoleBody,
+  parseUpdateOrganizationBody,
   resolveOrganizationActorRole,
 };

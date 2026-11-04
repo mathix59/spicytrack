@@ -1497,6 +1497,15 @@ export interface OrganizationDto {
   ownerUserId: string;
 }
 
+export interface UpdateOrganizationBodyDto {
+  /**
+     * Display name; the slug never changes.
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+}
+
 export interface OrganizationMemberDto {
   memberId: string;
   role: string;
@@ -12786,6 +12795,101 @@ export function useGetOrganization<TData = Awaited<ReturnType<typeof getOrganiza
 
 
 
+
+export type updateOrganizationResponse200 = {
+  data: OrganizationDto
+  status: 200
+}
+
+export type updateOrganizationResponseSuccess = (updateOrganizationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type updateOrganizationResponse = (updateOrganizationResponseSuccess)
+
+export const getUpdateOrganizationUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}`
+}
+
+export const updateOrganization = async (orgSlug: string,
+    updateOrganizationBodyDto: UpdateOrganizationBodyDto, options?: Parameters<typeof orvalFetch>[1]): Promise<updateOrganizationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return orvalFetch<updateOrganizationResponse>(getUpdateOrganizationUrl(orgSlug),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateOrganizationBodyDto)
+  }
+);}
+
+
+
+
+
+export const getUpdateOrganizationMutationKey = () => ['updateOrganization'] as const;
+
+export const getUpdateOrganizationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganization>>, TError,UpdateOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrganization>>, TError,UpdateOrganizationMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrganizationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrganization>>, UpdateOrganizationMutationVariables> = (props) => {
+          const {orgSlug,data} = props ?? {};
+
+          return  updateOrganization(orgSlug,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrganizationMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrganization>>>
+    export type UpdateOrganizationMutationBody = BodyType<UpdateOrganizationBodyDto>
+    export type UpdateOrganizationMutationError = ErrorType<unknown>
+    export type UpdateOrganizationMutationVariables = {orgSlug: string;data: BodyType<UpdateOrganizationBodyDto>}
+
+    export const useUpdateOrganization = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrganization>>, TError,UpdateOrganizationMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateOrganization>>,
+        TError,
+        UpdateOrganizationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateOrganizationMutationOptions(options), queryClient);
+    }
 
 export type deleteOrganizationResponse200 = {
   data: SuccessDto
