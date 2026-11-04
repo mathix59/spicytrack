@@ -5,6 +5,8 @@ if (process.env.SPICYTRACK_LOAD_CONFIRM !== "yes") {
 const dsn = parseDsn(required("SPICYTRACK_DSN"));
 const concurrency = positiveInteger("SPICYTRACK_LOAD_CONCURRENCY", 10);
 const durationSeconds = positiveInteger("SPICYTRACK_LOAD_DURATION_SECONDS", 30);
+// 1 sends every event to the same issue, the worst case for issue row contention.
+const issueCount = positiveInteger("SPICYTRACK_LOAD_ISSUES", 1);
 const maximumErrorRate = ratio("SPICYTRACK_LOAD_MAX_ERROR_RATE", 0.01);
 const maximumP95Ms = positiveNumber("SPICYTRACK_LOAD_MAX_P95_MS", 1_000);
 const endpoint = new URL(`/api/${dsn.projectId}/store/`, dsn.origin);
@@ -13,6 +15,7 @@ const deadline = Date.now() + durationSeconds * 1_000;
 const latencies = [];
 let accepted = 0;
 let failed = 0;
+let issued = 0;
 
 await Promise.all(Array.from({ length: concurrency }, (_, worker) => runWorker(worker)));
 
@@ -24,6 +27,7 @@ const result = {
   status: errorRate <= maximumErrorRate && p95Ms <= maximumP95Ms ? "ok" : "failed",
   durationSeconds,
   concurrency,
+  issues: issueCount,
   requests: total,
   accepted,
   failed,
@@ -58,6 +62,7 @@ async function runWorker(worker) {
           release: "spicytrack-load-test",
           message: "Synthetic grouped ingestion load event",
           culprit: "scripts/load-ingest.mjs",
+          fingerprint: ["spicytrack-load-test", String(issued++ % issueCount)],
           tags: { synthetic: "true", worker: String(worker), sequence: String(sequence) },
         }),
         signal: AbortSignal.timeout(10_000),

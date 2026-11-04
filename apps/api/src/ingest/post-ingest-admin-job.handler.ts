@@ -3,6 +3,7 @@ import { AlertsService } from "../alerts/alerts.service";
 import { AutofixService } from "../autofix/autofix.service";
 import { Job } from "../jobs/jobs.service";
 import { JobsRunnerService } from "../jobs/jobs-runner.service";
+import { IssueCountsService } from "./issue-counts.service";
 import { POST_INGEST_ADMIN_JOB_TYPE, type PostIngestAdminJobPayload } from "./post-ingest-job";
 
 @Injectable()
@@ -11,6 +12,7 @@ export class PostIngestAdminJobHandler implements OnModuleInit {
     private readonly jobsRunnerService: JobsRunnerService,
     private readonly alertsService: AlertsService,
     private readonly autofixService: AutofixService,
+    private readonly issueCounts: IssueCountsService,
   ) {}
 
   onModuleInit(): void {
@@ -32,6 +34,9 @@ export class PostIngestAdminJobHandler implements OnModuleInit {
     ) {
       throw new Error("post_ingest_admin job payload is invalid");
     }
+
+    // Picks up counts a skipped or failed flush at ingest left pending.
+    await this.issueCounts.flush(payload.issueId);
 
     await this.alertsService.handleEvent({
       organizationId: payload.organizationId,

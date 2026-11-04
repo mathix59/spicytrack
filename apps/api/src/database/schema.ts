@@ -687,6 +687,28 @@ export const issues = pgTable(
 );
 
 /**
+ * Events counted on an issue but not yet folded into `issues.times_seen`: ingest appends here
+ * instead of updating a hot issue row, and `IssueCountsService` applies the rows in batches.
+ */
+export const issuePendingCounts = pgTable(
+  "issue_pending_counts",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issues.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id").notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }).notNull(),
+    title: text("title").notNull(),
+    culprit: text("culprit"),
+    level: varchar("level", { length: 32 }).notNull(),
+  },
+  (table) => ({
+    issueIdx: index("issue_pending_counts_issue_idx").on(table.issueId, table.id),
+  }),
+);
+
+/**
  * Partitioned by week on `ingested_at` (see migration 0020): retention drops whole partitions.
  * Postgres cannot enforce a unique `event_id` across partitions, so ingest serializes on it.
  */

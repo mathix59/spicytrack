@@ -26,6 +26,15 @@ export function privateDatabase(prefix: string) {
     },
     async drop() {
       await pool.end();
+      // `end` resolves before the closing sockets are gone, and FORCE would make them fail.
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        const { rows } = await admin.query<{ count: number }>(
+          "select count(*)::int as count from pg_stat_activity where datname = $1",
+          [name],
+        );
+        if (rows[0].count === 0) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
       await admin.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
       await admin.end();
     },

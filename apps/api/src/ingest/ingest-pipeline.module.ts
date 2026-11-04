@@ -3,6 +3,7 @@ import { JobsModule } from "../jobs/jobs.module";
 import { ReleaseHealthIngestService } from "../release-health/release-health-ingest.service";
 import { IngestResolversService } from "./ingest-resolvers.service";
 import { IngestService } from "./ingest.service";
+import { IssueCountsService } from "./issue-counts.service";
 import { PostIngestPublisherService } from "./post-ingest-publisher.service";
 
 /** The ingest pipeline without its public routes, so the web API can send test events. */
@@ -11,6 +12,7 @@ import { PostIngestPublisherService } from "./post-ingest-publisher.service";
   providers: [
     IngestService,
     IngestResolversService,
+    IssueCountsService,
     PostIngestPublisherService,
     ReleaseHealthIngestService,
   ],

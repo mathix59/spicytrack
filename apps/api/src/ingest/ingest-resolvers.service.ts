@@ -1,11 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { environments, releases } from "../database/schema";
 
 import type { ResolveEnvironmentInput, ResolveReleaseInput } from "./ingest.types";
+import { LAST_SEEN_RESOLUTION_MS } from "./ingest-limits";
 
 @Injectable()
 export class IngestResolversService {
@@ -68,6 +69,7 @@ export class IngestResolversService {
       .select({
         id: releases.id,
         firstSeenAt: releases.firstSeenAt,
+        lastSeenAt: releases.lastSeenAt,
       })
       .from(releases)
       .where(
@@ -76,14 +78,28 @@ export class IngestResolversService {
       .limit(1);
 
     if (existing) {
-      await this.db
-        .update(releases)
-        .set({
-          firstSeenAt: existing.firstSeenAt ?? input.timestamp,
-          lastSeenAt: input.timestamp,
-          updatedAt: new Date(),
-        })
-        .where(eq(releases.id, existing.id));
+      // Every event of the release would otherwise queue on its row: within
+      // LAST_SEEN_RESOLUTION_MS the timestamp is close enough.
+      const staleBefore = new Date(input.timestamp.getTime() - LAST_SEEN_RESOLUTION_MS);
+      if (!existing.firstSeenAt || !existing.lastSeenAt || existing.lastSeenAt < staleBefore) {
+        await this.db
+          .update(releases)
+          .set({
+            firstSeenAt: existing.firstSeenAt ?? input.timestamp,
+            lastSeenAt: input.timestamp,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(releases.id, existing.id),
+              or(
+                isNull(releases.firstSeenAt),
+                isNull(releases.lastSeenAt),
+                lt(releases.lastSeenAt, staleBefore),
+              ),
+            ),
+          );
+      }
 
       return existing.id;
     }

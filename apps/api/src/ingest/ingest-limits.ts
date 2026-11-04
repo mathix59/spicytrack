@@ -2,6 +2,8 @@ const DEFAULT_MAX_EVENT_BYTES = 1_000_000;
 const DEFAULT_PROJECT_EVENTS_PER_HOUR = 10_000;
 const DEFAULT_ORGANIZATION_EVENTS_PER_HOUR = 50_000;
 const DEFAULT_PROJECT_SESSIONS_PER_HOUR = 100_000;
+/** How stale ingest lets a project's or release's last-seen time get before rewriting it. */
+const LAST_SEEN_RESOLUTION_MS = 10_000;
 
 function nonNegativeInteger(name: string, fallback: number): number {
   const value = Number(process.env[name] ?? fallback);
@@ -36,4 +38,4 @@ function ingestLimits() {
   };
 }
 
-export { ingestLimits };
+export { ingestLimits, LAST_SEEN_RESOLUTION_MS };

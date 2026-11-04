@@ -11,6 +11,7 @@ import {
   events,
   issueActivity,
   issueComments,
+  issuePendingCounts,
   issues,
   organizationMembers,
   releases,
@@ -473,6 +474,11 @@ export class IssuesService {
         .update(issues)
         .set({ mergedIntoIssueId: target.id, updatedAt: new Date() })
         .where(eq(issues.mergedIntoIssueId, source.id));
+      // Events of the source not yet counted on it are counted on the target instead.
+      await tx
+        .update(issuePendingCounts)
+        .set({ issueId: target.id })
+        .where(eq(issuePendingCounts.issueId, source.id));
       await tx
         .update(issues)
         .set({

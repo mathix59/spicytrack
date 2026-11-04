@@ -8,7 +8,7 @@ import {
   NotFoundException,
   PayloadTooLargeException,
 } from "@nestjs/common";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 
 import { GROUPING_VERSION } from "../common/grouping";
 import { isUniqueViolation } from "../common/postgres-errors";
@@ -29,13 +29,14 @@ import {
   normalizeSessionUpdate,
 } from "../release-health/session-updates";
 import { IngestResolversService } from "./ingest-resolvers.service";
+import { IssueCountsService } from "./issue-counts.service";
 import {
   applyProjectPolicies,
   resolveIssueReopenState,
   resolveSuggestedAssignee,
 } from "./ingest-policies";
 import type { IngestContext, IngestProjectAccess } from "./ingest.types";
-import { ingestLimits } from "./ingest-limits";
+import { ingestLimits, LAST_SEEN_RESOLUTION_MS } from "./ingest-limits";
 import { recordIngestOutcome } from "./ingest-metrics";
 import {
   InvalidEnvelopeError,
@@ -86,6 +87,7 @@ export class IngestService {
     private readonly ingestResolvers: IngestResolversService,
     private readonly postIngestPublisher: PostIngestPublisherService,
     private readonly releaseHealth: ReleaseHealthIngestService,
+    private readonly issueCounts: IssueCountsService,
   ) {}
 
   async ingestStore(projectId: string, payload: Record<string, unknown>, sentryKey?: string) {
@@ -263,6 +265,9 @@ export class IngestService {
 
     try {
       await this.db.transaction(async (tx) => {
+        // Every event of a project updates the same counter rows: not waiting for the WAL flush
+        // shortens how long they stay locked. A crash can only forget a few counted events.
+        await tx.execute(sql`set local synchronous_commit = off`);
         for (const quota of quotas) {
           const now = Date.now();
           const windowStartedAt = new Date(Math.floor(now / quota.windowMs) * quota.windowMs);
@@ -381,17 +386,25 @@ export class IngestService {
       const duplicate = await this.findExistingEvent(project.id, parsedPayload.eventExternalId, tx);
       if (duplicate) return { duplicate };
 
-      const { issue, issueWasCreated, issueRegressed, mergedFromIssueId } = await this.upsertIssue(
-        tx,
-        context,
-        parsedPayload,
-      );
+      const { issue, issueWasCreated, issueRegressed, mergedFromIssueId, counted } =
+        await this.upsertIssue(tx, context, parsedPayload);
       const event = await this.insertEvent(tx, context, issue.id, parsedPayload, mergedFromIssueId);
 
-      await this.linkLastEvent(tx, issue.id, event.id);
+      if (counted) {
+        await this.linkLastEvent(tx, issue.id, event.id);
+      } else {
+        await this.issueCounts.add(tx, {
+          issueId: issue.id,
+          eventId: event.id,
+          seenAt: context.timestamp,
+          title: parsedPayload.title,
+          culprit: parsedPayload.culprit,
+          level: parsedPayload.level,
+        });
+      }
       await this.touchProject(tx, project.id, parsedPayload.timestamp, options.firstEvent ?? true);
 
-      return { issue, issueWasCreated, issueRegressed, event };
+      return { issue, issueWasCreated, issueRegressed, event, counted };
     });
 
     if (result.duplicate) {
@@ -403,13 +416,14 @@ export class IngestService {
       };
     }
 
+    const timesSeen = await this.flushIssueCounts(result.issue.id);
     await this.dispatchPostIngestEffects({
       context,
       issueId: result.issue.id,
       eventId: result.event.id,
       issueTitle: result.issue.title,
       issueStatus: result.issue.status,
-      timesSeen: result.issue.timesSeen,
+      timesSeen: timesSeen ?? result.issue.timesSeen + (result.counted ? 0 : 1),
       issueWasCreated: result.issueWasCreated,
       issueRegressed: result.issueRegressed,
     });
@@ -420,6 +434,17 @@ export class IngestService {
       issueId: result.issue.id,
       eventId: result.event.id,
     };
+  }
+
+  /** Pending counts stay for the post-ingest job to flush when this one fails. */
+  private async flushIssueCounts(issueId: string) {
+    try {
+      return await this.issueCounts.flush(issueId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Could not flush the counts of issue ${issueId}: ${message}`);
+      return null;
+    }
   }
 
   private async buildIngestContext(
@@ -527,7 +552,7 @@ export class IngestService {
       .returning();
 
     if (insertedIssue) {
-      return { issue: insertedIssue, issueWasCreated: true, issueRegressed: false };
+      return { issue: insertedIssue, issueWasCreated: true, issueRegressed: false, counted: true };
     }
 
     // Another event created the issue between the lookup and the insert.
@@ -549,6 +574,8 @@ export class IngestService {
     issueWasCreated: boolean;
     issueRegressed: boolean;
     mergedFromIssueId?: string;
+    /** False when the event left its count to `IssueCountsService` instead of updating the issue. */
+    counted: boolean;
   }> {
     if (currentIssue.mergedIntoIssueId) {
       const [targetIssue] = await tx
@@ -566,6 +593,7 @@ export class IngestService {
           issueWasCreated: false,
           issueRegressed: false,
           mergedFromIssueId: currentIssue.id,
+          counted: true,
         };
       }
     }
@@ -574,6 +602,18 @@ export class IngestService {
       ...context,
       releaseCreatedAt: await this.releaseCreatedAtForReopen(tx, currentIssue, context.releaseId),
     });
+
+    // Most events change nothing but the counters: leave those to a batched flush, so events
+    // of a busy issue do not queue on its row.
+    const unchanged =
+      !shouldReopen &&
+      !isRegression &&
+      (currentIssue.environmentId !== null || context.environmentId === null) &&
+      (context.releaseId === null || context.releaseId === currentIssue.releaseId) &&
+      (currentIssue.assignedUserId !== null || context.suggestedAssigneeId === null);
+    if (unchanged) {
+      return { issue: currentIssue, issueWasCreated: false, issueRegressed: false, counted: false };
+    }
 
     const [updatedIssue] = await tx
       .update(issues)
@@ -597,7 +637,12 @@ export class IngestService {
       .where(eq(issues.id, currentIssue.id))
       .returning();
 
-    return { issue: updatedIssue, issueWasCreated: false, issueRegressed: isRegression };
+    return {
+      issue: updatedIssue,
+      issueWasCreated: false,
+      issueRegressed: isRegression,
+      counted: true,
+    };
   }
 
   /** Only an issue resolved in the next release needs to know when the event's release appeared. */
@@ -689,7 +734,18 @@ export class IngestService {
         lastEventAt: timestamp,
         updatedAt: new Date(),
       })
-      .where(eq(projects.id, projectId));
+      // Every event of the project would otherwise queue on this row: within
+      // LAST_SEEN_RESOLUTION_MS the timestamp is close enough.
+      .where(
+        and(
+          eq(projects.id, projectId),
+          or(
+            isNull(projects.lastEventAt),
+            lt(projects.lastEventAt, new Date(timestamp.getTime() - LAST_SEEN_RESOLUTION_MS)),
+            firstEvent ? isNull(projects.firstEventAt) : undefined,
+          ),
+        ),
+      );
   }
 
   private async dispatchPostIngestEffects(input: {
