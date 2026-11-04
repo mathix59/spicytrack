@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import {
@@ -63,10 +63,20 @@ function useIssueDetailPage(): IssuePageData {
 
   const projectQuery = useGetProject(orgSlug, projectSlug);
   const membersQuery = useListOrganizationMembers(orgSlug);
-  const issueQuery = useGetIssue(orgSlug, projectSlug, issueId, {
-    eventPage,
-    eventPageSize: EVENT_PAGE_SIZE,
-  });
+  // The previous event page of this issue stays on screen while the next one loads; another
+  // issue never shows the previous one's data.
+  const issueQuery = useGetIssue(
+    orgSlug,
+    projectSlug,
+    issueId,
+    { eventPage, eventPageSize: EVENT_PAGE_SIZE },
+    {
+      query: {
+        placeholderData: (previous) =>
+          previous?.data.issue.id === issueId ? keepPreviousData(previous) : undefined,
+      },
+    },
+  );
   const neighborsQuery = useGetIssueNeighbors(
     orgSlug,
     projectSlug,
@@ -157,7 +167,9 @@ function useIssueDetailPage(): IssuePageData {
   const events = issueDetail?.events.items ?? EMPTY_EVENTS;
   const totalEvents = issueDetail?.events.total ?? 0;
   const totalEventPages = Math.max(1, Math.ceil(totalEvents / EVENT_PAGE_SIZE));
-  const safeEventPage = Math.min(eventPage, totalEventPages);
+  // Missing or retained data is not a response for the requested page yet.
+  const eventsSettled = Boolean(issueDetail) && !issueQuery.isPlaceholderData;
+  const safeEventPage = eventsSettled ? Math.min(eventPage, totalEventPages) : eventPage;
   const selectedEvent = eventQuery.data?.data;
   const firstEventId = events[0]?.id;
   const projectPath = `/orgs/${orgSlug}/projects/${projectSlug}`;
@@ -185,23 +197,17 @@ function useIssueDetailPage(): IssuePageData {
     (run) => run.status === "queued" || run.status === "running" || run.status === "checking",
   );
 
-  useEffect(() => {
-    if (!selectedEventId && firstEventId) {
-      setSelectedEventId(firstEventId);
-    }
-  }, [firstEventId, selectedEventId]);
+  // Keep the selection and page consistent with the loaded events. These adjust state during
+  // render (each is guarded, so it settles after at most one extra render) instead of in effects.
+  if (eventsSettled && !selectedEventId && firstEventId) {
+    setSelectedEventId(firstEventId);
+  } else if (eventsSettled && selectedEventId && !hasSelectedEvent) {
+    setSelectedEventId(null);
+  }
 
-  useEffect(() => {
-    if (selectedEventId && !hasSelectedEvent) {
-      setSelectedEventId(null);
-    }
-  }, [hasSelectedEvent, selectedEventId]);
-
-  useEffect(() => {
-    if (eventPage !== safeEventPage) {
-      setEventPage(safeEventPage);
-    }
-  }, [eventPage, safeEventPage]);
+  if (eventPage !== safeEventPage) {
+    setEventPage(safeEventPage);
+  }
 
   const goNewer = () => {
     if (selectedEventIndex > 0) {

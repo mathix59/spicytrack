@@ -35,6 +35,18 @@ function asGitHubMode(connection: { htmlUrl?: unknown; apiUrl?: unknown }): GitH
     : "cloud";
 }
 
+/**
+ * Whether render-time inputs differ from the ones last seen, compared like effect dependencies.
+ * `null` means never seen, so the first render counts as a change.
+ */
+function inputsChanged(previous: readonly unknown[] | null, next: readonly unknown[]): boolean {
+  return (
+    previous === null ||
+    previous.length !== next.length ||
+    previous.some((value, index) => !Object.is(value, next[index]))
+  );
+}
+
 /** Builds the upsert/test request body from the connection form. */
 function readRepoConnectionForm(
   form: HTMLFormElement,
@@ -76,5 +88,12 @@ function readRepoConnectionForm(
   };
 }
 
-export { asGitHubMode, asOptionalString, asProvider, errorMessage, readRepoConnectionForm };
+export {
+  asGitHubMode,
+  asOptionalString,
+  asProvider,
+  errorMessage,
+  inputsChanged,
+  readRepoConnectionForm,
+};
 export type { GitHubMode };

@@ -6,6 +6,9 @@ import { getErrorMessage } from "@/lib/utils";
 
 type AuthMode = "login" | "register" | "forgot";
 
+const SSO_ERROR_MESSAGE =
+  "SSO authentication failed. Please try again or contact your administrator.";
+
 function useAuthForm({
   onAuthenticated,
   invitationToken,
@@ -14,14 +17,16 @@ function useAuthForm({
   invitationToken?: string;
 }) {
   const [mode, setMode] = useState<AuthMode>(invitationToken ? "register" : "login");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    new URL(window.location.href).searchParams.has("error") ? SSO_ERROR_MESSAGE : null,
+  );
   const [forgotSent, setForgotSent] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
+  // The SSO error is read into the initial state above; this only cleans it out of the URL.
   useEffect(() => {
     const url = new URL(window.location.href);
     if (!url.searchParams.has("error")) return;
-    setError("SSO authentication failed. Please try again or contact your administrator.");
     url.searchParams.delete("error");
     url.searchParams.delete("error_description");
     window.history.replaceState({}, "", url);

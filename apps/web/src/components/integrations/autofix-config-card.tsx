@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -72,7 +72,10 @@ function AutofixConfigCard({
   const configQuery = useGetAutofixConfig(orgSlug, projectSlug);
   const config = configQuery.data?.data;
 
-  useEffect(() => {
+  // Re-seed the form whenever the query yields a new config (initial load or refetch).
+  const [seededConfig, setSeededConfig] = useState<typeof config>(undefined);
+  if (config !== seededConfig) {
+    setSeededConfig(config);
     if (config) {
       setEnabled(config.enabled);
       setAutoTrigger(config.autoTriggerOnNewIssue);
@@ -80,7 +83,7 @@ function AutofixConfigCard({
       setAutoFix(config.autoFixAfterAnalysis);
       setRequireChecks(config.requirePassingChecks);
     }
-  }, [config]);
+  }
 
   const updateMutation = useUpdateAutofixConfig({
     mutation: {

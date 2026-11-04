@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import {
   asProvider,
   errorMessage,
   type GitHubMode,
+  inputsChanged,
   readRepoConnectionForm,
 } from "./utils";
 
@@ -99,39 +100,51 @@ function useRepoConnection({
     connection?.provider === "github" &&
     githubMode !== asGitHubMode(connection);
 
-  useEffect(() => {
+  // Form state is seeded from the saved connection and re-seeded when its inputs change.
+  // Each block below adjusts state during render when its inputs differ from the ones it last
+  // saw (null = never ran, so the first render seeds like a mount effect would).
+  const [seenProviderInputs, setSeenProviderInputs] = useState<unknown[] | null>(null);
+  const providerInputs = [connection?.provider];
+  if (inputsChanged(seenProviderInputs, providerInputs)) {
+    setSeenProviderInputs(providerInputs);
     if (connection?.provider) {
       setProvider(connection.provider);
     }
-  }, [connection?.provider]);
+  }
 
-  useEffect(() => {
+  const [seenGithubModeInputs, setSeenGithubModeInputs] = useState<unknown[] | null>(null);
+  const githubModeInputs = [connection];
+  if (inputsChanged(seenGithubModeInputs, githubModeInputs)) {
+    setSeenGithubModeInputs(githubModeInputs);
     if (connection?.provider === "github") {
       setGithubMode(asGitHubMode(connection));
     }
-  }, [connection]);
+  }
 
-  useEffect(() => {
-    if (provider !== "github" || !githubAppReady) {
-      return;
+  const [seenRepoInputs, setSeenRepoInputs] = useState<unknown[] | null>(null);
+  const repoInputs = [connection?.repoIdentifier, githubAppReady, provider];
+  if (inputsChanged(seenRepoInputs, repoInputs)) {
+    setSeenRepoInputs(repoInputs);
+    if (provider === "github" && githubAppReady) {
+      setSelectedGithubRepo(connection?.repoIdentifier ?? "");
     }
+  }
 
-    const repoIdentifier = connection?.repoIdentifier ?? "";
-    setSelectedGithubRepo(repoIdentifier);
-  }, [connection?.repoIdentifier, githubAppReady, provider]);
-
-  useEffect(() => {
-    if (provider !== "github" || !githubAppReady) {
-      return;
+  const [seenBranchInputs, setSeenBranchInputs] = useState<unknown[] | null>(null);
+  const branchInputs = [
+    connection?.defaultBranch,
+    githubAppReady,
+    provider,
+    selectedGithubRepository,
+  ];
+  if (inputsChanged(seenBranchInputs, branchInputs)) {
+    setSeenBranchInputs(branchInputs);
+    if (provider === "github" && githubAppReady) {
+      setSelectedDefaultBranch(
+        selectedGithubRepository?.defaultBranch || (connection?.defaultBranch ?? ""),
+      );
     }
-
-    if (selectedGithubRepository?.defaultBranch) {
-      setSelectedDefaultBranch(selectedGithubRepository.defaultBranch);
-      return;
-    }
-
-    setSelectedDefaultBranch(connection?.defaultBranch ?? "");
-  }, [connection?.defaultBranch, githubAppReady, provider, selectedGithubRepository]);
+  }
 
   const readForm = (form: HTMLFormElement) =>
     readRepoConnectionForm(form, { githubAppReady, selectedGithubRepo, selectedDefaultBranch });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ExternalLink, GitBranch } from "lucide-react";
@@ -53,9 +53,13 @@ function OrgGithubAppCard({ orgSlug, canManage }: { orgSlug: string; canManage: 
   const settings = settingsQuery.data?.data;
   const connected = Boolean(settings?.appId && settings.privateKeySet && settings.installationId);
 
-  useEffect(() => {
+  // Switch to enterprise whenever the saved mode becomes enterprise; a manual choice sticks
+  // until the saved mode changes again.
+  const [seenSettingsMode, setSeenSettingsMode] = useState<string | undefined>(undefined);
+  if (settings?.mode !== seenSettingsMode) {
+    setSeenSettingsMode(settings?.mode);
     if (settings?.mode === "enterprise") setMode("enterprise");
-  }, [settings?.mode]);
+  }
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({

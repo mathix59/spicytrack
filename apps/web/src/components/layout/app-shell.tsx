@@ -1,5 +1,5 @@
 import { Menu, Search } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import type { MeResponseDto } from "@/generated/api";
@@ -57,9 +57,14 @@ function AppShell({
   const mobileNavigationTriggerRef = useRef<HTMLButtonElement>(null);
   const palette = useCommandPalette();
 
-  useEffect(() => {
+  // Close the mobile navigation on navigation. A pathname never contains "?", so the
+  // concatenation identifies the (pathname, search) pair.
+  const locationKey = location.pathname + location.search;
+  const [navigationLocationKey, setNavigationLocationKey] = useState(locationKey);
+  if (locationKey !== navigationLocationKey) {
+    setNavigationLocationKey(locationKey);
     setMobileNavigationOpen(false);
-  }, [location.pathname, location.search]);
+  }
 
   const navigation = (
     <>

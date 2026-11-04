@@ -220,11 +220,19 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
   const issueHref = (issueId: string) =>
     withIssueListContext(`/orgs/${orgSlug}/projects/${projectSlug}/issues/${issueId}`, listContext);
 
-  useEffect(() => {
-    if (page !== safePage) {
-      setPage(safePage);
-    }
-  }, [page, safePage]);
+  // Clamp an out-of-range page during render so the URL and query only ever see the safe page.
+  if (page !== safePage) {
+    setPage(safePage);
+  }
+
+  // Drop selected issues that are no longer visible when the page of results changes.
+  const [selectionVisibleIssueIds, setSelectionVisibleIssueIds] = useState(visibleIssueIds);
+  if (selectionVisibleIssueIds !== visibleIssueIds) {
+    setSelectionVisibleIssueIds(visibleIssueIds);
+    setSelectedIssueIds((current) =>
+      current.filter((issueId) => visibleIssueIds.includes(issueId)),
+    );
+  }
 
   useEffect(() => {
     const nextParams = new URLSearchParams(searchParams);
@@ -316,12 +324,6 @@ function useProjectIssues({ orgSlug, projectSlug }: ProjectIssuesOptions) {
     sortDir,
     statusFilter,
   ]);
-
-  useEffect(() => {
-    setSelectedIssueIds((current) =>
-      current.filter((issueId) => visibleIssueIds.includes(issueId)),
-    );
-  }, [visibleIssueIds]);
 
   const toggleIssueSelection = (issueId: string) => {
     if (allMatchingSelected) {

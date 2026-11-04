@@ -106,12 +106,11 @@ function useProjectPage(): ProjectPageState {
     }
   }, [navigate, orgSlug, projectQuery.error]);
 
-  useEffect(() => {
-    const firstRelease = releases[0]?.version;
-    if (!selectedReleaseVersion && firstRelease) {
-      setSelectedReleaseVersion(firstRelease);
-    }
-  }, [releases, selectedReleaseVersion]);
+  // Default to the first release once releases load (adjusted during render, not in an effect).
+  const firstReleaseVersion = releases[0]?.version;
+  if (!selectedReleaseVersion && firstReleaseVersion) {
+    setSelectedReleaseVersion(firstReleaseVersion);
+  }
 
   const updateProjectSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
