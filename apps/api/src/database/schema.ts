@@ -686,10 +686,14 @@ export const issues = pgTable(
   }),
 );
 
+/**
+ * Partitioned by week on `ingested_at` (see migration 0020): retention drops whole partitions.
+ * Postgres cannot enforce a unique `event_id` across partitions, so ingest serializes on it.
+ */
 export const events = pgTable(
   "events",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: uuid("id").defaultRandom().notNull(),
     organizationId: uuid("organization_id").notNull(),
     projectId: uuid("project_id").notNull(),
     issueId: uuid("issue_id").notNull(),
@@ -720,7 +724,8 @@ export const events = pgTable(
     rawPayload: jsonb("raw_payload").notNull(),
   },
   (table) => ({
-    eventExternalIdx: uniqueIndex("events_project_event_id_idx").on(table.projectId, table.eventId),
+    pk: primaryKey({ columns: [table.id, table.ingestedAt] }),
+    eventExternalIdx: index("events_project_event_id_idx").on(table.projectId, table.eventId),
     issueTimestampIdx: index("events_issue_timestamp_idx").on(table.issueId, table.timestamp),
     projectTimestampIdx: index("events_project_timestamp_idx").on(table.projectId, table.timestamp),
     // Issue list filters by environment / release read issue ids straight from these.

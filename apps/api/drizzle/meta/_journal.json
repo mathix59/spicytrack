@@ -141,6 +141,13 @@
       "when": 1793742507461,
       "tag": "0019_release_health",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793784210191,
+      "tag": "0020_event_partitions",
+      "breakpoints": true
     }
   ]
 }

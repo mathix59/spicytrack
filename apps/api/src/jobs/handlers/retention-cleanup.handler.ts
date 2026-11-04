@@ -19,6 +19,7 @@ import {
   releaseHealthUsers,
 } from "../../database/schema";
 import { SESSION_MAX_AGE_MS } from "../../release-health/session-updates";
+import { EventPartitionsService } from "./event-partitions";
 
 const BATCH_SIZE = 500;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -53,12 +54,18 @@ export function retentionSettings(): RetentionSettings {
 export class RetentionCleanupHandler {
   private readonly logger = new Logger(RetentionCleanupHandler.name);
 
-  constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: DatabaseClient,
+    private readonly eventPartitions: EventPartitionsService,
+  ) {}
 
   async run(signal?: AbortSignal): Promise<void> {
     const now = Date.now();
     const settings = retentionSettings();
     const ago = (days: number) => new Date(now - days * DAY_MS);
+
+    // Whole weeks past every project's retention go first; the deletes below only see the rest.
+    await this.eventPartitions.maintain(new Date(now));
 
     await this.db
       .delete(ingestRateCounters)

@@ -372,67 +372,54 @@ export class IngestService {
     await this.consumeQuotas(project);
     const context = await this.buildIngestContext(project, parsedPayload);
 
-    try {
-      const result = await this.db.transaction(async (tx) => {
-        const { issue, issueWasCreated, issueRegressed, mergedFromIssueId } =
-          await this.upsertIssue(tx, context, parsedPayload);
-        const event = await this.insertEvent(
-          tx,
-          context,
-          issue.id,
-          parsedPayload,
-          mergedFromIssueId,
-        );
-
-        await this.linkLastEvent(tx, issue.id, event.id);
-        await this.touchProject(
-          tx,
-          project.id,
-          parsedPayload.timestamp,
-          options.firstEvent ?? true,
-        );
-
-        return { issue, issueWasCreated, issueRegressed, event };
-      });
-
-      await this.dispatchPostIngestEffects({
-        context,
-        issueId: result.issue.id,
-        eventId: result.event.id,
-        issueTitle: result.issue.title,
-        issueStatus: result.issue.status,
-        timesSeen: result.issue.timesSeen,
-        issueWasCreated: result.issueWasCreated,
-        issueRegressed: result.issueRegressed,
-      });
-
-      return {
-        accepted: true,
-        projectId: project.id,
-        issueId: result.issue.id,
-        eventId: result.event.id,
-      };
-    } catch (error) {
-      if (!this.isDuplicateEventError(error)) {
-        throw error;
-      }
-
-      const duplicateEvent = await this.findExistingEvent(
-        project.id,
-        parsedPayload.eventExternalId,
+    const result = await this.db.transaction(async (tx) => {
+      // Events are partitioned, so no unique index guards event_id: concurrent deliveries of
+      // the same event wait for each other here, and the later one finds the stored event.
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`${project.id}:${parsedPayload.eventExternalId}`}, 0))`,
       );
+      const duplicate = await this.findExistingEvent(project.id, parsedPayload.eventExternalId, tx);
+      if (duplicate) return { duplicate };
 
-      if (!duplicateEvent) {
-        throw error;
-      }
+      const { issue, issueWasCreated, issueRegressed, mergedFromIssueId } = await this.upsertIssue(
+        tx,
+        context,
+        parsedPayload,
+      );
+      const event = await this.insertEvent(tx, context, issue.id, parsedPayload, mergedFromIssueId);
 
+      await this.linkLastEvent(tx, issue.id, event.id);
+      await this.touchProject(tx, project.id, parsedPayload.timestamp, options.firstEvent ?? true);
+
+      return { issue, issueWasCreated, issueRegressed, event };
+    });
+
+    if (result.duplicate) {
       return {
         accepted: true,
         projectId: project.id,
-        issueId: duplicateEvent.issueId,
-        eventId: duplicateEvent.id,
+        issueId: result.duplicate.issueId,
+        eventId: result.duplicate.id,
       };
     }
+
+    await this.dispatchPostIngestEffects({
+      context,
+      issueId: result.issue.id,
+      eventId: result.event.id,
+      issueTitle: result.issue.title,
+      issueStatus: result.issue.status,
+      timesSeen: result.issue.timesSeen,
+      issueWasCreated: result.issueWasCreated,
+      issueRegressed: result.issueRegressed,
+    });
+
+    return {
+      accepted: true,
+      projectId: project.id,
+      issueId: result.issue.id,
+      eventId: result.event.id,
+    };
   }
 
   private async buildIngestContext(
@@ -728,17 +715,17 @@ export class IngestService {
     });
   }
 
-  private async findExistingEvent(projectId: string, eventExternalId: string) {
-    const [event] = await this.db
+  private async findExistingEvent(
+    projectId: string,
+    eventExternalId: string,
+    db: DatabaseClient | TransactionClient = this.db,
+  ) {
+    const [event] = await db
       .select({ id: events.id, issueId: events.issueId })
       .from(events)
       .where(and(eq(events.projectId, projectId), eq(events.eventId, eventExternalId)))
       .limit(1);
 
     return event;
-  }
-
-  private isDuplicateEventError(error: unknown): boolean {
-    return isUniqueViolation(error, "events_project_event_id_idx");
   }
 }
