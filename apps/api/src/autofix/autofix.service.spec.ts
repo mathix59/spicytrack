@@ -144,3 +144,67 @@ describe("AutofixService.maybeAutoTrigger", () => {
     warn.mockRestore();
   });
 });
+
+describe("AutofixService.getAvailability", () => {
+  const enabledConfig = {
+    enabled: true,
+    autoTriggerOnNewIssue: false,
+    autoMerge: false,
+    autoFixAfterAnalysis: false,
+    requirePassingChecks: true,
+    dailyCap: 5,
+    targetBranch: null,
+  };
+
+  function service(input: { connection: unknown; aiKey: string | null; enabled: boolean }) {
+    const db = {
+      select: jest.fn(() => ({
+        from: jest.fn(() => ({
+          where: jest.fn(() => ({
+            limit: jest.fn(async () => (input.aiKey ? [{ apiKeyCiphertext: input.aiKey }] : [])),
+          })),
+        })),
+      })),
+    };
+    const instance = new AutofixService(
+      db as never,
+      { findConnection: jest.fn(async () => input.connection) } as never,
+      {} as never,
+      { record: jest.fn() } as never,
+      {} as never,
+    );
+    jest
+      .spyOn(instance, "getConfig")
+      .mockResolvedValue({ ...enabledConfig, enabled: input.enabled });
+    return instance;
+  }
+
+  it("is available once a repository, an AI key and the project setting are in place", async () => {
+    await expect(
+      service({
+        connection: { id: "connection-id" },
+        aiKey: "cipher",
+        enabled: true,
+      }).getAvailability("organization-id", "project-id"),
+    ).resolves.toEqual({ available: true, missing: [] });
+  });
+
+  it("lists every missing requirement in setup order", async () => {
+    await expect(
+      service({ connection: null, aiKey: null, enabled: false }).getAvailability(
+        "organization-id",
+        "project-id",
+      ),
+    ).resolves.toEqual({ available: false, missing: ["repository", "ai_key", "enabled"] });
+  });
+
+  it("reports a project with Autofix turned off as unavailable", async () => {
+    await expect(
+      service({
+        connection: { id: "connection-id" },
+        aiKey: "cipher",
+        enabled: false,
+      }).getAvailability("organization-id", "project-id"),
+    ).resolves.toEqual({ available: false, missing: ["enabled"] });
+  });
+});

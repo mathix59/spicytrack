@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
 import { AuthGuard } from "../auth/auth.guard";
@@ -25,6 +27,7 @@ import type { OrganizationRecord, ProjectRecord, UserRecord } from "../common/re
 import { assertOneOf, assertString, optionalNullableString } from "../common/validators";
 import {
   AlertDeliveryDto,
+  AlertDeliveryPageDto,
   AlertRuleDto,
   CreateAlertRuleBodyDto,
   SuccessDto,
@@ -38,10 +41,11 @@ import {
   assertDestinationTarget,
   assertTriggerTypes,
   optionalBoundedInteger,
+  parseDeliveryQuery,
   resolveDestinationUpdate,
 } from "./alerts-controller.utils";
 import { AlertsService } from "./alerts.service";
-import { DESTINATION_TYPES } from "./alerts.types";
+import { DELIVERY_STATUSES, DESTINATION_TYPES } from "./alerts.types";
 import type { DestinationType } from "./alerts.types";
 
 @ApiTags("alerts")
@@ -209,10 +213,19 @@ export class AlertsController {
 
   @Get("deliveries")
   @ApiOperation({ operationId: "listProjectAlertDeliveries" })
-  @ApiOkResponse({ type: [AlertDeliveryDto] })
+  @ApiQuery({ name: "cursor", required: false, type: String })
+  @ApiQuery({ name: "limit", required: false, type: Number, description: "1-100, default 25" })
+  @ApiQuery({ name: "status", required: false, enum: DELIVERY_STATUSES })
+  @ApiOkResponse({ type: AlertDeliveryPageDto })
   @RequirePermissions("project.alerts.read")
   @UseGuards(PermissionGuard)
-  async listDeliveries(@CurrentProject() project: ProjectRecord) {
-    return this.alertsService.listDeliveries(project.id);
+  async listDeliveries(
+    @CurrentProject() project: ProjectRecord,
+    @Query() query: Record<string, unknown>,
+  ) {
+    return this.alertsService.listDeliveries({
+      projectId: project.id,
+      ...parseDeliveryQuery(query),
+    });
   }
 }

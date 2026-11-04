@@ -1,14 +1,15 @@
 import { randomBytes } from "node:crypto";
 
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, lt, or, sql, type SQL } from "drizzle-orm";
 import { AuditService } from "../audit/audit.service";
+import { type CreatedAtCursor, encodeCreatedAtCursor } from "../common/created-at-cursor";
 import { encryptSecret } from "../common/secrets";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { alertDeliveries, alertIssueCooldowns, alertRules } from "../database/schema";
 import { loadProjectLinks } from "./alert-links";
-import type { DestinationType } from "./alerts.types";
+import type { DeliveryStatus, DestinationType } from "./alerts.types";
 import { AlertsExecutionService } from "./alerts-execution.service";
 
 /**
@@ -341,13 +342,55 @@ export class AlertsService {
     return delivery;
   }
 
-  async listDeliveries(projectId: string) {
-    return this.db
-      .select()
+  /** Newest first, one page at a time; `status` keeps only deliveries in that state. */
+  async listDeliveries(input: {
+    projectId: string;
+    limit: number;
+    cursor?: CreatedAtCursor;
+    status?: DeliveryStatus;
+  }) {
+    const conditions: SQL[] = [eq(alertDeliveries.projectId, input.projectId)];
+    if (input.status) conditions.push(eq(alertDeliveries.status, input.status));
+    if (input.cursor) {
+      // Compared as text-cast timestamps: a JS Date would drop the microseconds.
+      const createdAt = sql`${input.cursor.createdAt}::timestamptz`;
+      conditions.push(
+        or(
+          lt(alertDeliveries.createdAt, createdAt),
+          and(
+            eq(alertDeliveries.createdAt, createdAt),
+            sql`${alertDeliveries.id} < ${input.cursor.id}::uuid`,
+          ),
+        )!,
+      );
+    }
+
+    const rows = await this.db
+      .select({
+        delivery: alertDeliveries,
+        ruleName: alertRules.name,
+        destinationType: alertRules.destinationType,
+        cursorKey: sql<string>`to_char(${alertDeliveries.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+      })
       .from(alertDeliveries)
-      .where(eq(alertDeliveries.projectId, projectId))
-      .orderBy(desc(alertDeliveries.createdAt))
-      .limit(100);
+      .leftJoin(alertRules, eq(alertRules.id, alertDeliveries.alertRuleId))
+      .where(and(...conditions))
+      .orderBy(desc(alertDeliveries.createdAt), desc(alertDeliveries.id))
+      .limit(input.limit + 1);
+
+    const page = rows.slice(0, input.limit);
+    const last = page.at(-1);
+    return {
+      items: page.map((row) => ({
+        ...row.delivery,
+        ruleName: row.ruleName,
+        destinationType: row.destinationType,
+      })),
+      nextCursor:
+        rows.length > input.limit && last
+          ? encodeCreatedAtCursor({ createdAt: last.cursorKey, id: last.delivery.id })
+          : null,
+    };
   }
 
   async handleEvent(input: {

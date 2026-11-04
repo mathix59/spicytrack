@@ -5,6 +5,7 @@ import type { DatabaseClient } from "../database/database.provider";
 import { organizationRoles, teamMembers, teamRoles } from "../database/schema";
 import { ROLE_PERMISSIONS } from "./permissions.constants";
 import type { Permission } from "./permissions.types";
+import { scopeForPermission, tokenAllows } from "../personal-tokens/token-scopes";
 
 export type AccessSubject = {
   organizationId: string;
@@ -61,6 +62,22 @@ export class AccessResolver {
       return !teamPermission || !teamPermissions.has(teamPermission);
     });
   }
+
+  /**
+   * The project permissions the subject holds in a project, narrowed by the personal access
+   * token's scopes when the request used one. Lets clients hide actions they cannot perform.
+   */
+  async grantedProjectPermissions(
+    subject: AccessSubject,
+    tokenScopes?: readonly string[],
+  ): Promise<Permission[]> {
+    const missing = new Set(await this.missingPermissions(subject, PROJECT_PERMISSIONS));
+    return PROJECT_PERMISSIONS.filter(
+      (permission) =>
+        !missing.has(permission) &&
+        (!tokenScopes || tokenAllows(tokenScopes, scopeForPermission(permission))),
+    );
+  }
 }
 
 export const PROJECT_TEAM_PERMISSION: Partial<Record<Permission, string>> = {
@@ -83,3 +100,8 @@ export const PROJECT_TEAM_PERMISSION: Partial<Record<Permission, string>> = {
   "project.autofix.manage": "manage_autofix",
   "audit.read": "view_audit",
 };
+
+/** Every permission that applies within a single project. */
+export const PROJECT_PERMISSIONS = (Object.keys(PROJECT_TEAM_PERMISSION) as Permission[]).filter(
+  (permission) => permission.startsWith("project."),
+);

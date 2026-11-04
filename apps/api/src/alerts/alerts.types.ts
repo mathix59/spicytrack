@@ -3,6 +3,9 @@ import { alertRules } from "../database/schema";
 const DESTINATION_TYPES = ["webhook", "email", "slack", "teams", "discord", "pagerduty"] as const;
 type DestinationType = (typeof DESTINATION_TYPES)[number];
 
+const DELIVERY_STATUSES = ["pending", "retrying", "success", "failed"] as const;
+type DeliveryStatus = (typeof DELIVERY_STATUSES)[number];
+
 type AlertPayload = {
   [key: string]: unknown;
   triggerType: string;
@@ -39,5 +42,12 @@ type DeliveryOptions = {
 
 type AlertRuleRecord = typeof alertRules.$inferSelect;
 
-export { DESTINATION_TYPES };
-export type { AlertPayload, AlertRuleRecord, DeliveryOptions, DeliveryResult, DestinationType };
+export { DELIVERY_STATUSES, DESTINATION_TYPES };
+export type {
+  AlertPayload,
+  AlertRuleRecord,
+  DeliveryOptions,
+  DeliveryResult,
+  DeliveryStatus,
+  DestinationType,
+};

@@ -11,8 +11,11 @@ import {
   MAX_AUDIT_EXPORT_ROWS,
 } from "./audit-query";
 
-/** An organization's log, or the instance log (super-admin actions outside organizations). */
-export type AuditScope = { organizationId: string } | { instance: true };
+/**
+ * An organization's log, one project's entries in it, or the instance log (super-admin actions
+ * outside organizations).
+ */
+export type AuditScope = { organizationId: string; projectId?: string } | { instance: true };
 
 @Injectable()
 export class AuditService {
@@ -99,9 +102,11 @@ export class AuditService {
   }
 
   private scopeCondition(scope: AuditScope) {
-    return "instance" in scope
-      ? isNull(auditLogs.organizationId)
-      : eq(auditLogs.organizationId, scope.organizationId);
+    if ("instance" in scope) return isNull(auditLogs.organizationId);
+    const organization = eq(auditLogs.organizationId, scope.organizationId);
+    return scope.projectId
+      ? and(organization, eq(auditLogs.projectId, scope.projectId))!
+      : organization;
   }
 
   private query(scope: AuditScope, filters: AuditFilters, limit: number, cursor?: AuditCursor) {

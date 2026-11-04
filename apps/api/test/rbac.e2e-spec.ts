@@ -490,7 +490,7 @@ describe("RBAC authorization matrix (e2e)", () => {
     ["manager", "alerts", 200],
     ["viewer", "alerts", 403],
     ["viewer", "releases", 200],
-    ["viewer", "integrations/repo-connection", 404],
+    ["viewer", "integrations/repo-connection", 200],
     ["viewer", "autofix/config", 200],
     ["manager", "audit", 200],
     ["viewer", "audit", 403],
@@ -501,6 +501,46 @@ describe("RBAC authorization matrix (e2e)", () => {
       headers: authorization(role),
     });
     expect(response.statusCode).toBe(statusCode);
+  });
+
+  it.each([
+    ["developer", ["project.issues.read", "project.autofix.run"], ["project.issues.manage"]],
+    ["team-user", ["project.issues.read", "project.autofix.read"], ["project.autofix.run"]],
+    ["owner", ["project.issues.manage", "project.autofix.run"], []],
+  ] as const)(
+    "reports the project permissions %s holds, including team roles",
+    async (label, granted, denied) => {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/organizations/${organizationSlug}/projects/${projectSlug}/permissions`,
+        headers: authorization(label),
+      });
+      expect(response.statusCode).toBe(200);
+      const { permissions } = response.json() as { permissions: string[] };
+      expect(permissions).toEqual(expect.arrayContaining([...granted]));
+      for (const permission of denied) expect(permissions).not.toContain(permission);
+      expect(permissions.every((permission) => permission.startsWith("project."))).toBe(true);
+    },
+  );
+
+  it("explains to any Autofix reader what blocks a root-cause analysis", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/organizations/${organizationSlug}/projects/${projectSlug}/autofix/availability`,
+      headers: authorization("viewer"),
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      available: false,
+      missing: ["repository", "ai_key", "enabled"],
+    });
+
+    const outsider = await app.inject({
+      method: "GET",
+      url: `/api/organizations/${organizationSlug}/projects/${projectSlug}/autofix/availability`,
+      headers: authorization("outsider"),
+    });
+    expect(outsider.statusCode).toBe(403);
   });
 
   it("hides organizations across tenant boundaries", async () => {
@@ -1215,6 +1255,53 @@ describe("RBAC authorization matrix (e2e)", () => {
     expect(after.json()).toEqual(before.json());
   });
 
+  it("lets only instance admins send a test email with the saved SMTP settings to themselves", async () => {
+    const mailpitUrl = process.env.MAILPIT_URL ?? "http://localhost:8025";
+    const smtpHost = process.env.E2E_SMTP_HOST ?? "localhost";
+    const smtpPort = Number(process.env.E2E_SMTP_PORT ?? 1025);
+    // Same delivery settings the auth flow e2e saves: the local Mailpit server.
+    await pool.query(
+      `INSERT INTO instance_settings (id, smtp_host, smtp_port, smtp_from)
+       VALUES (true, $1, $2, 'noreply@spicytrack.local')
+       ON CONFLICT (id) DO UPDATE SET smtp_host = $1, smtp_port = $2, smtp_secure = NULL,
+         smtp_user = NULL, smtp_pass_ciphertext = NULL, smtp_from = 'noreply@spicytrack.local'`,
+      [smtpHost, smtpPort],
+    );
+    const ownerEmail = `owner-${suffix}@example.test`;
+
+    const denied = await app.inject({
+      method: "POST",
+      url: "/api/instance-admin/smtp/test-email",
+      headers: authorization("admin"),
+    });
+    expect(denied.statusCode).toBe(403);
+
+    const sent = await app.inject({
+      method: "POST",
+      url: "/api/instance-admin/smtp/test-email",
+      headers: authorization("owner"),
+    });
+    expect(sent.statusCode).toBe(201);
+    expect(sent.json()).toEqual({ success: true, to: ownerEmail });
+
+    let subject: string | undefined;
+    for (let attempt = 0; attempt < 20 && !subject; attempt += 1) {
+      const response = await fetch(
+        `${mailpitUrl}/api/v1/search?query=${encodeURIComponent(`to:${ownerEmail}`)}`,
+      );
+      const payload = (await response.json()) as { messages?: Array<{ Subject: string }> };
+      subject = payload.messages?.[0]?.Subject;
+      if (!subject) await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    expect(subject).toBe("SpicyTrack test email");
+
+    const audit = await pool.query(
+      `SELECT action FROM audit_logs WHERE actor_user_id = $1 AND action = 'instance.smtp.test_email_sent'`,
+      [userIdByLabel.get("owner")],
+    );
+    expect(audit.rowCount).toBe(1);
+  });
+
   it("deletes Better Auth and application user data, invalidates credentials, and frees the email", async () => {
     const email = `delete-user-${suffix}@example.test`;
     const invite = await app.inject({
@@ -1399,6 +1486,21 @@ describe("RBAC authorization matrix (e2e)", () => {
       (await pool.query("SELECT owner_user_id FROM organizations WHERE id = $1", [organizationId]))
         .rows[0].owner_user_id,
     ).toBe(userIdByLabel.get("owner"));
+  });
+
+  it("reports how many instance administrators exist whatever the user search", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/instance-admin/users?search=${encodeURIComponent(`viewer-${suffix}`)}`,
+      headers: authorization("owner"),
+    });
+    expect(response.statusCode).toBe(200);
+    const { superAdminCount } = response.json() as { superAdminCount: number };
+    const { rows } = await pool.query(
+      "SELECT count(*)::int AS total FROM users WHERE is_super_admin = true",
+    );
+    expect(superAdminCount).toBe(rows[0].total);
+    expect(superAdminCount).toBeGreaterThanOrEqual(1);
   });
 
   it("serializes concurrent super-admin demotions", async () => {

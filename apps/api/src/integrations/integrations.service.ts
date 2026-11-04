@@ -180,14 +180,10 @@ export class IntegrationsService {
     return connection ?? null;
   }
 
+  /** The project's repository connection, or null when none is configured. */
   async getConnectionDto(projectId: string) {
     const connection = await this.findConnection(projectId);
-
-    if (!connection) {
-      throw new NotFoundException("No repo connection for this project");
-    }
-
-    return toDto(connection);
+    return connection ? toDto(connection) : null;
   }
 
   async getDecryptedConnection(

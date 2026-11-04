@@ -26,6 +26,7 @@ import { InstanceAdminTokenGuard } from "../personal-tokens/personal-token.guard
 import { EndpointAccess } from "../auth/endpoint-access.decorator";
 import { InstanceAdminService } from "./instance-admin.service";
 import { UpdateCheckService } from "./update-check.service";
+import { SmtpTestEmailService } from "./smtp-test-email.service";
 
 @UseGuards(AuthGuard, InstanceAdminTokenGuard)
 @EndpointAccess("instance-admin")
@@ -36,6 +37,7 @@ export class InstanceAdminController {
     private readonly updateCheck: UpdateCheckService,
     private readonly deleteUserService: DeleteUserService,
     private readonly auditService: AuditService,
+    private readonly smtpTestEmail: SmtpTestEmailService,
   ) {}
 
   /** Super-admin actions outside any organization go to the instance audit log. */
@@ -75,6 +77,12 @@ export class InstanceAdminController {
     @Body() body: Record<string, unknown>,
   ) {
     return this.service.testSmtp(user.id, body as Parameters<InstanceAdminService["testSmtp"]>[1]);
+  }
+  /** Sends an email with the saved settings to the requesting administrator's own address. */
+  @Post("smtp/test-email") async sendSmtpTestEmail(@CurrentUser() user: { id: string }) {
+    const result = await this.smtpTestEmail.send(user.id);
+    await this.audit(user.id, "instance.smtp.test_email_sent", null);
+    return result;
   }
   @Get("update") async updateInformation(@CurrentUser() user: { id: string }) {
     await this.service.assertSuperAdmin(user.id);

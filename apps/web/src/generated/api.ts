@@ -138,6 +138,79 @@ export interface SuccessDto {
   success: boolean;
 }
 
+/**
+ * pending and retrying deliveries are still being sent by the worker.
+ */
+export type AlertDeliveryListItemDtoStatus = typeof AlertDeliveryListItemDtoStatus[keyof typeof AlertDeliveryListItemDtoStatus];
+
+
+export const AlertDeliveryListItemDtoStatus = {
+  pending: 'pending',
+  retrying: 'retrying',
+  success: 'success',
+  failed: 'failed',
+} as const;
+
+export type AlertDeliveryListItemDtoPayload = { [key: string]: unknown };
+
+/**
+ * The rule's current destination; null once the rule is deleted.
+ * @nullable
+ */
+export type AlertDeliveryListItemDtoDestinationType = typeof AlertDeliveryListItemDtoDestinationType[keyof typeof AlertDeliveryListItemDtoDestinationType] | null;
+
+
+export const AlertDeliveryListItemDtoDestinationType = {
+  webhook: 'webhook',
+  email: 'email',
+  slack: 'slack',
+  teams: 'teams',
+  discord: 'discord',
+  pagerduty: 'pagerduty',
+} as const;
+
+export interface AlertDeliveryListItemDto {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  alertRuleId: string;
+  /** @nullable */
+  issueId?: string | null;
+  /** @nullable */
+  eventId?: string | null;
+  /** pending and retrying deliveries are still being sent by the worker. */
+  status: AlertDeliveryListItemDtoStatus;
+  /** Delivery attempts made so far. */
+  attempts: number;
+  /** @nullable */
+  lastAttemptAt?: string | null;
+  /** @nullable */
+  responseStatus?: number | null;
+  /** @nullable */
+  responseBody?: string | null;
+  payload: AlertDeliveryListItemDtoPayload;
+  createdAt: string;
+  /**
+     * Null once the rule is deleted.
+     * @nullable
+     */
+  ruleName: string | null;
+  /**
+     * The rule's current destination; null once the rule is deleted.
+     * @nullable
+     */
+  destinationType: AlertDeliveryListItemDtoDestinationType;
+}
+
+export interface AlertDeliveryPageDto {
+  items: AlertDeliveryListItemDto[];
+  /**
+     * Pass as `cursor` for older deliveries
+     * @nullable
+     */
+  nextCursor: string | null;
+}
+
 export type ProjectDtoInboundRulesItem = { [key: string]: unknown };
 
 export type ProjectDtoOwnershipRulesItem = { [key: string]: unknown };
@@ -173,6 +246,11 @@ export interface CreateProjectBodyDto {
   visibility?: string;
   /** @nullable */
   teamId?: string | null;
+}
+
+export interface ProjectPermissionsDto {
+  /** The project permissions the current user holds, e.g. project.issues.manage. */
+  permissions: string[];
 }
 
 export type UpdateProjectBodyDtoInboundRulesItem = { [key: string]: unknown };
@@ -308,7 +386,10 @@ export interface IssueDto {
 
 export interface ProjectReleaseDetailDto {
   release: ProjectReleaseDto;
+  /** The 10 issues of this release seen most often; `issuesTotal` counts them all. */
   issues: IssueDto[];
+  /** Issues with at least one event in this release. */
+  issuesTotal: number;
 }
 
 export interface CreateProjectKeyBodyDto {
@@ -339,6 +420,55 @@ export interface AuditLogDto {
   targetId?: string | null;
   payload: AuditLogDtoPayload;
   createdAt: string;
+}
+
+export type AuditEntryDtoPayload = { [key: string]: unknown };
+
+export interface AuditEntryDto {
+  id: string;
+  /** @nullable */
+  organizationId: string | null;
+  /** @nullable */
+  projectId?: string | null;
+  /** @nullable */
+  actorUserId?: string | null;
+  action: string;
+  targetType: string;
+  /** @nullable */
+  targetId?: string | null;
+  payload: AuditEntryDtoPayload;
+  createdAt: string;
+  /** @nullable */
+  projectName: string | null;
+  /** @nullable */
+  actorName: string | null;
+  /** @nullable */
+  actorEmail: string | null;
+  /**
+     * Personal access token used, if any
+     * @nullable
+     */
+  actorTokenId: string | null;
+  /** @nullable */
+  actorTokenName: string | null;
+  /** @nullable */
+  ipAddress: string | null;
+  /** @nullable */
+  userAgent: string | null;
+}
+
+export interface AuditEntryPageDto {
+  items: AuditEntryDto[];
+  /**
+     * Pass as `cursor` for older entries
+     * @nullable
+     */
+  nextCursor: string | null;
+}
+
+export interface AuditFacetsDto {
+  actions: string[];
+  targetTypes: string[];
 }
 
 export interface UpsertReleaseBodyDto {
@@ -1208,6 +1338,22 @@ export interface AutofixConfigDto {
   targetBranch?: AutofixConfigDtoTargetBranch;
 }
 
+export type AutofixAvailabilityDtoMissingItem = typeof AutofixAvailabilityDtoMissingItem[keyof typeof AutofixAvailabilityDtoMissingItem];
+
+
+export const AutofixAvailabilityDtoMissingItem = {
+  repository: 'repository',
+  ai_key: 'ai_key',
+  enabled: 'enabled',
+} as const;
+
+export interface AutofixAvailabilityDto {
+  /** True when a root-cause analysis can start for this project. */
+  available: boolean;
+  /** What still blocks Autofix, in setup order: a connected repository, an organization AI key, Autofix enabled for the project. */
+  missing: AutofixAvailabilityDtoMissingItem[];
+}
+
 /**
  * @nullable
  */
@@ -1559,6 +1705,15 @@ export interface OrganizationOverviewRegressionDto {
   lastSeenAt: string;
 }
 
+export interface OrganizationOverviewNewIssueDto {
+  id: string;
+  projectSlug: string;
+  title: string;
+  timesSeen: number;
+  lastSeenAt: string;
+  firstSeenAt: string;
+}
+
 export interface OrganizationOverviewProjectDto {
   id: string;
   name: string;
@@ -1596,6 +1751,8 @@ export interface OrganizationOverviewDto {
   /** Event counts for the last 14 UTC days, oldest first */
   eventTrend14d: number[];
   topRegressions: OrganizationOverviewRegressionDto[];
+  /** Up to five unresolved issues first seen in the last 24 hours, most events first */
+  topNewIssues: OrganizationOverviewNewIssueDto[];
   projects: OrganizationOverviewProjectDto[];
 }
 
@@ -1659,55 +1816,6 @@ export interface AcceptInvitationBodyDto {
 
 export interface UpdateMemberRoleBodyDto {
   role: string;
-}
-
-export type AuditEntryDtoPayload = { [key: string]: unknown };
-
-export interface AuditEntryDto {
-  id: string;
-  /** @nullable */
-  organizationId: string | null;
-  /** @nullable */
-  projectId?: string | null;
-  /** @nullable */
-  actorUserId?: string | null;
-  action: string;
-  targetType: string;
-  /** @nullable */
-  targetId?: string | null;
-  payload: AuditEntryDtoPayload;
-  createdAt: string;
-  /** @nullable */
-  projectName: string | null;
-  /** @nullable */
-  actorName: string | null;
-  /** @nullable */
-  actorEmail: string | null;
-  /**
-     * Personal access token used, if any
-     * @nullable
-     */
-  actorTokenId: string | null;
-  /** @nullable */
-  actorTokenName: string | null;
-  /** @nullable */
-  ipAddress: string | null;
-  /** @nullable */
-  userAgent: string | null;
-}
-
-export interface AuditEntryPageDto {
-  items: AuditEntryDto[];
-  /**
-     * Pass as `cursor` for older entries
-     * @nullable
-     */
-  nextCursor: string | null;
-}
-
-export interface AuditFacetsDto {
-  actions: string[];
-  targetTypes: string[];
 }
 
 export interface TeamDto {
@@ -1946,6 +2054,58 @@ export interface TestEventResultDto {
   /** @nullable */
   reason?: string | null;
 }
+
+export type ListProjectAlertDeliveriesParams = {
+  status?: ListProjectAlertDeliveriesStatus;
+  /** 1-100, default 25 */
+  limit?: number;
+  cursor?: string;
+};
+
+export type ListProjectAlertDeliveriesStatus = typeof ListProjectAlertDeliveriesStatus[keyof typeof ListProjectAlertDeliveriesStatus];
+
+
+export const ListProjectAlertDeliveriesStatus = {
+  pending: 'pending',
+  retrying: 'retrying',
+  success: 'success',
+  failed: 'failed',
+} as const;
+
+export type ListProjectAuditEntriesParams = {
+  limit?: number;
+  cursor?: string;
+  /** Exact action, or a prefix ending with "." (e.g. "member.") */
+  action?: string;
+  actorUserId?: string;
+  projectId?: string;
+  targetType?: string;
+  /** ISO date, inclusive */
+  from?: string;
+  /** ISO date, inclusive */
+  to?: string;
+};
+
+export type ExportProjectAuditParams = {
+  format?: ExportProjectAuditFormat;
+  /** Exact action, or a prefix ending with "." (e.g. "member.") */
+  action?: string;
+  actorUserId?: string;
+  projectId?: string;
+  targetType?: string;
+  /** ISO date, inclusive */
+  from?: string;
+  /** ISO date, inclusive */
+  to?: string;
+};
+
+export type ExportProjectAuditFormat = typeof ExportProjectAuditFormat[keyof typeof ExportProjectAuditFormat];
+
+
+export const ExportProjectAuditFormat = {
+  csv: 'csv',
+  json: 'json',
+} as const;
 
 export type InstanceAdminControllerUsersParams = {
   search: string;
@@ -2676,7 +2836,7 @@ export const useRotateProjectAlertSigningSecret = <TError = ErrorType<unknown>,
     }
 
 export type listProjectAlertDeliveriesResponse200 = {
-  data: AlertDeliveryDto[]
+  data: AlertDeliveryPageDto
   status: 200
 }
 
@@ -2688,18 +2848,27 @@ export type listProjectAlertDeliveriesResponseSuccess = (listProjectAlertDeliver
 export type listProjectAlertDeliveriesResponse = (listProjectAlertDeliveriesResponseSuccess)
 
 export const getListProjectAlertDeliveriesUrl = (orgSlug: string,
-    projectSlug: string,) => {
+    projectSlug: string,
+    params?: ListProjectAlertDeliveriesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/organizations/${orgSlug}/projects/${projectSlug}/alerts/deliveries`
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/alerts/deliveries?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/alerts/deliveries`
 }
 
 export const listProjectAlertDeliveries = async (orgSlug: string,
-    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectAlertDeliveriesResponse> => {
+    projectSlug: string,
+    params?: ListProjectAlertDeliveriesParams, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectAlertDeliveriesResponse> => {
 
-  return orvalFetch<listProjectAlertDeliveriesResponse>(getListProjectAlertDeliveriesUrl(orgSlug,projectSlug),
+  return orvalFetch<listProjectAlertDeliveriesResponse>(getListProjectAlertDeliveriesUrl(orgSlug,projectSlug,params),
   {
     ...options,
     method: 'GET'
@@ -2713,24 +2882,26 @@ export const listProjectAlertDeliveries = async (orgSlug: string,
 
 
 export const getListProjectAlertDeliveriesQueryKey = (orgSlug: string,
-    projectSlug: string,) => {
+    projectSlug: string,
+    params?: ListProjectAlertDeliveriesParams,) => {
     return [
-    `/organizations/${orgSlug}/projects/${projectSlug}/alerts/deliveries`
+    `/organizations/${orgSlug}/projects/${projectSlug}/alerts/deliveries`, ...(params ? [params] : [])
     ] as const;
     }
 
 
 export const getListProjectAlertDeliveriesQueryOptions = <TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(orgSlug: string,
-    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+    projectSlug: string,
+    params?: ListProjectAlertDeliveriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListProjectAlertDeliveriesQueryKey(orgSlug,projectSlug);
+  const queryKey =  queryOptions?.queryKey ?? getListProjectAlertDeliveriesQueryKey(orgSlug,projectSlug,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectAlertDeliveries>>> = ({ signal }) => listProjectAlertDeliveries(orgSlug,projectSlug, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectAlertDeliveries>>> = ({ signal }) => listProjectAlertDeliveries(orgSlug,projectSlug,params, { signal, ...requestOptions });
 
 
 
@@ -2745,7 +2916,8 @@ export type ListProjectAlertDeliveriesQueryError = ErrorType<unknown>
 
 export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(
  orgSlug: string,
-    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>> & Pick<
+    projectSlug: string,
+    params: undefined |  ListProjectAlertDeliveriesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectAlertDeliveries>>,
           TError,
@@ -2756,7 +2928,8 @@ export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof 
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(
  orgSlug: string,
-    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>> & Pick<
+    projectSlug: string,
+    params?: ListProjectAlertDeliveriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listProjectAlertDeliveries>>,
           TError,
@@ -2767,17 +2940,19 @@ export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof 
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(
  orgSlug: string,
-    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+    projectSlug: string,
+    params?: ListProjectAlertDeliveriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useListProjectAlertDeliveries<TData = Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError = ErrorType<unknown>>(
  orgSlug: string,
-    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+    projectSlug: string,
+    params?: ListProjectAlertDeliveriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAlertDeliveries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListProjectAlertDeliveriesQueryOptions(orgSlug,projectSlug,options)
+  const queryOptions = getListProjectAlertDeliveriesQueryOptions(orgSlug,projectSlug,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -3203,6 +3378,127 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUpdateProjectMutationOptions(options), queryClient);
     }
+
+export type getProjectPermissionsResponse200 = {
+  data: ProjectPermissionsDto
+  status: 200
+}
+
+export type getProjectPermissionsResponseSuccess = (getProjectPermissionsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getProjectPermissionsResponse = (getProjectPermissionsResponseSuccess)
+
+export const getGetProjectPermissionsUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/permissions`
+}
+
+/**
+ * @summary The current user's permissions in this project, including team roles
+ */
+export const getProjectPermissions = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getProjectPermissionsResponse> => {
+
+  return orvalFetch<getProjectPermissionsResponse>(getGetProjectPermissionsUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectPermissionsQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/permissions`
+    ] as const;
+    }
+
+
+export const getGetProjectPermissionsQueryOptions = <TData = Awaited<ReturnType<typeof getProjectPermissions>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectPermissions>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectPermissionsQueryKey(orgSlug,projectSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectPermissions>>> = ({ signal }) => getProjectPermissions(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectPermissions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectPermissionsQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectPermissions>>>
+export type GetProjectPermissionsQueryError = ErrorType<unknown>
+
+
+export function useGetProjectPermissions<TData = Awaited<ReturnType<typeof getProjectPermissions>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectPermissions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectPermissions>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectPermissions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectPermissions<TData = Awaited<ReturnType<typeof getProjectPermissions>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectPermissions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectPermissions>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectPermissions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectPermissions<TData = Awaited<ReturnType<typeof getProjectPermissions>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectPermissions>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The current user's permissions in this project, including team roles
+ */
+
+export function useGetProjectPermissions<TData = Awaited<ReturnType<typeof getProjectPermissions>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectPermissions>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProjectPermissionsQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export type listProjectKeysResponse200 = {
   data: ProjectKeyDto[]
@@ -4462,6 +4758,386 @@ export function useListProjectAudit<TData = Awaited<ReturnType<typeof listProjec
 
 
 
+export type listProjectAuditEntriesResponse200 = {
+  data: AuditEntryPageDto
+  status: 200
+}
+
+export type listProjectAuditEntriesResponseSuccess = (listProjectAuditEntriesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listProjectAuditEntriesResponse = (listProjectAuditEntriesResponseSuccess)
+
+export const getListProjectAuditEntriesUrl = (orgSlug: string,
+    projectSlug: string,
+    params?: ListProjectAuditEntriesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/audit/entries?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/audit/entries`
+}
+
+export const listProjectAuditEntries = async (orgSlug: string,
+    projectSlug: string,
+    params?: ListProjectAuditEntriesParams, options?: Parameters<typeof orvalFetch>[1]): Promise<listProjectAuditEntriesResponse> => {
+
+  return orvalFetch<listProjectAuditEntriesResponse>(getListProjectAuditEntriesUrl(orgSlug,projectSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProjectAuditEntriesQueryKey = (orgSlug: string,
+    projectSlug: string,
+    params?: ListProjectAuditEntriesParams,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/audit/entries`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListProjectAuditEntriesQueryOptions = <TData = Awaited<ReturnType<typeof listProjectAuditEntries>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    params?: ListProjectAuditEntriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAuditEntries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListProjectAuditEntriesQueryKey(orgSlug,projectSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectAuditEntries>>> = ({ signal }) => listProjectAuditEntries(orgSlug,projectSlug,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectAuditEntries>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListProjectAuditEntriesQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectAuditEntries>>>
+export type ListProjectAuditEntriesQueryError = ErrorType<unknown>
+
+
+export function useListProjectAuditEntries<TData = Awaited<ReturnType<typeof listProjectAuditEntries>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params: undefined |  ListProjectAuditEntriesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAuditEntries>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listProjectAuditEntries>>,
+          TError,
+          Awaited<ReturnType<typeof listProjectAuditEntries>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectAuditEntries<TData = Awaited<ReturnType<typeof listProjectAuditEntries>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: ListProjectAuditEntriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAuditEntries>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listProjectAuditEntries>>,
+          TError,
+          Awaited<ReturnType<typeof listProjectAuditEntries>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListProjectAuditEntries<TData = Awaited<ReturnType<typeof listProjectAuditEntries>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: ListProjectAuditEntriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAuditEntries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListProjectAuditEntries<TData = Awaited<ReturnType<typeof listProjectAuditEntries>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: ListProjectAuditEntriesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProjectAuditEntries>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListProjectAuditEntriesQueryOptions(orgSlug,projectSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type getProjectAuditFacetsResponse200 = {
+  data: AuditFacetsDto
+  status: 200
+}
+
+export type getProjectAuditFacetsResponseSuccess = (getProjectAuditFacetsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getProjectAuditFacetsResponse = (getProjectAuditFacetsResponseSuccess)
+
+export const getGetProjectAuditFacetsUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/audit/facets`
+}
+
+export const getProjectAuditFacets = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getProjectAuditFacetsResponse> => {
+
+  return orvalFetch<getProjectAuditFacetsResponse>(getGetProjectAuditFacetsUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectAuditFacetsQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/audit/facets`
+    ] as const;
+    }
+
+
+export const getGetProjectAuditFacetsQueryOptions = <TData = Awaited<ReturnType<typeof getProjectAuditFacets>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAuditFacets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectAuditFacetsQueryKey(orgSlug,projectSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectAuditFacets>>> = ({ signal }) => getProjectAuditFacets(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectAuditFacets>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectAuditFacetsQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectAuditFacets>>>
+export type GetProjectAuditFacetsQueryError = ErrorType<unknown>
+
+
+export function useGetProjectAuditFacets<TData = Awaited<ReturnType<typeof getProjectAuditFacets>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAuditFacets>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectAuditFacets>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectAuditFacets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectAuditFacets<TData = Awaited<ReturnType<typeof getProjectAuditFacets>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAuditFacets>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectAuditFacets>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectAuditFacets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectAuditFacets<TData = Awaited<ReturnType<typeof getProjectAuditFacets>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAuditFacets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetProjectAuditFacets<TData = Awaited<ReturnType<typeof getProjectAuditFacets>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAuditFacets>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProjectAuditFacetsQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type exportProjectAuditResponse200TextCsv = {
+  data: string
+  status: 200
+}
+
+export type exportProjectAuditResponse200ApplicationJson = {
+  data: string
+  status: 200
+}
+
+export type exportProjectAuditResponseSuccess = (exportProjectAuditResponse200TextCsv | exportProjectAuditResponse200ApplicationJson) & {
+  headers: Headers;
+};
+;
+
+export type exportProjectAuditResponse = (exportProjectAuditResponseSuccess)
+
+export const getExportProjectAuditUrl = (orgSlug: string,
+    projectSlug: string,
+    params?: ExportProjectAuditParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/audit/export?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/audit/export`
+}
+
+export const exportProjectAudit = async (orgSlug: string,
+    projectSlug: string,
+    params?: ExportProjectAuditParams, options?: Parameters<typeof orvalFetch>[1]): Promise<exportProjectAuditResponse> => {
+
+  return orvalFetch<exportProjectAuditResponse>(getExportProjectAuditUrl(orgSlug,projectSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportProjectAuditQueryKey = (orgSlug: string,
+    projectSlug: string,
+    params?: ExportProjectAuditParams,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/audit/export`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getExportProjectAuditQueryOptions = <TData = Awaited<ReturnType<typeof exportProjectAudit>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    params?: ExportProjectAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportProjectAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportProjectAuditQueryKey(orgSlug,projectSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportProjectAudit>>> = ({ signal }) => exportProjectAudit(orgSlug,projectSlug,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportProjectAudit>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExportProjectAuditQueryResult = NonNullable<Awaited<ReturnType<typeof exportProjectAudit>>>
+export type ExportProjectAuditQueryError = ErrorType<unknown>
+
+
+export function useExportProjectAudit<TData = Awaited<ReturnType<typeof exportProjectAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params: undefined |  ExportProjectAuditParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportProjectAudit>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof exportProjectAudit>>,
+          TError,
+          Awaited<ReturnType<typeof exportProjectAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExportProjectAudit<TData = Awaited<ReturnType<typeof exportProjectAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: ExportProjectAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportProjectAudit>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof exportProjectAudit>>,
+          TError,
+          Awaited<ReturnType<typeof exportProjectAudit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useExportProjectAudit<TData = Awaited<ReturnType<typeof exportProjectAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: ExportProjectAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportProjectAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useExportProjectAudit<TData = Awaited<ReturnType<typeof exportProjectAudit>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: ExportProjectAuditParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof exportProjectAudit>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getExportProjectAuditQueryOptions(orgSlug,projectSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export type instanceAdminControllerGetResponse200 = {
   data: void
   status: 200
@@ -4727,6 +5403,86 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getInstanceAdminControllerTestSmtpMutationOptions(options), queryClient);
+    }
+
+export type instanceAdminControllerSendSmtpTestEmailResponse201 = {
+  data: void
+  status: 201
+}
+
+export type instanceAdminControllerSendSmtpTestEmailResponseSuccess = (instanceAdminControllerSendSmtpTestEmailResponse201) & {
+  headers: Headers;
+};
+;
+
+export type instanceAdminControllerSendSmtpTestEmailResponse = (instanceAdminControllerSendSmtpTestEmailResponseSuccess)
+
+export const getInstanceAdminControllerSendSmtpTestEmailUrl = () => {
+
+
+
+
+  return `/instance-admin/smtp/test-email`
+}
+
+export const instanceAdminControllerSendSmtpTestEmail = async ( options?: Parameters<typeof orvalFetch>[1]): Promise<instanceAdminControllerSendSmtpTestEmailResponse> => {
+
+  return orvalFetch<instanceAdminControllerSendSmtpTestEmailResponse>(getInstanceAdminControllerSendSmtpTestEmailUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getInstanceAdminControllerSendSmtpTestEmailMutationKey = () => ['instanceAdminControllerSendSmtpTestEmail'] as const;
+
+export const getInstanceAdminControllerSendSmtpTestEmailMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerSendSmtpTestEmail>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerSendSmtpTestEmail>>, TError,void, TContext> => {
+
+const mutationKey = getInstanceAdminControllerSendSmtpTestEmailMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof instanceAdminControllerSendSmtpTestEmail>>, void> = () => {
+
+
+          return  instanceAdminControllerSendSmtpTestEmail(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InstanceAdminControllerSendSmtpTestEmailMutationResult = NonNullable<Awaited<ReturnType<typeof instanceAdminControllerSendSmtpTestEmail>>>
+
+    export type InstanceAdminControllerSendSmtpTestEmailMutationError = ErrorType<unknown>
+
+
+    export const useInstanceAdminControllerSendSmtpTestEmail = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof instanceAdminControllerSendSmtpTestEmail>>, TError,void, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof instanceAdminControllerSendSmtpTestEmail>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getInstanceAdminControllerSendSmtpTestEmailMutationOptions(options), queryClient);
     }
 
 export type instanceAdminControllerUpdateInformationResponse200 = {
@@ -6069,7 +6825,7 @@ export function useGetIssueSuspectCommits<TData = Awaited<ReturnType<typeof getI
 
 
 export type getRepoConnectionResponse200 = {
-  data: RepoConnectionDto
+  data: RepoConnectionDto | null
   status: 200
 }
 
@@ -11472,6 +12228,127 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUpdateAutofixConfigMutationOptions(options), queryClient);
     }
+
+export type getAutofixAvailabilityResponse200 = {
+  data: AutofixAvailabilityDto
+  status: 200
+}
+
+export type getAutofixAvailabilityResponseSuccess = (getAutofixAvailabilityResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getAutofixAvailabilityResponse = (getAutofixAvailabilityResponseSuccess)
+
+export const getGetAutofixAvailabilityUrl = (orgSlug: string,
+    projectSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/projects/${projectSlug}/autofix/availability`
+}
+
+/**
+ * @summary Whether a root-cause analysis can start, and what setup is missing
+ */
+export const getAutofixAvailability = async (orgSlug: string,
+    projectSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<getAutofixAvailabilityResponse> => {
+
+  return orvalFetch<getAutofixAvailabilityResponse>(getGetAutofixAvailabilityUrl(orgSlug,projectSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAutofixAvailabilityQueryKey = (orgSlug: string,
+    projectSlug: string,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/autofix/availability`
+    ] as const;
+    }
+
+
+export const getGetAutofixAvailabilityQueryOptions = <TData = Awaited<ReturnType<typeof getAutofixAvailability>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixAvailability>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAutofixAvailabilityQueryKey(orgSlug,projectSlug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAutofixAvailability>>> = ({ signal }) => getAutofixAvailability(orgSlug,projectSlug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAutofixAvailability>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAutofixAvailabilityQueryResult = NonNullable<Awaited<ReturnType<typeof getAutofixAvailability>>>
+export type GetAutofixAvailabilityQueryError = ErrorType<unknown>
+
+
+export function useGetAutofixAvailability<TData = Awaited<ReturnType<typeof getAutofixAvailability>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixAvailability>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAutofixAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof getAutofixAvailability>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAutofixAvailability<TData = Awaited<ReturnType<typeof getAutofixAvailability>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixAvailability>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAutofixAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof getAutofixAvailability>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAutofixAvailability<TData = Awaited<ReturnType<typeof getAutofixAvailability>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixAvailability>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Whether a root-cause analysis can start, and what setup is missing
+ */
+
+export function useGetAutofixAvailability<TData = Awaited<ReturnType<typeof getAutofixAvailability>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAutofixAvailability>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAutofixAvailabilityQueryOptions(orgSlug,projectSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export type triggerAutofixResponse200 = {
   data: AutofixRunDto

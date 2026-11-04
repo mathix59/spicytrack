@@ -24,6 +24,7 @@ import { CurrentUser } from "../common/current-user.decorator";
 import type { OrganizationRecord, ProjectRecord, UserRecord } from "../common/request-context";
 import { optionalNullableString, optionalNumber, optionalString } from "../common/validators";
 import {
+  AutofixAvailabilityDto,
   AutofixConfigDto,
   AutofixRunDto,
   ReviewAutofixBodyDto,
@@ -59,6 +60,21 @@ export class AutofixController {
   @UseGuards(PermissionGuard)
   async getConfig(@CurrentProject() project: ProjectRecord) {
     return this.autofixService.getConfig(project.id);
+  }
+
+  @Get("autofix/availability")
+  @ApiOperation({
+    operationId: "getAutofixAvailability",
+    summary: "Whether a root-cause analysis can start, and what setup is missing",
+  })
+  @ApiOkResponse({ type: AutofixAvailabilityDto })
+  @RequirePermissions("project.autofix.read")
+  @UseGuards(PermissionGuard)
+  async getAvailability(
+    @CurrentOrganization() organization: OrganizationRecord,
+    @CurrentProject() project: ProjectRecord,
+  ) {
+    return this.autofixService.getAvailability(organization.id, project.id);
   }
 
   @Put("autofix/config")

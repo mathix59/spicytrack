@@ -67,6 +67,19 @@ describe("IntegrationsService", () => {
     githubSettings.privateKeyCiphertext = encryptSecret("test-private-key");
   });
 
+  it("returns null instead of throwing when the project has no repo connection", async () => {
+    const db = {
+      select: jest.fn(() => createSelectChain([[]])),
+    };
+    const service = new IntegrationsService(
+      db as never,
+      vcsFactory as never,
+      auditService as never,
+    );
+
+    await expect(service.getConnectionDto("project-1")).resolves.toBeNull();
+  });
+
   it("does not reuse a stored token when a connection test changes the endpoint", async () => {
     process.env.VCS_ALLOWED_HOSTS = "github.corp.example";
     const connection = {

@@ -72,7 +72,7 @@ export class InstanceAdminService {
 
   private async listUsersUnchecked(search = "", page = 1, pageSize = 20) {
     const where = search ? ilike(users.email, `%${search}%`) : undefined;
-    const [items, totalRows] = await Promise.all([
+    const [items, totalRows, superAdminRows] = await Promise.all([
       this.db
         .select({
           id: users.id,
@@ -87,8 +87,16 @@ export class InstanceAdminService {
         .limit(pageSize)
         .offset((page - 1) * pageSize),
       this.db.select({ total: count() }).from(users).where(where),
+      // Unfiltered, so the UI can protect the last administrator whatever the search.
+      this.db.select({ total: count() }).from(users).where(eq(users.isSuperAdmin, true)),
     ]);
-    return { items, total: totalRows[0]?.total ?? 0, page, pageSize };
+    return {
+      items,
+      total: totalRows[0]?.total ?? 0,
+      superAdminCount: superAdminRows[0]?.total ?? 0,
+      page,
+      pageSize,
+    };
   }
 
   async setSuperAdmin(actorId: string, targetId: string, isSuperAdmin: boolean) {

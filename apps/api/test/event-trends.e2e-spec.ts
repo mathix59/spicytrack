@@ -250,4 +250,44 @@ describe("Event trends (e2e)", () => {
       expectedCounts(startIso, DAY_MS, 14, foreignTimestamps),
     );
   });
+
+  it("lists unresolved issues first seen in the last 24 hours as new issues", async () => {
+    const oldIssueId = randomUUID();
+    const resolvedIssueId = randomUUID();
+    await db.insert(issues).values([
+      {
+        id: oldIssueId,
+        organizationId,
+        projectId,
+        groupingKey: `trends-old-${oldIssueId}`,
+        title: "Old issue",
+        firstSeenAt: new Date(now - 3 * DAY_MS),
+      },
+      {
+        id: resolvedIssueId,
+        organizationId,
+        projectId,
+        groupingKey: `trends-resolved-${resolvedIssueId}`,
+        title: "Resolved issue",
+        status: "resolved",
+        resolvedAt: new Date(now),
+      },
+    ]);
+    await db.update(issues).set({ timesSeen: 9 }).where(eq(issues.id, foreignIssueId));
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/organizations/${organizationSlug}/overview`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const { topNewIssues } = response.json() as {
+      topNewIssues: Array<{ id: string; projectSlug: string; firstSeenAt: string }>;
+    };
+    const ids = topNewIssues.map((issue) => issue.id);
+    expect(ids[0]).toBe(foreignIssueId);
+    expect([...ids].sort()).toEqual([busyIssueId, quietIssueId, foreignIssueId].sort());
+    expect(topNewIssues[0]).toMatchObject({ projectSlug: "other", title: "Foreign issue" });
+    expect(Number.isNaN(new Date(topNewIssues[0].firstSeenAt).getTime())).toBe(false);
+  });
 });

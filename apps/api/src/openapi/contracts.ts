@@ -242,6 +242,11 @@ export class OrganizationOverviewRegressionDto {
   lastSeenAt!: string;
 }
 
+export class OrganizationOverviewNewIssueDto extends OrganizationOverviewRegressionDto {
+  @ApiProperty()
+  firstSeenAt!: string;
+}
+
 export class OrganizationOverviewDto {
   @ApiProperty()
   memberCount!: number;
@@ -278,6 +283,12 @@ export class OrganizationOverviewDto {
 
   @ApiProperty({ type: [OrganizationOverviewRegressionDto] })
   topRegressions!: OrganizationOverviewRegressionDto[];
+
+  @ApiProperty({
+    type: [OrganizationOverviewNewIssueDto],
+    description: "Up to five unresolved issues first seen in the last 24 hours, most events first",
+  })
+  topNewIssues!: OrganizationOverviewNewIssueDto[];
 
   @ApiProperty({ type: [OrganizationOverviewProjectDto] })
   projects!: OrganizationOverviewProjectDto[];
@@ -1145,6 +1156,31 @@ export class AlertDeliveryDto {
   createdAt!: string;
 }
 
+export class AlertDeliveryListItemDto extends AlertDeliveryDto {
+  @ApiProperty({ type: String, nullable: true, description: "Null once the rule is deleted." })
+  ruleName!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    enum: ["webhook", "email", "slack", "teams", "discord", "pagerduty"],
+    description: "The rule's current destination; null once the rule is deleted.",
+  })
+  destinationType!: string | null;
+}
+
+export class AlertDeliveryPageDto {
+  @ApiProperty({ type: [AlertDeliveryListItemDto] })
+  items!: AlertDeliveryListItemDto[];
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: "Pass as `cursor` for older deliveries",
+  })
+  nextCursor!: string | null;
+}
+
 export class UpdateProjectBodyDto {
   @ApiPropertyOptional()
   name?: string;
@@ -1466,8 +1502,14 @@ export class ProjectReleaseDetailDto {
   @ApiProperty({ type: ProjectReleaseDto })
   release!: ProjectReleaseDto;
 
-  @ApiProperty({ type: [IssueDto] })
+  @ApiProperty({
+    type: [IssueDto],
+    description: "The 10 issues of this release seen most often; `issuesTotal` counts them all.",
+  })
   issues!: IssueDto[];
+
+  @ApiProperty({ description: "Issues with at least one event in this release." })
+  issuesTotal!: number;
 }
 
 export class ReleaseArtifactDto {
@@ -2159,6 +2201,27 @@ export class AutofixConfigDto {
 
   @ApiPropertyOptional({ nullable: true })
   targetBranch?: string | null;
+}
+
+export class AutofixAvailabilityDto {
+  @ApiProperty({ description: "True when a root-cause analysis can start for this project." })
+  available!: boolean;
+
+  @ApiProperty({
+    description:
+      "What still blocks Autofix, in setup order: a connected repository, an organization AI key, Autofix enabled for the project.",
+    enum: ["repository", "ai_key", "enabled"],
+    isArray: true,
+  })
+  missing!: Array<"repository" | "ai_key" | "enabled">;
+}
+
+export class ProjectPermissionsDto {
+  @ApiProperty({
+    description: "The project permissions the current user holds, e.g. project.issues.manage.",
+    type: [String],
+  })
+  permissions!: string[];
 }
 
 export class UpdateAutofixConfigBodyDto {

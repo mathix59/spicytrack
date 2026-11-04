@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
   ApiBearerAuth,
@@ -17,6 +17,8 @@ import type { OrganizationMemberRecord } from "../common/request-context";
 import type { ProjectRecord } from "../common/request-context";
 import type { UserRecord } from "../common/request-context";
 import { AuthGuard } from "../auth/auth.guard";
+import type { AuthenticatedRequest } from "../common/authenticated-request";
+import { AccessResolver } from "../rbac/access-resolver.service";
 import { OrganizationContextGuard } from "../rbac/organization-context.guard";
 import { PermissionGuard } from "../rbac/permission.guard";
 import { ProjectContextGuard } from "../rbac/project-context.guard";
@@ -35,6 +37,7 @@ import {
   ProjectDto,
   ProjectEnvironmentDto,
   ProjectKeyDto,
+  ProjectPermissionsDto,
   ProjectSavedSearchDto,
   ProjectReleaseDetailDto,
   ProjectReleaseDto,
@@ -54,6 +57,7 @@ export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
     private readonly configService: ConfigService,
+    private readonly accessResolver: AccessResolver,
   ) {}
 
   private get ingestBaseUrl() {
@@ -108,6 +112,34 @@ export class ProjectsController {
   @UseGuards(ProjectContextGuard, PermissionGuard)
   get(@CurrentProject() project: ProjectRecord) {
     return project;
+  }
+
+  @Get(":projectSlug/permissions")
+  @ApiOperation({
+    operationId: "getProjectPermissions",
+    summary: "The current user's permissions in this project, including team roles",
+  })
+  @ApiParam({ name: "projectSlug", type: String })
+  @ApiOkResponse({ type: ProjectPermissionsDto })
+  @RequirePermissions("project.read")
+  @UseGuards(ProjectContextGuard, PermissionGuard)
+  async permissions(
+    @CurrentOrganization() organization: OrganizationRecord,
+    @CurrentMembership() membership: OrganizationMemberRecord,
+    @CurrentUser() user: UserRecord,
+    @CurrentProject() project: ProjectRecord,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const permissions = await this.accessResolver.grantedProjectPermissions(
+      {
+        organizationId: organization.id,
+        role: membership.role,
+        userId: user.id,
+        teamId: project.teamId,
+      },
+      request.auth?.token?.scopes,
+    );
+    return { permissions };
   }
 
   @Patch(":projectSlug")

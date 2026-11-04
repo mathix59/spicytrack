@@ -1,7 +1,8 @@
 import { BadRequestException } from "@nestjs/common";
 
+import { decodeCreatedAtCursor, parsePageLimit } from "../common/created-at-cursor";
 import { assertEmail, assertOneOf, assertString, optionalNumber } from "../common/validators";
-import type { DestinationType } from "./alerts.types";
+import { DELIVERY_STATUSES, type DestinationType } from "./alerts.types";
 import { parseWebhookUrl } from "./webhook-url-policy";
 
 const TRIGGER_TYPES = ["new_issue", "regression", "event_threshold", "daily_digest"] as const;
@@ -71,4 +72,20 @@ export function resolveDestinationUpdate(
     return { destinationType };
   }
   return { destinationType, destinationTarget: assertDestinationTarget(destinationType, target) };
+}
+
+export const DELIVERY_PAGE_SIZE = 25;
+export const MAX_DELIVERY_PAGE_SIZE = 100;
+
+/** `cursor`, `limit` and `status` of the deliveries list. */
+export function parseDeliveryQuery(query: Record<string, unknown>) {
+  const status =
+    query.status === undefined || query.status === ""
+      ? undefined
+      : assertOneOf(query.status, DELIVERY_STATUSES, "status");
+  return {
+    limit: parsePageLimit(query.limit, DELIVERY_PAGE_SIZE, MAX_DELIVERY_PAGE_SIZE),
+    cursor: decodeCreatedAtCursor(query.cursor),
+    status,
+  };
 }

@@ -2,10 +2,12 @@ import { Body, Controller, Delete, Get, Post, Put, UseGuards } from "@nestjs/com
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiExtraModels,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
+  getSchemaPath,
 } from "@nestjs/swagger";
 import { AuthGuard } from "../auth/auth.guard";
 import { CurrentOrganization } from "../common/current-organization.decorator";
@@ -45,7 +47,11 @@ export class IntegrationsController {
 
   @Get("repo-connection")
   @ApiOperation({ operationId: "getRepoConnection" })
-  @ApiOkResponse({ type: RepoConnectionDto })
+  @ApiExtraModels(RepoConnectionDto)
+  @ApiOkResponse({
+    description: "The repository connection, or null when the project has none.",
+    schema: { nullable: true, allOf: [{ $ref: getSchemaPath(RepoConnectionDto) }] },
+  })
   @RequirePermissions("project.integrations.read")
   @UseGuards(PermissionGuard)
   async getConnection(@CurrentProject() project: ProjectRecord) {

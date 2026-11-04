@@ -63,6 +63,14 @@ type OrganizationOverview = {
     timesSeen: number;
     lastSeenAt: string | Date;
   }>;
+  topNewIssues: Array<{
+    id: string;
+    projectSlug: string;
+    title: string;
+    timesSeen: number;
+    firstSeenAt: string | Date;
+    lastSeenAt: string | Date;
+  }>;
   projects: OrganizationOverviewProject[];
 };
 
@@ -89,6 +97,7 @@ export class OrganizationsOverviewService {
       projects,
       accessibleProjects,
       projectStats.topRegressionRows,
+      projectStats.topNewIssueRows,
       projectStats.trendWindow,
     );
   }
@@ -128,6 +137,7 @@ export class OrganizationsOverviewService {
       resolvedIssueCount24h: 0,
       eventTrend14d: buildZeroFilledCounts(resolveEventTrendWindow("14d"), []),
       topRegressions: [],
+      topNewIssues: [],
       projects: [],
     };
   }
@@ -146,6 +156,7 @@ export class OrganizationsOverviewService {
       resolvedIssueRows,
       alertRows,
       topRegressionRows,
+      topNewIssueRows,
       eventTrendRows,
     ] = await Promise.all([
       this.db
@@ -241,6 +252,26 @@ export class OrganizationsOverviewService {
         )
         .orderBy(desc(issues.timesSeen), desc(issues.lastSeenAt))
         .limit(5),
+      // Unresolved issues first seen in the last 24 hours, the noisiest first.
+      this.db
+        .select({
+          id: issues.id,
+          projectId: issues.projectId,
+          title: issues.title,
+          timesSeen: issues.timesSeen,
+          firstSeenAt: issues.firstSeenAt,
+          lastSeenAt: issues.lastSeenAt,
+        })
+        .from(issues)
+        .where(
+          and(
+            inArray(issues.projectId, projectIds),
+            eq(issues.status, "open"),
+            gte(issues.firstSeenAt, since24h),
+          ),
+        )
+        .orderBy(desc(issues.timesSeen), desc(issues.firstSeenAt))
+        .limit(5),
       this.db
         .select({
           projectId: events.projectId,
@@ -293,6 +324,7 @@ export class OrganizationsOverviewService {
         alertRows.map((row) => [row.projectId, row.activeAlertCount]),
       ),
       topRegressionRows,
+      topNewIssueRows,
       trendWindow,
       eventTrendByProjectId: this.groupEventTrendRows(trendWindow, eventTrendRows),
     };
@@ -362,8 +394,19 @@ export class OrganizationsOverviewService {
       timesSeen: number;
       lastSeenAt: Date;
     }>,
+    topNewIssueRows: Array<{
+      id: string;
+      projectId: string;
+      title: string;
+      timesSeen: number;
+      firstSeenAt: Date;
+      lastSeenAt: Date;
+    }>,
     trendWindow: EventTrendWindow,
   ): OrganizationOverview {
+    const projectSlugById = new Map(
+      accessibleProjects.map((project) => [project.id, project.slug]),
+    );
     return {
       ...counts,
       projectCount: accessibleProjects.length,
@@ -389,14 +432,29 @@ export class OrganizationsOverviewService {
         projects.map((project) => project.eventTrend14d),
       ),
       topRegressions: topRegressionRows.flatMap((issue) => {
-        const project = accessibleProjects.find((candidate) => candidate.id === issue.projectId);
-        return project
+        const projectSlug = projectSlugById.get(issue.projectId);
+        return projectSlug
           ? [
               {
                 id: issue.id,
-                projectSlug: project.slug,
+                projectSlug,
                 title: issue.title,
                 timesSeen: issue.timesSeen,
+                lastSeenAt: issue.lastSeenAt,
+              },
+            ]
+          : [];
+      }),
+      topNewIssues: topNewIssueRows.flatMap((issue) => {
+        const projectSlug = projectSlugById.get(issue.projectId);
+        return projectSlug
+          ? [
+              {
+                id: issue.id,
+                projectSlug,
+                title: issue.title,
+                timesSeen: issue.timesSeen,
+                firstSeenAt: issue.firstSeenAt,
                 lastSeenAt: issue.lastSeenAt,
               },
             ]

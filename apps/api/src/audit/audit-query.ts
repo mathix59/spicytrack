@@ -1,4 +1,10 @@
 import { BadRequestException } from "@nestjs/common";
+import {
+  type CreatedAtCursor,
+  decodeCreatedAtCursor,
+  encodeCreatedAtCursor,
+  parsePageLimit,
+} from "../common/created-at-cursor";
 
 export const AUDIT_PAGE_SIZE = 50;
 export const MAX_AUDIT_PAGE_SIZE = 200;
@@ -14,10 +20,7 @@ export interface AuditFilters {
   to?: Date;
 }
 
-export interface AuditCursor {
-  createdAt: string;
-  id: string;
-}
+export type AuditCursor = CreatedAtCursor;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -67,29 +70,11 @@ export function parseAuditFilters(query: Record<string, unknown>): AuditFilters 
 }
 
 export function parseAuditLimit(value: unknown) {
-  if (value === undefined || value === "") return AUDIT_PAGE_SIZE;
-  const limit = Number(value);
-  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_AUDIT_PAGE_SIZE) {
-    throw new BadRequestException(`limit must be between 1 and ${MAX_AUDIT_PAGE_SIZE}`);
-  }
-  return limit;
+  return parsePageLimit(value, AUDIT_PAGE_SIZE, MAX_AUDIT_PAGE_SIZE);
 }
 
-export function encodeAuditCursor(cursor: AuditCursor) {
-  return Buffer.from(`${cursor.createdAt}|${cursor.id}`).toString("base64url");
-}
-
-export function decodeAuditCursor(value: unknown): AuditCursor | undefined {
-  if (value === undefined || value === "") return undefined;
-  if (typeof value !== "string" || value.length > 200) {
-    throw new BadRequestException("cursor is invalid");
-  }
-  const [createdAt, id] = Buffer.from(value, "base64url").toString().split("|");
-  if (!createdAt || !id || !UUID.test(id) || Number.isNaN(new Date(createdAt).getTime())) {
-    throw new BadRequestException("cursor is invalid");
-  }
-  return { createdAt, id };
-}
+export const encodeAuditCursor = encodeCreatedAtCursor;
+export const decodeAuditCursor = decodeCreatedAtCursor;
 
 export type AuditExportFormat = "csv" | "json";
 

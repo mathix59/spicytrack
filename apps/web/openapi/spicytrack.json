@@ -321,6 +321,37 @@
         "operationId": "listProjectAlertDeliveries",
         "parameters": [
           {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pending",
+                "retrying",
+                "success",
+                "failed"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "1-100, default 25",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "projectSlug",
             "required": true,
             "in": "path",
@@ -343,10 +374,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AlertDeliveryDto"
-                  }
+                  "$ref": "#/components/schemas/AlertDeliveryPageDto"
                 }
               }
             }
@@ -537,6 +565,50 @@
           }
         ],
         "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/permissions": {
+      "get": {
+        "operationId": "getProjectPermissions",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPermissionsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The current user's permissions in this project, including team roles",
         "tags": [
           "projects"
         ]
@@ -1159,6 +1231,273 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/projects/{projectSlug}/audit/entries": {
+      "get": {
+        "operationId": "listProjectAuditEntries",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "description": "Exact action, or a prefix ending with \".\" (e.g. \"member.\")",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorUserId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO date, inclusive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "ISO date, inclusive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEntryPageDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/audit/facets": {
+      "get": {
+        "operationId": "getProjectAuditFacets",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditFacetsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/audit/export": {
+      "get": {
+        "operationId": "exportProjectAudit",
+        "parameters": [
+          {
+            "name": "format",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "description": "Exact action, or a prefix ending with \".\" (e.g. \"member.\")",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorUserId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO date, inclusive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "ISO date, inclusive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Up to 10,000 entries, newest first",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
     "/instance-admin/settings": {
       "get": {
         "operationId": "InstanceAdminController_get",
@@ -1188,6 +1527,20 @@
     "/instance-admin/smtp/test": {
       "post": {
         "operationId": "InstanceAdminController_testSmtp",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "InstanceAdmin"
+        ]
+      }
+    },
+    "/instance-admin/smtp/test-email": {
+      "post": {
+        "operationId": "InstanceAdminController_sendSmtpTestEmail",
         "parameters": [],
         "responses": {
           "201": {
@@ -1707,11 +2060,16 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The repository connection, or null when the project has none.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RepoConnectionDto"
+                  "nullable": true,
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/RepoConnectionDto"
+                    }
+                  ]
                 }
               }
             }
@@ -4189,6 +4547,50 @@
           }
         ],
         "summary": "",
+        "tags": [
+          "autofix"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/autofix/availability": {
+      "get": {
+        "operationId": "getAutofixAvailability",
+        "parameters": [
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutofixAvailabilityDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether a root-cause analysis can start, and what setup is missing",
         "tags": [
           "autofix"
         ]
@@ -7056,6 +7458,115 @@
           "success"
         ]
       },
+      "AlertDeliveryListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "alertRuleId": {
+            "type": "string"
+          },
+          "issueId": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "retrying",
+              "success",
+              "failed"
+            ],
+            "description": "pending and retrying deliveries are still being sent by the worker."
+          },
+          "attempts": {
+            "type": "number",
+            "description": "Delivery attempts made so far."
+          },
+          "lastAttemptAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "responseStatus": {
+            "type": "number",
+            "nullable": true
+          },
+          "responseBody": {
+            "type": "string",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "ruleName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Null once the rule is deleted."
+          },
+          "destinationType": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "webhook",
+              "email",
+              "slack",
+              "teams",
+              "discord",
+              "pagerduty"
+            ],
+            "description": "The rule's current destination; null once the rule is deleted."
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "projectId",
+          "alertRuleId",
+          "status",
+          "attempts",
+          "payload",
+          "createdAt",
+          "ruleName",
+          "destinationType"
+        ]
+      },
+      "AlertDeliveryPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlertDeliveryListItemDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true,
+            "description": "Pass as `cursor` for older deliveries"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
       "ProjectDto": {
         "type": "object",
         "properties": {
@@ -7161,6 +7672,21 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "ProjectPermissionsDto": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "description": "The project permissions the current user holds, e.g. project.issues.manage.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "permissions"
         ]
       },
       "UpdateProjectBodyDto": {
@@ -7537,15 +8063,21 @@
             "$ref": "#/components/schemas/ProjectReleaseDto"
           },
           "issues": {
+            "description": "The 10 issues of this release seen most often; `issuesTotal` counts them all.",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/IssueDto"
             }
+          },
+          "issuesTotal": {
+            "type": "number",
+            "description": "Issues with at least one event in this release."
           }
         },
         "required": [
           "release",
-          "issues"
+          "issues",
+          "issuesTotal"
         ]
       },
       "CreateProjectKeyBodyDto": {
@@ -7620,6 +8152,128 @@
           "targetType",
           "payload",
           "createdAt"
+        ]
+      },
+      "AuditEntryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "action": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorTokenId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Personal access token used, if any"
+          },
+          "actorTokenName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "organizationId",
+          "action",
+          "targetType",
+          "payload",
+          "createdAt",
+          "projectName",
+          "actorName",
+          "actorEmail",
+          "actorTokenId",
+          "actorTokenName",
+          "ipAddress",
+          "userAgent"
+        ]
+      },
+      "AuditEntryPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEntryDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true,
+            "description": "Pass as `cursor` for older entries"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "AuditFacetsDto": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "targetTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "actions",
+          "targetTypes"
         ]
       },
       "UpsertReleaseBodyDto": {
@@ -9479,6 +10133,31 @@
           "dailyCap"
         ]
       },
+      "AutofixAvailabilityDto": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "True when a root-cause analysis can start for this project."
+          },
+          "missing": {
+            "type": "array",
+            "description": "What still blocks Autofix, in setup order: a connected repository, an organization AI key, Autofix enabled for the project.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "repository",
+                "ai_key",
+                "enabled"
+              ]
+            }
+          }
+        },
+        "required": [
+          "available",
+          "missing"
+        ]
+      },
       "UpdateAutofixConfigBodyDto": {
         "type": "object",
         "properties": {
@@ -10037,6 +10716,37 @@
           "lastSeenAt"
         ]
       },
+      "OrganizationOverviewNewIssueDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectSlug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "timesSeen": {
+            "type": "number"
+          },
+          "lastSeenAt": {
+            "type": "string"
+          },
+          "firstSeenAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "projectSlug",
+          "title",
+          "timesSeen",
+          "lastSeenAt",
+          "firstSeenAt"
+        ]
+      },
       "OrganizationOverviewProjectDto": {
         "type": "object",
         "properties": {
@@ -10163,6 +10873,13 @@
               "$ref": "#/components/schemas/OrganizationOverviewRegressionDto"
             }
           },
+          "topNewIssues": {
+            "description": "Up to five unresolved issues first seen in the last 24 hours, most events first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationOverviewNewIssueDto"
+            }
+          },
           "projects": {
             "type": "array",
             "items": {
@@ -10182,6 +10899,7 @@
           "resolvedIssueCount24h",
           "eventTrend14d",
           "topRegressions",
+          "topNewIssues",
           "projects"
         ]
       },
@@ -10359,128 +11077,6 @@
         },
         "required": [
           "role"
-        ]
-      },
-      "AuditEntryDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "organizationId": {
-            "type": "string",
-            "nullable": true
-          },
-          "projectId": {
-            "type": "string",
-            "nullable": true
-          },
-          "actorUserId": {
-            "type": "string",
-            "nullable": true
-          },
-          "action": {
-            "type": "string"
-          },
-          "targetType": {
-            "type": "string"
-          },
-          "targetId": {
-            "type": "string",
-            "nullable": true
-          },
-          "payload": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "projectName": {
-            "type": "string",
-            "nullable": true
-          },
-          "actorName": {
-            "type": "string",
-            "nullable": true
-          },
-          "actorEmail": {
-            "type": "string",
-            "nullable": true
-          },
-          "actorTokenId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Personal access token used, if any"
-          },
-          "actorTokenName": {
-            "type": "string",
-            "nullable": true
-          },
-          "ipAddress": {
-            "type": "string",
-            "nullable": true
-          },
-          "userAgent": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "id",
-          "organizationId",
-          "action",
-          "targetType",
-          "payload",
-          "createdAt",
-          "projectName",
-          "actorName",
-          "actorEmail",
-          "actorTokenId",
-          "actorTokenName",
-          "ipAddress",
-          "userAgent"
-        ]
-      },
-      "AuditEntryPageDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AuditEntryDto"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true,
-            "description": "Pass as `cursor` for older entries"
-          }
-        },
-        "required": [
-          "items",
-          "nextCursor"
-        ]
-      },
-      "AuditFacetsDto": {
-        "type": "object",
-        "properties": {
-          "actions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "targetTypes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "actions",
-          "targetTypes"
         ]
       },
       "TeamDto": {

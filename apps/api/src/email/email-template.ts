@@ -100,3 +100,16 @@ export function verificationEmail(url: string): EmailContent {
     note: "If you didn't create a SpicyTrack account, you can ignore this email.",
   });
 }
+
+export function smtpTestEmail(): EmailContent {
+  return renderEmail({
+    subject: "SpicyTrack test email",
+    eyebrow: "Email delivery",
+    title: "Your SMTP settings work.",
+    paragraphs: [
+      "An instance administrator sent this test email from the SpicyTrack instance administration page.",
+      "Invitations, password resets and email verification will be delivered with the same settings.",
+    ],
+    note: "You received this because you requested a test email. No action is needed.",
+  });
+}

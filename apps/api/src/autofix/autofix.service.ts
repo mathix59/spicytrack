@@ -273,6 +273,30 @@ export class AutofixService {
     };
   }
 
+  /**
+   * What still blocks a manual root-cause analysis, checked in the same order as `trigger`.
+   * Readable by anyone who can read Autofix, so the UI can explain a disabled action.
+   */
+  async getAvailability(
+    organizationId: string,
+    projectId: string,
+  ): Promise<{ available: boolean; missing: Array<"repository" | "ai_key" | "enabled"> }> {
+    const [connection, aiKeyRows, config] = await Promise.all([
+      this.integrationsService.findConnection(projectId),
+      this.db
+        .select({ apiKeyCiphertext: organizationAiSettings.apiKeyCiphertext })
+        .from(organizationAiSettings)
+        .where(eq(organizationAiSettings.organizationId, organizationId))
+        .limit(1),
+      this.getConfig(projectId),
+    ]);
+    const missing: Array<"repository" | "ai_key" | "enabled"> = [];
+    if (!connection) missing.push("repository");
+    if (!aiKeyRows[0]?.apiKeyCiphertext) missing.push("ai_key");
+    if (!config.enabled) missing.push("enabled");
+    return { available: missing.length === 0, missing };
+  }
+
   async trigger(input: {
     organizationId: string;
     projectId: string;

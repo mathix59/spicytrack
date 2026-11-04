@@ -1,9 +1,12 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, count, desc as drizzleDesc, eq, sql } from "drizzle-orm";
+import { and, count, desc as drizzleDesc, eq, inArray, sql } from "drizzle-orm";
 
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import { environments, events, issues, releases } from "../database/schema";
+
+/** A release lists its most frequent issues; the issue list filtered by release has the rest. */
+export const RELEASE_TOP_ISSUES = 10;
 
 @Injectable()
 export class ProjectsCatalogService {
@@ -72,28 +75,38 @@ export class ProjectsCatalogService {
       throw new NotFoundException("Release not found");
     }
 
-    const impactedIssues = await this.db
-      .selectDistinct({
-        id: issues.id,
-        organizationId: issues.organizationId,
-        projectId: issues.projectId,
-        groupingKey: issues.groupingKey,
-        title: issues.title,
-        level: issues.level,
-        status: issues.status,
-        firstSeenAt: issues.firstSeenAt,
-        lastSeenAt: issues.lastSeenAt,
-        timesSeen: issues.timesSeen,
-        assignedUserId: issues.assignedUserId,
-      })
+    const releaseIssueIds = this.db
+      .selectDistinct({ issueId: events.issueId })
       .from(events)
-      .innerJoin(issues, eq(events.issueId, issues.id))
-      .where(eq(events.releaseId, release.id))
-      .orderBy(drizzleDesc(issues.lastSeenAt));
+      .where(eq(events.releaseId, release.id));
+    const inRelease = inArray(issues.id, releaseIssueIds);
+
+    const [impactedIssues, [{ total }]] = await Promise.all([
+      this.db
+        .select({
+          id: issues.id,
+          organizationId: issues.organizationId,
+          projectId: issues.projectId,
+          groupingKey: issues.groupingKey,
+          title: issues.title,
+          level: issues.level,
+          status: issues.status,
+          firstSeenAt: issues.firstSeenAt,
+          lastSeenAt: issues.lastSeenAt,
+          timesSeen: issues.timesSeen,
+          assignedUserId: issues.assignedUserId,
+        })
+        .from(issues)
+        .where(inRelease)
+        .orderBy(drizzleDesc(issues.timesSeen), drizzleDesc(issues.lastSeenAt), issues.id)
+        .limit(RELEASE_TOP_ISSUES),
+      this.db.select({ total: count() }).from(issues).where(inRelease),
+    ]);
 
     return {
       release,
       issues: impactedIssues,
+      issuesTotal: total,
     };
   }
 }
