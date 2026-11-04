@@ -15,6 +15,7 @@ import { isUniqueViolation } from "../common/postgres-errors";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
 import {
+  alertRules,
   events,
   ingestRateCounters,
   issues,
@@ -330,6 +331,10 @@ export class IngestService {
         inboundRules: projects.inboundRules,
         ownershipRules: projects.ownershipRules,
         piiScrubFields: projects.piiScrubFields,
+        hasActiveAlertRules: sql<boolean>`exists (
+          select 1 from ${alertRules}
+          where ${alertRules.projectId} = ${projects.id} and ${alertRules.isActive}
+        )`,
       })
       .from(projects)
       .innerJoin(
@@ -417,16 +422,20 @@ export class IngestService {
     }
 
     const timesSeen = await this.flushIssueCounts(result.issue.id);
-    await this.dispatchPostIngestEffects({
-      context,
-      issueId: result.issue.id,
-      eventId: result.event.id,
-      issueTitle: result.issue.title,
-      issueStatus: result.issue.status,
-      timesSeen: timesSeen ?? result.issue.timesSeen + (result.counted ? 0 : 1),
-      issueWasCreated: result.issueWasCreated,
-      issueRegressed: result.issueRegressed,
-    });
+    // The post-ingest job only runs alert rules and, for a new issue, autofix: without either it
+    // has nothing to do. Counts a skipped flush left pending are swept by the jobs worker.
+    if (project.hasActiveAlertRules || result.issueWasCreated) {
+      await this.dispatchPostIngestEffects({
+        context,
+        issueId: result.issue.id,
+        eventId: result.event.id,
+        issueTitle: result.issue.title,
+        issueStatus: result.issue.status,
+        timesSeen: timesSeen ?? result.issue.timesSeen + (result.counted ? 0 : 1),
+        issueWasCreated: result.issueWasCreated,
+        issueRegressed: result.issueRegressed,
+      });
+    }
 
     return {
       accepted: true,
@@ -436,7 +445,7 @@ export class IngestService {
     };
   }
 
-  /** Pending counts stay for the post-ingest job to flush when this one fails. */
+  /** Pending counts stay for the next flush, or the jobs worker's sweep, when this one fails. */
   private async flushIssueCounts(issueId: string) {
     try {
       return await this.issueCounts.flush(issueId);

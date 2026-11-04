@@ -6,6 +6,8 @@ type IngestProjectAccess = {
   inboundRules: unknown;
   ownershipRules: unknown;
   piiScrubFields: unknown;
+  /** Read with the project on every event, so a new rule applies from the next event. */
+  hasActiveAlertRules: boolean;
 };
 
 type IngestContext = {

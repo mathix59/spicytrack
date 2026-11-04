@@ -42,6 +42,7 @@ const project = (overrides: Partial<IngestProjectAccess> = {}): IngestProjectAcc
   inboundRules: [],
   ownershipRules: [],
   piiScrubFields: [],
+  hasActiveAlertRules: false,
   ...overrides,
 });
 

@@ -3,7 +3,6 @@ import { and, eq, inArray, lt, notExists, type SQL } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { DATABASE } from "../../database/database.provider";
 import type { DatabaseClient } from "../../database/database.provider";
-import { IssueCountsService } from "../../ingest/issue-counts.service";
 import {
   alertDeliveries,
   alertIssueCooldowns,
@@ -58,7 +57,6 @@ export class RetentionCleanupHandler {
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
     private readonly eventPartitions: EventPartitionsService,
-    private readonly issueCounts: IssueCountsService,
   ) {}
 
   async run(signal?: AbortSignal): Promise<void> {
@@ -68,7 +66,6 @@ export class RetentionCleanupHandler {
 
     // Whole weeks past every project's retention go first; the deletes below only see the rest.
     await this.eventPartitions.maintain(new Date(now));
-    await this.issueCounts.flushAll();
 
     await this.db
       .delete(ingestRateCounters)

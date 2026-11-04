@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { jobDuration } from "../common/metrics";
+import { IssueCountsService } from "../ingest/issue-counts.service";
 import { RetentionCleanupHandler } from "./handlers/retention-cleanup.handler";
 import { JobsService } from "./jobs.service";
 import type { Job } from "./jobs.service";
@@ -14,8 +15,15 @@ const DEFAULT_SLOW_JOB_TIMEOUT_MS = 45 * 60 * 1000;
 const STALLED_SWEEP_INTERVAL_MS = 60 * 1000;
 // A job still "running" this long after its timeout belongs to a worker that died.
 const STALLED_GRACE_MS = 60 * 1000;
-const RETENTION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
-const RETENTION_CLEANUP_DEDUPE_KEY = "retention_cleanup";
+/**
+ * Jobs that queue their next run once done, each under its type as dedupe key so a single run
+ * is pending however many workers start. The counts sweep bounds how long counts a skipped
+ * flush left pending can trail when no later event of their issue flushes them.
+ */
+const RECURRING_JOB_INTERVALS_MS = new Map([
+  ["retention_cleanup", 60 * 60 * 1000],
+  ["issue_counts_sweep", 60 * 1000],
+]);
 const DEFAULT_MAX_ATTEMPTS = 5;
 const DEFAULT_RETRY_BASE_DELAY_MS = 15_000;
 const MAX_RETRY_DELAY_MS = 15 * 60 * 1000;
@@ -51,9 +59,13 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly jobsService: JobsService,
     private readonly retentionCleanupHandler: RetentionCleanupHandler,
+    private readonly issueCounts: IssueCountsService,
   ) {
     this.handlers = {
       retention_cleanup: (_job, signal) => this.retentionCleanupHandler.run(signal),
+      issue_counts_sweep: async () => {
+        await this.issueCounts.flushAll();
+      },
     };
   }
 
@@ -80,10 +92,9 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    // The dedupe key keeps a single pending cleanup however many workers start.
-    await this.jobsService.enqueue("retention_cleanup", {}, new Date(), {
-      dedupeKey: RETENTION_CLEANUP_DEDUPE_KEY,
-    });
+    for (const type of RECURRING_JOB_INTERVALS_MS.keys()) {
+      await this.jobsService.enqueue(type, {}, new Date(), { dedupeKey: type });
+    }
 
     this.intervalHandle = setInterval(
       () => {
@@ -138,13 +149,11 @@ export class JobsRunnerService implements OnModuleInit, OnModuleDestroy {
       await this.execute(job, this.handlers[job.type], this.jobTimeout());
       this.lastProgressAt = Date.now();
 
-      if (job.type === "retention_cleanup") {
-        await this.jobsService.enqueue(
-          "retention_cleanup",
-          {},
-          new Date(Date.now() + RETENTION_CLEANUP_INTERVAL_MS),
-          { dedupeKey: RETENTION_CLEANUP_DEDUPE_KEY },
-        );
+      const interval = RECURRING_JOB_INTERVALS_MS.get(job.type);
+      if (interval !== undefined) {
+        await this.jobsService.enqueue(job.type, {}, new Date(Date.now() + interval), {
+          dedupeKey: job.type,
+        });
       }
     }
   }

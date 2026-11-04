@@ -1,4 +1,5 @@
 import { Logger } from "@nestjs/common";
+import type { IssueCountsService } from "../ingest/issue-counts.service";
 import { RetentionCleanupHandler } from "./handlers/retention-cleanup.handler";
 import { JobTimeoutError, JobsRunnerService } from "./jobs-runner.service";
 import type { Job, JobsService } from "./jobs.service";
@@ -24,6 +25,7 @@ function createRunner(jobsService: ReturnType<typeof createJobsService>) {
     {
       run: jest.fn().mockResolvedValue(undefined),
     } as unknown as RetentionCleanupHandler,
+    { flushAll: jest.fn().mockResolvedValue(0) } as unknown as IssueCountsService,
   );
 }
 
@@ -54,17 +56,32 @@ describe("JobsRunnerService", () => {
     runner.onModuleDestroy();
   });
 
-  it("enqueues a single retention cleanup through its dedupe key", async () => {
+  it("enqueues a single run of each recurring job through its dedupe key", async () => {
     jest.useFakeTimers();
     const jobsService = createJobsService();
     const runner = createRunner(jobsService);
 
     await runner.onModuleInit();
 
-    expect(jobsService.enqueue).toHaveBeenCalledWith("retention_cleanup", {}, expect.any(Date), {
-      dedupeKey: "retention_cleanup",
-    });
+    for (const type of ["retention_cleanup", "issue_counts_sweep"]) {
+      expect(jobsService.enqueue).toHaveBeenCalledWith(type, {}, expect.any(Date), {
+        dedupeKey: type,
+      });
+    }
     runner.onModuleDestroy();
+  });
+
+  it("queues the next run of a recurring job once it is done", async () => {
+    jest.useFakeTimers({ now: 0 });
+    const jobsService = createJobsService([job("sweep", "issue_counts_sweep")]);
+    const runner = createRunner(jobsService);
+
+    await runner.tick();
+
+    expect(jobsService.markSucceeded).toHaveBeenCalledWith("sweep");
+    expect(jobsService.enqueue).toHaveBeenCalledWith("issue_counts_sweep", {}, new Date(60_000), {
+      dedupeKey: "issue_counts_sweep",
+    });
   });
 
   it("drains every due job in one tick, several at a time", async () => {
@@ -121,7 +138,7 @@ describe("JobsRunnerService", () => {
 
     expect(jobsService.recoverStalled).toHaveBeenCalledTimes(1);
     expect(jobsService.recoverStalled).toHaveBeenCalledWith(
-      ["retention_cleanup"],
+      ["retention_cleanup", "issue_counts_sweep"],
       expect.any(Date),
       5,
     );

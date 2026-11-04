@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { Test } from "@nestjs/testing";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { AppModule } from "../src/app.module";
 import { DATABASE } from "../src/database/database.provider";
 import type { DatabaseClient } from "../src/database/database.provider";
 import {
+  alertRules,
   auditLogs,
   events,
   ingestRateCounters,
@@ -144,6 +145,7 @@ describe("Ingestion security and concurrency (e2e)", () => {
 
   afterAll(async () => {
     await db.delete(jobs).where(eq(jobs.organizationId, organizationId));
+    await db.delete(alertRules).where(eq(alertRules.organizationId, organizationId));
     await db.delete(issueActivity).where(eq(issueActivity.organizationId, organizationId));
     await db.delete(auditLogs).where(eq(auditLogs.organizationId, organizationId));
     await db.delete(events).where(eq(events.organizationId, organizationId));
@@ -217,6 +219,36 @@ describe("Ingestion security and concurrency (e2e)", () => {
     expect(responses.filter(({ status }) => status === "fulfilled")).toHaveLength(2);
     const rejection = responses.find(({ status }) => status === "rejected");
     expect(rejection).toMatchObject({ status: "rejected", reason: { status: 429 } });
+  });
+
+  it("queues the post-ingest job only for a new issue or a project with active alert rules", async () => {
+    const message = `Post-ingest job ${randomUUID()}`;
+    const send = async () => {
+      const { eventId } = await ingest.ingestStore(
+        String(siblingPublicId),
+        { ...event(randomUUID().replaceAll("-", "")), message },
+        siblingKey,
+      );
+      const queued = await db
+        .select({ id: jobs.id })
+        .from(jobs)
+        .where(and(eq(jobs.type, "post_ingest_admin"), eq(jobs.dedupeKey, eventId!)));
+      return queued.length;
+    };
+    const rule = {
+      organizationId,
+      projectId: siblingProjectId,
+      name: "Post-ingest job",
+      triggerTypes: ["new_issue"],
+      destinationTarget: "https://example.test/hook",
+    };
+
+    expect(await send()).toBe(1);
+    expect(await send()).toBe(0);
+    await db.insert(alertRules).values({ ...rule, isActive: false });
+    expect(await send()).toBe(0);
+    await db.insert(alertRules).values(rule);
+    expect(await send()).toBe(1);
   });
 
   it("serializes reciprocal issue merges without losing counters", async () => {

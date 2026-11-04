@@ -35,7 +35,7 @@ export class PostIngestAdminJobHandler implements OnModuleInit {
       throw new Error("post_ingest_admin job payload is invalid");
     }
 
-    // Picks up counts a skipped or failed flush at ingest left pending.
+    // Picks up counts a skipped or failed flush at ingest left pending, ahead of the sweep.
     await this.issueCounts.flush(payload.issueId);
 
     await this.alertsService.handleEvent({

@@ -569,27 +569,34 @@ export const releaseArtifacts = pgTable(
   }),
 );
 
-export const alertRules = pgTable("alert_rules", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  organizationId: uuid("organization_id").notNull(),
-  projectId: uuid("project_id").notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-  triggerTypes: text("trigger_types").array().notNull(),
-  threshold: integer("threshold"),
-  /** The event threshold counts events of one issue within this many minutes. */
-  thresholdWindowMinutes: integer("threshold_window_minutes").notNull().default(60),
-  cooldownMinutes: integer("cooldown_minutes").notNull().default(30),
-  destinationType: varchar("destination_type", { length: 32 }).notNull().default("webhook"),
-  destinationTarget: text("destination_target").notNull(),
-  /** Encrypted HMAC key signing webhook deliveries; null for other destinations. */
-  signingSecret: text("signing_secret"),
-  lastTriggeredAt: timestamp("last_triggered_at", { withTimezone: true }),
-  /** Kept apart from lastTriggeredAt so digests and instant alerts never silence each other. */
-  lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const alertRules = pgTable(
+  "alert_rules",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    triggerTypes: text("trigger_types").array().notNull(),
+    threshold: integer("threshold"),
+    /** The event threshold counts events of one issue within this many minutes. */
+    thresholdWindowMinutes: integer("threshold_window_minutes").notNull().default(60),
+    cooldownMinutes: integer("cooldown_minutes").notNull().default(30),
+    destinationType: varchar("destination_type", { length: 32 }).notNull().default("webhook"),
+    destinationTarget: text("destination_target").notNull(),
+    /** Encrypted HMAC key signing webhook deliveries; null for other destinations. */
+    signingSecret: text("signing_secret"),
+    lastTriggeredAt: timestamp("last_triggered_at", { withTimezone: true }),
+    /** Kept apart from lastTriggeredAt so digests and instant alerts never silence each other. */
+    lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    // Ingest checks every event's project for active rules.
+    projectIdx: index("alert_rules_project_idx").on(table.projectId),
+  }),
+);
 
 /** Cooldown of an alert rule for one issue, so one noisy issue never silences another. */
 export const alertIssueCooldowns = pgTable(

@@ -1,0 +1,1 @@
+CREATE INDEX "alert_rules_project_idx" ON "alert_rules" USING btree ("project_id");

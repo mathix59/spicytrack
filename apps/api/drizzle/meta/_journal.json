@@ -155,6 +155,13 @@
       "when": 1793786950046,
       "tag": "0021_issue_pending_counts",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793793515786,
+      "tag": "0022_alert_rules_project_idx",
+      "breakpoints": true
     }
   ]
 }
