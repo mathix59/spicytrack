@@ -11,24 +11,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SkeletonRows } from "@/components/ui/skeleton";
 
+import { AuditDateInput } from "./audit-date-input";
 import { AuditEntryRow } from "./audit-entry-row";
 import { type AuditLogSource, useAuditLog } from "./use-audit-log";
 
 type Option = { id: string; label: string };
 
-/** Filterable, paginated and exportable audit log, for an organization or the instance. */
+/** Filterable, paginated and exportable audit log, for an organization, a project or the instance. */
 function AuditLogView({
   source,
   description,
+  emptyDescription = "Member, role, key, settings and other sensitive changes will appear here.",
   actors,
   projects,
 }: {
   source: AuditLogSource;
   description: string;
+  /** What will show up in an empty, unfiltered log. */
+  emptyDescription?: string;
   actors?: Option[];
   projects?: Option[];
 }) {
@@ -126,18 +129,16 @@ function AuditLogView({
             </Select>
           </Field>
           <Field label="From">
-            <Input
+            <AuditDateInput
               max={filters.to || undefined}
-              onChange={(event) => state.setFilter("from", event.target.value)}
-              type="date"
+              onChange={(value) => state.setFilter("from", value)}
               value={filters.from}
             />
           </Field>
           <Field label="To">
-            <Input
+            <AuditDateInput
               min={filters.from || undefined}
-              onChange={(event) => state.setFilter("to", event.target.value)}
-              type="date"
+              onChange={(value) => state.setFilter("to", value)}
               value={filters.to}
             />
           </Field>
@@ -160,11 +161,7 @@ function AuditLogView({
                 </Button>
               ) : undefined
             }
-            description={
-              state.isFiltered
-                ? "No entry matches these filters."
-                : "Member, role, key, settings and other sensitive changes will appear here."
-            }
+            description={state.isFiltered ? "No entry matches these filters." : emptyDescription}
             icon={ScrollText}
             title="No audit entries"
           />
