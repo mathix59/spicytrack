@@ -7,6 +7,8 @@ import {
   WandSparkles,
 } from "lucide-react";
 
+import { AutofixBlockerHint } from "@/components/autofix/autofix-blocker-hint";
+import { focusAutofixCard } from "@/components/autofix/autofix-run-utils";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,10 +30,9 @@ const SNOOZE_OPTIONS = [
 
 function IssueStatusActions({ status, actions }: { status: string; actions: IssueActionsState }) {
   const busy = actions.isUpdatingStatus;
-  const autofixBusy = actions.autofixInFlight || actions.isTriggeringAutofix;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-start gap-2">
       {status === "open" ? (
         <div className="flex">
           <Button
@@ -118,24 +119,70 @@ function IssueStatusActions({ status, actions }: { status: string; actions: Issu
         </DropdownMenu>
       ) : null}
       {busy ? <LoaderCircle className="size-4 animate-spin text-muted-foreground" /> : null}
+      <AutofixAction actions={actions} />
+    </div>
+  );
+}
+
+const AUTOFIX_HINT_ID = "issue-autofix-unavailable";
+
+/**
+ * "Find root cause", or "Autofix running" (which jumps to the Autofix card). When Autofix
+ * cannot start, the button stays visible but disabled, and says why.
+ */
+function AutofixAction({ actions }: { actions: IssueActionsState }) {
+  if (actions.autofixInFlight) {
+    return (
       <div className="ml-auto">
         <Button
-          className="border-primary/40 text-primary-accent hover:bg-primary/10 hover:text-primary-accent"
-          disabled={autofixBusy}
-          onClick={() => void actions.triggerAutofix()}
+          className="border-info/40 text-info hover:bg-info/10 hover:text-info"
+          onClick={focusAutofixCard}
           size="sm"
-          title="Find the root cause with AI, then optionally generate a fix and pull request"
+          title="Show the Autofix run in progress"
           type="button"
           variant="outline"
         >
-          {autofixBusy ? <LoaderCircle className="animate-spin" /> : <WandSparkles />}
-          {actions.autofixInFlight
-            ? "Autofix running"
-            : actions.isTriggeringAutofix
-              ? "Starting…"
-              : "Find root cause"}
+          <LoaderCircle className="motion-safe:animate-spin" />
+          Autofix running
         </Button>
       </div>
+    );
+  }
+
+  const blocker = actions.autofixBlocker;
+
+  return (
+    <div className="ml-auto grid justify-items-end gap-1">
+      <Button
+        aria-describedby={blocker ? AUTOFIX_HINT_ID : undefined}
+        aria-disabled={blocker ? true : undefined}
+        className="border-primary/40 text-primary-accent hover:bg-primary/10 hover:text-primary-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:bg-transparent"
+        disabled={actions.isTriggeringAutofix}
+        onClick={() => {
+          if (!blocker) void actions.triggerAutofix();
+        }}
+        size="sm"
+        title={
+          blocker?.message ??
+          "Find the root cause with AI, then optionally generate a fix and pull request"
+        }
+        type="button"
+        variant="outline"
+      >
+        {actions.isTriggeringAutofix ? (
+          <LoaderCircle className="motion-safe:animate-spin" />
+        ) : (
+          <WandSparkles />
+        )}
+        {actions.isTriggeringAutofix ? "Starting…" : "Find root cause"}
+      </Button>
+      {blocker ? (
+        <AutofixBlockerHint
+          blocker={blocker}
+          className="max-w-xs text-right"
+          id={AUTOFIX_HINT_ID}
+        />
+      ) : null}
     </div>
   );
 }

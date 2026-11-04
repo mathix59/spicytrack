@@ -1,182 +1,110 @@
-import { type FormEvent, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Ticket } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, Link2, Ticket, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { QueryError } from "@/components/common/query-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { SkeletonRows } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  getGetIssueQueryKey,
-  getListIssueTicketsQueryKey,
-  useCreateIssueTicket,
-  useGetIssueTicketDraft,
-  useListIssueTickets,
-} from "@/generated/api";
-import { formatRelativeTime, getErrorMessage } from "@/lib/utils";
+import { useListIssueTickets } from "@/generated/api";
+import { formatLocalDateTime, formatRelativeTime, getErrorMessage } from "@/lib/utils";
 
+import { CreateTicketDialog } from "./create-ticket-dialog";
+import { LinkTicketForm } from "./link-ticket-form";
 import { PROVIDER_LABELS } from "./ticket-provider-labels";
 
-function CreateTicketDialog({
-  orgSlug,
-  projectSlug,
-  issueId,
-  trackers,
-  open,
-  onOpenChange,
-}: {
-  orgSlug: string;
-  projectSlug: string;
-  issueId: string;
-  trackers: Array<{ id: string; name: string; target: string }>;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const queryClient = useQueryClient();
-  const draftQuery = useGetIssueTicketDraft(orgSlug, projectSlug, issueId, {
-    query: { enabled: open, staleTime: 0, gcTime: 0 },
-  });
-  const createTicket = useCreateIssueTicket();
-  const [error, setError] = useState<string | null>(null);
-  const draft = draftQuery.data?.data;
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    const form = new FormData(event.currentTarget);
-    try {
-      const response = await createTicket.mutateAsync({
-        orgSlug,
-        projectSlug,
-        issueId,
-        data: {
-          trackerId: String(form.get("trackerId")),
-          title: String(form.get("title") ?? ""),
-          description: String(form.get("description") ?? ""),
-        },
-      });
-      toast.success(`Ticket ${response.data.externalKey} created`, {
-        action: {
-          label: "Open",
-          onClick: () => window.open(response.data.url, "_blank", "noopener,noreferrer"),
-        },
-      });
-      onOpenChange(false);
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: getListIssueTicketsQueryKey(orgSlug, projectSlug, issueId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: getGetIssueQueryKey(orgSlug, projectSlug, issueId),
-        }),
-      ]);
-    } catch (caught) {
-      setError(getErrorMessage(caught));
-    }
+/** A readable label for a manually linked ticket URL: host and path, without the scheme. */
+function linkLabel(url: string) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.host}${parsed.pathname === "/" ? "" : parsed.pathname}`;
+  } catch {
+    return url;
   }
+}
 
+/** The ticket linked by URL, shown as one more row of the list. */
+function LinkedTicketRow({
+  url,
+  canManage,
+  pending,
+  onRemove,
+}: {
+  url: string;
+  canManage: boolean;
+  pending: boolean;
+  onRemove: () => void;
+}) {
   return (
-    <Dialog
-      onOpenChange={(next) => {
-        if (!next) setError(null);
-        onOpenChange(next);
-      }}
-      open={open}
-    >
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Create ticket</DialogTitle>
-          <DialogDescription>
-            The ticket links back to this issue. Review the description before sending: it leaves
-            SpicyTrack.
-          </DialogDescription>
-        </DialogHeader>
-        {draftQuery.isLoading ? (
-          <SkeletonRows rows={4} />
-        ) : draftQuery.error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{getErrorMessage(draftQuery.error)}</AlertDescription>
-          </Alert>
-        ) : draft ? (
-          <form className="grid gap-4" onSubmit={(event) => void submit(event)}>
-            <Field label="Tracker">
-              <Select defaultValue={trackers[0]?.id} name="trackerId" required>
-                {trackers.map((tracker) => (
-                  <option key={tracker.id} value={tracker.id}>
-                    {tracker.name} · {tracker.target}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Title">
-              <Input defaultValue={draft.title} maxLength={255} name="title" required />
-            </Field>
-            <Field hint="Markdown." label="Description">
-              <Textarea
-                className="min-h-56 font-mono text-xs"
-                defaultValue={draft.description}
-                maxLength={20000}
-                name="description"
-              />
-            </Field>
-            {error ? (
-              <Alert variant="destructive">
-                <AlertDescription className="[overflow-wrap:anywhere]">{error}</AlertDescription>
-              </Alert>
-            ) : null}
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="ghost">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button disabled={createTicket.isPending} type="submit">
-                {createTicket.isPending ? "Creating…" : "Create ticket"}
-              </Button>
-            </DialogFooter>
-          </form>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+    <li className="flex min-w-0 items-start gap-2">
+      <div className="min-w-0 flex-1">
+        <a
+          className="group flex min-w-0 items-center gap-2 text-sm"
+          href={url}
+          rel="noreferrer noopener"
+          target="_blank"
+        >
+          <Link2 aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 truncate group-hover:underline">{linkLabel(url)}</span>
+          <ExternalLink aria-hidden="true" className="size-3 shrink-0 text-muted-foreground" />
+        </a>
+        <p className="text-xs text-muted-foreground">Linked manually</p>
+      </div>
+      {canManage ? (
+        <Button
+          aria-label="Remove linked ticket"
+          disabled={pending}
+          onClick={onRemove}
+          size="icon-sm"
+          title="Remove linked ticket"
+          type="button"
+          variant="ghost"
+        >
+          <X />
+        </Button>
+      ) : null}
+    </li>
   );
 }
 
-/** Tickets created from this issue, and the button to create one. */
+/**
+ * Tickets for this issue: those created from SpicyTrack in a connected tracker, and one ticket
+ * linked by URL. Managing them needs project.issues.manage.
+ */
 function IssueTicketsCard({
   orgSlug,
   projectSlug,
   issueId,
+  canManage,
+  canManageIntegrations,
+  externalIssueUrl,
+  onSaveExternalLink,
+  isSavingExternalLink,
 }: {
   orgSlug: string;
   projectSlug: string;
   issueId: string;
+  canManage: boolean;
+  canManageIntegrations: boolean;
+  externalIssueUrl: string | null | undefined;
+  /** Saves (or, with null, removes) the ticket linked by URL; rejects with the API error. */
+  onSaveExternalLink: (url: string | null) => Promise<void>;
+  isSavingExternalLink: boolean;
 }) {
   const ticketsQuery = useListIssueTickets(orgSlug, projectSlug, issueId);
   const [open, setOpen] = useState(false);
+  const [linking, setLinking] = useState(false);
   const data = ticketsQuery.data?.data;
   const tickets = data?.tickets ?? [];
   const trackers = data?.trackers ?? [];
+  const hasTickets = tickets.length > 0 || Boolean(externalIssueUrl);
 
   return (
     <Card className="min-w-0" data-testid="issue-tickets">
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
         <CardTitle className="text-base">Tickets</CardTitle>
-        {trackers.length > 0 ? (
+        {canManage && trackers.length > 0 ? (
           <Button onClick={() => setOpen(true)} size="sm" type="button" variant="outline">
             <Ticket />
             Create ticket
@@ -186,31 +114,57 @@ function IssueTicketsCard({
       <CardContent className="grid gap-3">
         {ticketsQuery.isLoading ? (
           <SkeletonRows rows={1} />
-        ) : tickets.length > 0 ? (
+        ) : ticketsQuery.isError ? (
+          <QueryError
+            error={ticketsQuery.error}
+            onRetry={() => void ticketsQuery.refetch()}
+            title="Could not load tickets"
+          />
+        ) : hasTickets ? (
           <ul className="grid gap-2">
             {tickets.map((ticket) => (
               <li className="min-w-0" key={ticket.id}>
                 <a
                   className="group flex min-w-0 items-center gap-2 text-sm"
                   href={ticket.url}
-                  rel="noreferrer"
+                  rel="noreferrer noopener"
                   target="_blank"
                 >
                   <span className="shrink-0 font-mono text-xs font-medium text-primary-accent">
                     {ticket.externalKey}
                   </span>
                   <span className="min-w-0 truncate group-hover:underline">{ticket.title}</span>
-                  <ExternalLink className="size-3 shrink-0 text-muted-foreground" />
+                  <ExternalLink
+                    aria-hidden="true"
+                    className="size-3 shrink-0 text-muted-foreground"
+                  />
                 </a>
                 <p className="text-xs text-muted-foreground">
-                  {PROVIDER_LABELS[ticket.provider]} · {formatRelativeTime(ticket.createdAt)}
+                  {PROVIDER_LABELS[ticket.provider]} ·{" "}
+                  <time dateTime={ticket.createdAt} title={formatLocalDateTime(ticket.createdAt)}>
+                    {formatRelativeTime(ticket.createdAt)}
+                  </time>
                 </p>
               </li>
             ))}
+            {externalIssueUrl ? (
+              <LinkedTicketRow
+                canManage={canManage}
+                onRemove={() =>
+                  void onSaveExternalLink(null).catch((error: unknown) =>
+                    toast.error("Could not remove the linked ticket", {
+                      description: getErrorMessage(error),
+                    }),
+                  )
+                }
+                pending={isSavingExternalLink}
+                url={externalIssueUrl}
+              />
+            ) : null}
           </ul>
         ) : trackers.length > 0 ? (
           <p className="text-sm text-muted-foreground">No ticket yet.</p>
-        ) : (
+        ) : canManageIntegrations ? (
           <p className="text-sm text-muted-foreground">
             Add GitHub, Linear or Jira in{" "}
             <Link
@@ -221,9 +175,38 @@ function IssueTicketsCard({
             </Link>{" "}
             to create tickets from issues.
           </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Ask a project admin to connect GitHub, Linear or Jira.
+          </p>
         )}
+
+        {canManage ? (
+          linking ? (
+            <LinkTicketForm
+              defaultValue={externalIssueUrl ?? ""}
+              onCancel={() => setLinking(false)}
+              onSave={async (url) => {
+                await onSaveExternalLink(url);
+                setLinking(false);
+              }}
+              pending={isSavingExternalLink}
+            />
+          ) : (
+            <Button
+              className="justify-self-start px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+              onClick={() => setLinking(true)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <Link2 />
+              {externalIssueUrl ? "Replace linked ticket" : "Link existing ticket"}
+            </Button>
+          )
+        ) : null}
       </CardContent>
-      {trackers.length > 0 ? (
+      {canManage && trackers.length > 0 ? (
         <CreateTicketDialog
           issueId={issueId}
           onOpenChange={setOpen}

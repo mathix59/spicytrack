@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrainCircuit, RefreshCw, Sparkles } from "lucide-react";
 
+import { Markdown } from "@/components/common/markdown";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,9 +84,11 @@ function IssueTriageCard({
               ) : null}
               {displayedTriage.evidence.isRegressed ? <span>· possible regression</span> : null}
             </div>
-            <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">
-              {displayedTriage.briefing}
-            </div>
+            <Markdown
+              className="text-sm leading-6 text-foreground"
+              headingLevel={3}
+              source={displayedTriage.briefing}
+            />
             {historyQuery.data && historyQuery.data.length > 1 ? (
               <p className="text-xs text-muted-foreground">
                 {historyQuery.data.length} triage runs retained for this issue.

@@ -72,6 +72,8 @@ function IssueDetailPage() {
         </div>
 
         <IssueSidebar
+          autofixBlocker={page.actions.autofixBlocker}
+          capabilities={page.capabilities}
           issue={page.issue}
           issueId={page.issueId}
           orgSlug={page.orgSlug}

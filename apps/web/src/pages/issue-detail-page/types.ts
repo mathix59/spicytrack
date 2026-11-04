@@ -1,4 +1,5 @@
 import type { FormEvent } from "react";
+import type { AutofixBlocker, AutofixRequirement } from "@/components/autofix/autofix-availability";
 import type {
   EventDto,
   IssueCommentDto,
@@ -54,16 +55,32 @@ type IssueSidebarState = {
   workflowError: string | null;
   updateAssignee: (assignedUserId: string) => Promise<void>;
   updatePriority: (priority: string) => Promise<void>;
-  updateExternalLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  /** Links a ticket by URL (null removes it); rejects with the API error. */
+  updateExternalLink: (url: string | null) => Promise<void>;
   mergeIssue: (targetIssueId: string) => Promise<void>;
   unmergeIssue: () => Promise<void>;
   isUpdatingAssignee: boolean;
   isUpdatingPriority: boolean;
   isUpdatingWorkflow: boolean;
+  isUpdatingExternalLink: boolean;
+};
+
+/** What the current user may do on the issue, and what Autofix still needs in the project. */
+type IssueCapabilities = {
+  /** Permissions are still loading: actions stay as they were rather than flash as denied. */
+  isLoading: boolean;
+  canManageIssues: boolean;
+  canRunAutofix: boolean;
+  canManageAutofix: boolean;
+  canManageIntegrations: boolean;
+  canManageOrganizationSettings: boolean;
+  autofixMissing: AutofixRequirement[];
 };
 
 type IssueActionsState = {
   autofixInFlight: boolean;
+  /** Why the viewer cannot start Autofix, or null when they can. */
+  autofixBlocker: AutofixBlocker | null;
   triggerAutofix: () => Promise<void>;
   updateStatus: (status: string, ignoredUntil?: string | null) => Promise<void>;
   /** Resolves until an event arrives from a release newer than the latest one. */
@@ -87,10 +104,13 @@ type IssuePageData = {
   comments: IssueCommentsState;
   sidebar: IssueSidebarState;
   actions: IssueActionsState;
+  capabilities: IssueCapabilities;
 };
 
 export type {
+  AutofixRequirement,
   EventPagerState,
+  IssueCapabilities,
   IssueActionsState,
   IssueCommentsState,
   IssueNavigation,

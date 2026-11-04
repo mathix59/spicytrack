@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -22,7 +21,7 @@ type IssueWorkflowActionsOptions = {
   issuePath: (id: string) => string;
 };
 
-/** External ticket link, merge and unmerge of the issue detail page. */
+/** Ticket link by URL, merge and unmerge of the issue detail page. */
 function useIssueWorkflowActions({
   orgSlug,
   projectSlug,
@@ -47,21 +46,15 @@ function useIssueWorkflowActions({
     mutation: { onSuccess: invalidateIssueWorkflow },
   });
 
-  const updateExternalLink = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setWorkflowError(null);
-    const formData = new FormData(event.currentTarget);
-    try {
-      await updateExternalLinkMutation.mutateAsync({
-        orgSlug,
-        projectSlug,
-        issueId,
-        data: { externalIssueUrl: String(formData.get("externalIssueUrl") ?? "") || null },
-      });
-      toast.success("External ticket saved");
-    } catch (error) {
-      setWorkflowError(getErrorMessage(error));
-    }
+  /** Links a ticket by URL (null or empty removes it). Rejects with the API error. */
+  const updateExternalLink = async (url: string | null) => {
+    await updateExternalLinkMutation.mutateAsync({
+      orgSlug,
+      projectSlug,
+      issueId,
+      data: { externalIssueUrl: url || null },
+    });
+    toast.success(url ? "Ticket linked" : "Linked ticket removed");
   };
 
   const mergeIssue = async (targetIssueId: string) => {
@@ -95,10 +88,8 @@ function useIssueWorkflowActions({
     updateExternalLink,
     mergeIssue,
     unmergeIssue,
-    isUpdatingWorkflow:
-      updateExternalLinkMutation.isPending ||
-      mergeIssueMutation.isPending ||
-      unmergeIssueMutation.isPending,
+    isUpdatingExternalLink: updateExternalLinkMutation.isPending,
+    isUpdatingWorkflow: mergeIssueMutation.isPending || unmergeIssueMutation.isPending,
   };
 }
 

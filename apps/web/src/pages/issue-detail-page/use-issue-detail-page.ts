@@ -21,12 +21,14 @@ import {
   issueListContextFilters,
   withIssueListContext,
 } from "@/features/issues/issue-list-context";
+import { autofixBlocker } from "@/components/autofix/autofix-availability";
 import { useIssueTrends } from "@/features/issues/use-issue-trends";
 import { useHotkeys } from "@/lib/use-hotkeys";
 
 import { createEventNavigation, type EventPageEdge } from "./event-navigation";
 import type { IssuePageData } from "./types";
 import { useIssueActions } from "./use-issue-actions";
+import { useIssueCapabilities } from "./use-issue-capabilities";
 import { useIssueWorkflowActions } from "./use-issue-workflow-actions";
 import { buildTimelineEntries } from "./utils";
 
@@ -78,6 +80,7 @@ function useIssueDetailPage(): IssuePageData {
   const commentsQuery = useListIssueComments(orgSlug, projectSlug, issueId);
   const activityQuery = useListIssueActivity(orgSlug, projectSlug, issueId);
   const autofixRunsQuery = useListIssueAutofixRuns(orgSlug, projectSlug, issueId);
+  const capabilities = useIssueCapabilities(orgSlug, projectSlug);
 
   const projectName = projectQuery.data?.data?.name ?? "Project";
   const members = membersQuery.data?.data ?? EMPTY_MEMBERS;
@@ -225,9 +228,24 @@ function useIssueDetailPage(): IssuePageData {
       isUpdatingAssignee: issueActions.isUpdatingAssignee,
       isUpdatingPriority: issueActions.isUpdatingPriority,
       isUpdatingWorkflow: workflowActions.isUpdatingWorkflow,
+      isUpdatingExternalLink: workflowActions.isUpdatingExternalLink,
     },
+    capabilities,
     actions: {
       autofixInFlight,
+      autofixBlocker: capabilities.isLoading
+        ? null
+        : autofixBlocker(
+            {
+              missing: capabilities.autofixMissing,
+              canRun: capabilities.canRunAutofix,
+              canManageAutofix: capabilities.canManageAutofix,
+              canManageIntegrations: capabilities.canManageIntegrations,
+              canManageOrganizationSettings: capabilities.canManageOrganizationSettings,
+            },
+            orgSlug,
+            projectSlug,
+          ),
       triggerAutofix: issueActions.triggerAutofix,
       updateStatus: issueActions.updateStatus,
       resolveInNextRelease: () =>

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { ExternalLink } from "lucide-react";
 
+import type { AutofixBlocker } from "@/components/autofix/autofix-availability";
 import { AutofixRunsCard } from "@/components/autofix/autofix-runs-card";
 import { SuspectCommitsCard } from "@/components/commits/suspect-commits-card";
 import { IssueTriageCard } from "@/components/issues/issue-triage-card";
@@ -9,14 +9,13 @@ import { PriorityControl } from "@/components/issues/issue-status-controls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import type { IssueDto } from "@/generated/api";
 import { formatRelativeTime, renderNullableText } from "@/lib/utils";
 
 import { IssueMergePicker } from "./issue-merge-picker";
 import { IssueTagsCard } from "./issue-tags-card";
-import type { IssueSidebarState } from "./types";
+import type { IssueCapabilities, IssueSidebarState } from "./types";
 import { formatTimelineDate } from "./utils";
 
 function PropertyRow({
@@ -44,12 +43,16 @@ function IssueSidebar({
   issueId,
   issue,
   sidebar,
+  capabilities,
+  autofixBlocker,
 }: {
   orgSlug: string;
   projectSlug: string;
   issueId: string;
   issue: IssueDto;
   sidebar: IssueSidebarState;
+  capabilities: IssueCapabilities;
+  autofixBlocker: AutofixBlocker | null;
 }) {
   return (
     <aside aria-label="Issue properties" className="grid min-w-0 gap-4">
@@ -82,42 +85,6 @@ function IssueSidebar({
               />
             </div>
           </PropertyRow>
-          <form className="grid gap-1.5" onSubmit={sidebar.updateExternalLink}>
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="issue-ticket">
-              External ticket
-            </label>
-            <div className="flex gap-2">
-              <Input
-                defaultValue={issue.externalIssueUrl ?? ""}
-                id="issue-ticket"
-                key={issue.externalIssueUrl ?? ""}
-                name="externalIssueUrl"
-                placeholder="https://linear.app/…"
-                type="url"
-              />
-              {issue.externalIssueUrl ? (
-                <Button asChild size="icon" variant="secondary">
-                  <a
-                    aria-label="Open external ticket"
-                    href={issue.externalIssueUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <ExternalLink />
-                  </a>
-                </Button>
-              ) : null}
-            </div>
-            <Button
-              className="justify-self-start"
-              disabled={sidebar.isUpdatingWorkflow}
-              size="sm"
-              type="submit"
-              variant="secondary"
-            >
-              Save link
-            </Button>
-          </form>
           <details className="group border-t border-border pt-3">
             <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
               Merge
@@ -159,13 +126,28 @@ function IssueSidebar({
 
       <SuspectCommitsCard issueId={issueId} orgSlug={orgSlug} projectSlug={projectSlug} />
 
-      <IssueTicketsCard issueId={issueId} orgSlug={orgSlug} projectSlug={projectSlug} />
+      <AutofixRunsCard
+        blocker={autofixBlocker}
+        canRun={capabilities.canRunAutofix}
+        issueId={issueId}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+      />
+
+      <IssueTicketsCard
+        canManage={capabilities.canManageIssues}
+        canManageIntegrations={capabilities.canManageIntegrations}
+        externalIssueUrl={issue.externalIssueUrl}
+        isSavingExternalLink={sidebar.isUpdatingExternalLink}
+        issueId={issueId}
+        onSaveExternalLink={sidebar.updateExternalLink}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+      />
 
       <IssueTagsCard issueId={issueId} orgSlug={orgSlug} projectSlug={projectSlug} />
 
       <IssueTriageCard issueId={issueId} orgSlug={orgSlug} projectSlug={projectSlug} />
-
-      <AutofixRunsCard issueId={issueId} orgSlug={orgSlug} projectSlug={projectSlug} />
 
       <Card>
         <CardHeader>
