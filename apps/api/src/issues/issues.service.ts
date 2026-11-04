@@ -17,6 +17,7 @@ import {
   releases,
 } from "../database/schema";
 
+import { IssueCountsService } from "../ingest/issue-counts.service";
 import { IssuesHistoryService } from "./issues-history.service";
 import type { IssueSearchTerm } from "./issue-search";
 import { summarizeTagCounts, TAG_BREAKDOWN_SAMPLE } from "./issue-tags";
@@ -57,6 +58,7 @@ export class IssuesService {
     @Inject(DATABASE) private readonly db: DatabaseClient,
     private readonly issuesHistoryService: IssuesHistoryService,
     private readonly sourcemapResolverService: SourcemapResolverService,
+    private readonly issueCounts: IssueCountsService,
   ) {}
 
   async listByProject(input: {
@@ -527,12 +529,27 @@ export class IssuesService {
     }
     const targetIssueId = currentIssue.mergedIntoIssueId;
     const { issue, movedEventCount } = await this.db.transaction(async (tx) => {
+      // The target's count must include every event moved back, or subtracting them undercounts.
+      await this.issueCounts.flushIn(tx, targetIssueId);
       // Give back the events that were grouped into this issue before (or after) the merge.
       const moved = await tx
         .update(events)
         .set({ issueId: input.issueId, mergedFromIssueId: null })
         .where(and(eq(events.issueId, targetIssueId), eq(events.mergedFromIssueId, input.issueId)))
         .returning({ id: events.id });
+      // An event ingested since the flush is counted on its own issue, never as the target's
+      // latest event.
+      if (moved.length > 0) {
+        await tx
+          .update(issuePendingCounts)
+          .set({ issueId: input.issueId })
+          .where(
+            and(
+              eq(issuePendingCounts.issueId, targetIssueId),
+              sql`exists (select 1 from ${events} where ${events.id} = ${issuePendingCounts.eventId} and ${events.issueId} = ${input.issueId})`,
+            ),
+          );
+      }
       const [restored] = await tx
         .update(issues)
         .set({ status: "open", mergedIntoIssueId: null, updatedAt: new Date() })

@@ -3,6 +3,7 @@ import { AiUsageModule } from "../ai-usage/ai-usage.module";
 import { ArtifactsModule } from "../artifacts/artifacts.module";
 import { AuditModule } from "../audit/audit.module";
 import { AutofixModule } from "../autofix/autofix.module";
+import { IssueCountsService } from "../ingest/issue-counts.service";
 import { ProjectsModule } from "../projects/projects.module";
 import { RbacModule } from "../rbac/rbac.module";
 import { IssuesController } from "./issues.controller";
@@ -21,7 +22,13 @@ import { IssueTrendsService } from "./issue-trends.service";
     forwardRef(() => AutofixModule),
   ],
   controllers: [IssuesController],
-  providers: [IssuesService, IssuesHistoryService, IssueTriageService, IssueTrendsService],
+  providers: [
+    IssuesService,
+    IssuesHistoryService,
+    IssueTriageService,
+    IssueTrendsService,
+    IssueCountsService,
+  ],
   exports: [IssuesService],
 })
 export class IssuesModule {}

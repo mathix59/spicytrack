@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Test } from "@nestjs/testing";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { AppModule } from "../src/app.module";
 import { DATABASE } from "../src/database/database.provider";
@@ -11,6 +11,7 @@ import {
   events,
   ingestRateCounters,
   issueActivity,
+  issuePendingCounts,
   issues,
   jobs,
   organizations,
@@ -272,6 +273,56 @@ describe("Ingestion security and concurrency (e2e)", () => {
       .where(inArray(issues.id, [mergeIssueA, mergeIssueB]));
     expect(stored.filter(({ status }) => status === "merged")).toHaveLength(1);
     expect(stored.find(({ status }) => status !== "merged")?.timesSeen).toBe(7);
+  });
+
+  it("counts an event not yet flushed on the merge target on its own issue after unmerge", async () => {
+    const send = (message: string) =>
+      ingest.ingestStore(
+        String(primaryPublicId),
+        { ...event(randomUUID().replaceAll("-", "")), message },
+        primaryKey,
+      );
+    const [sourceMessage, targetMessage] = [`Unmerge source ${userId}`, `Unmerge target ${userId}`];
+    const { issueId: sourceId } = await send(sourceMessage);
+    await send(sourceMessage);
+    const { issueId: targetId, eventId: targetEventId } = await send(targetMessage);
+    await issuesService.mergeIssue({
+      organizationId,
+      projectId: primaryProjectId,
+      issueId: sourceId!,
+      targetIssueId: targetId!,
+      actorUserId: userId,
+    });
+    // A later event of the source lands on the target, its count still pending there.
+    const { eventId: lateEventId } = await send(sourceMessage);
+    await db
+      .update(issues)
+      .set({ timesSeen: sql`${issues.timesSeen} - 1` })
+      .where(eq(issues.id, targetId!));
+    await db.insert(issuePendingCounts).values({
+      issueId: targetId!,
+      eventId: lateEventId!,
+      seenAt: new Date(Date.now() + 60_000),
+      title: sourceMessage,
+      level: "error",
+    });
+
+    await issuesService.unmergeIssue({
+      organizationId,
+      projectId: primaryProjectId,
+      issueId: sourceId!,
+      actorUserId: userId,
+    });
+
+    const [source] = await db.select().from(issues).where(eq(issues.id, sourceId!));
+    const [target] = await db.select().from(issues).where(eq(issues.id, targetId!));
+    expect(source.timesSeen).toBe(3);
+    expect(target).toMatchObject({ timesSeen: 1, lastEventId: targetEventId });
+    const pending = await db
+      .select()
+      .from(issuePendingCounts)
+      .where(inArray(issuePendingCounts.issueId, [sourceId!, targetId!]));
+    expect(pending).toHaveLength(0);
   });
 
   it("rejects oversized payloads and safely drops unsupported envelopes", async () => {

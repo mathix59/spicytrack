@@ -46,6 +46,14 @@ export class IssueCountsService {
     return timesSeen;
   }
 
+  /**
+   * Folds the issue's pending rows within the caller's transaction, waiting for the issue row
+   * rather than skipping it, for changes that need every event of the issue counted first.
+   */
+  async flushIn(tx: TransactionClient, issueId: string): Promise<void> {
+    await this.applyPending(tx, issueId, { wait: true });
+  }
+
   /** Flushes every issue with pending rows, for rows a crashed or skipped flush left behind. */
   async flushAll(): Promise<number> {
     const result = await this.db.execute<{ issue_id: string }>(
@@ -62,15 +70,19 @@ export class IssueCountsService {
       // A crash can lose this commit, but only with the delete of its pending rows: they stay
       // for the next flush. Not waiting for the WAL flush saves a disk sync per event.
       await tx.execute(sql`set local synchronous_commit = off`);
-      return this.applyPending(tx, issueId);
+      return this.applyPending(tx, issueId, { wait: false });
     });
   }
 
-  private async applyPending(tx: TransactionClient, issueId: string): Promise<number | null> {
+  private async applyPending(
+    tx: TransactionClient,
+    issueId: string,
+    { wait }: { wait: boolean },
+  ): Promise<number | null> {
     // `no key update` leaves the key-share locks of concurrent pending inserts unblocked.
     const result = await tx.execute<{ times_seen: number }>(sql`
       with target as (
-        select id from issues where id = ${issueId} for no key update skip locked
+        select id from issues where id = ${issueId} for no key update ${wait ? sql`` : sql`skip locked`}
       ),
       pending as (
         delete from issue_pending_counts using target
