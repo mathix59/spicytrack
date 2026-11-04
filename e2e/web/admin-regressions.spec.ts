@@ -441,14 +441,15 @@ test("instance audit log filters, pages through older entries and exports", asyn
   await page.goto("/admin");
   await page.getByRole("tab", { name: "Audit log" }).click();
   const entries = page.getByRole("listitem");
-  await expect(entries.getByText("instance.user.super_admin_granted")).toBeVisible();
+  // Rows read as labels; the raw action stays in Details.
+  await expect(entries.getByText("Granted super admin", { exact: true })).toBeVisible();
   await expect(page.getByText("Terraform")).toBeVisible();
   await expect(page.getByText(/203\.0\.113\.7/)).toBeVisible();
 
   await page.getByLabel("Action").selectOption("instance.");
   await expect.poll(() => requested.at(-1)?.get("action")).toBe("instance.");
   await page.getByRole("button", { name: "Load older entries" }).click();
-  await expect(entries.getByText("instance.user.deleted", { exact: true })).toBeVisible();
+  await expect(entries.getByText("Deleted user", { exact: true })).toBeVisible();
   expect(requested.at(-1)?.get("cursor")).toBe("next");
 
   await page.getByRole("button", { name: "Export" }).click();

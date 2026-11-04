@@ -263,7 +263,7 @@ async function signIn(page: Page) {
   if (ownerCookies.length > 0) {
     await page.context().addCookies(ownerCookies);
     await page.goto("/app");
-    const signedInHeading = page.getByRole("heading", { name: "Organizations" });
+    const signedInHeading = page.getByRole("heading", { name: "Overview", exact: true, level: 1 });
     try {
       await signedInHeading.waitFor({ timeout: 3_000 });
       return;
@@ -276,7 +276,11 @@ async function signIn(page: Page) {
   await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).last().click();
 
-  const organizationsHeading = page.getByRole("heading", { name: "Organizations" });
+  const organizationsHeading = page.getByRole("heading", {
+    name: "Overview",
+    exact: true,
+    level: 1,
+  });
   const rateLimited = page.getByText("Too many requests. Please try again later.");
   await Promise.race([
     organizationsHeading.waitFor({ timeout: 15_000 }),
@@ -333,7 +337,7 @@ async function refreshOrganizationFromServer(page: Page) {
 
 function primaryScreens(issue: Issue) {
   return [
-    { name: "organizations", url: "/app", heading: "Organizations" },
+    { name: "overview", url: "/app", heading: "Overview" },
     {
       name: "organization projects",
       url: `/orgs/${organization.slug}?tab=projects`,
@@ -442,7 +446,9 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
     await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
     await expect(page.getByText("Your email has been verified.")).toBeVisible();
     await page.getByRole("button", { name: "Back to the app" }).click();
-    await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible({
+    await expect(
+      page.getByRole("heading", { name: "Overview", exact: true, level: 1 }),
+    ).toBeVisible({
       timeout: 30_000,
     });
     ownerCookies = (await page.context().storageState()).cookies;
@@ -588,9 +594,10 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
     })
     .toBe("resolved");
 
-  const defaultIssuesResponse = page.waitForResponse((response) =>
-    new URL(response.url()).pathname ===
-    `/api/organizations/${organization.slug}/projects/${projectSlug}/issues`,
+  const defaultIssuesResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname ===
+      `/api/organizations/${organization.slug}/projects/${projectSlug}/issues`,
   );
   await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}`);
   const defaultIssues = await defaultIssuesResponse;
@@ -626,7 +633,7 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?tab=keys`);
   await expect(page.getByText("Keys / DSN", { exact: true })).toBeVisible();
   await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?tab=inventory`);
-  await expect(page.getByRole("button", { name: "1.1.0 1 events", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^1\.1\.0 1 event · last seen/ })).toBeVisible();
   await page.getByRole("tab", { name: "Environments", exact: true }).click();
   await expect(page.getByRole("tabpanel").getByText("production", { exact: true })).toBeVisible();
 
@@ -757,7 +764,10 @@ test("validates the deployed error-tracking workflow", async ({ page }) => {
   }
 });
 
-test("emailed invitations complete registration and recover an already-created account", async ({ page, browser }) => {
+test("emailed invitations complete registration and recover an already-created account", async ({
+  page,
+  browser,
+}) => {
   await signIn(page);
   await refreshOrganizationFromServer(page);
   const ownerApi = page.context().request;
@@ -768,22 +778,30 @@ test("emailed invitations complete registration and recover an already-created a
     });
     expect(created.ok(), await created.text()).toBe(true);
     let invitationUrl = "";
-    await expect.poll(async () => {
-      const search = await fetch(`${mailpitUrl}/api/v1/search?query=${encodeURIComponent(`to:${invitedEmail}`)}`);
-      const messages = (await search.json()) as { messages?: MailpitMessage[] };
-      if (!messages.messages?.[0]) return false;
-      const detail = await fetch(`${mailpitUrl}/api/v1/message/${messages.messages[0].ID}`);
-      const text = ((await detail.json()) as { Text: string }).Text;
-      invitationUrl = text.match(/https?:\/\/[^\s]+\/invitations\/accept\?token=[^\s]+/)?.[0] ?? "";
-      return Boolean(invitationUrl);
-    }).toBe(true);
+    await expect
+      .poll(async () => {
+        const search = await fetch(
+          `${mailpitUrl}/api/v1/search?query=${encodeURIComponent(`to:${invitedEmail}`)}`,
+        );
+        const messages = (await search.json()) as { messages?: MailpitMessage[] };
+        if (!messages.messages?.[0]) return false;
+        const detail = await fetch(`${mailpitUrl}/api/v1/message/${messages.messages[0].ID}`);
+        const text = ((await detail.json()) as { Text: string }).Text;
+        invitationUrl =
+          text.match(/https?:\/\/[^\s]+\/invitations\/accept\?token=[^\s]+/)?.[0] ?? "";
+        return Boolean(invitationUrl);
+      })
+      .toBe(true);
     const context = await browser.newContext();
     try {
       if (existing) {
-        const signup = await context.request.post(new URL("/api/better-auth/sign-up/email", invitationUrl).toString(), {
-          headers: { "x-invitation-token": new URL(invitationUrl).searchParams.get("token")! },
-          data: { email: invitedEmail, password, name: "Interrupted invitee" },
-        });
+        const signup = await context.request.post(
+          new URL("/api/better-auth/sign-up/email", invitationUrl).toString(),
+          {
+            headers: { "x-invitation-token": new URL(invitationUrl).searchParams.get("token")! },
+            data: { email: invitedEmail, password, name: "Interrupted invitee" },
+          },
+        );
         expect(signup.ok(), await signup.text()).toBe(true);
         await context.clearCookies();
       }
@@ -796,7 +814,9 @@ test("emailed invitations complete registration and recover an already-created a
       await invitee.getByRole("button", { name: "Create account", exact: true }).click();
       await expect(invitee).toHaveURL(/\/app$/);
       await expect(invitee.getByRole("link", { name: organization.name })).toBeVisible();
-      const pending = await json<Array<{ email: string }>>(await ownerApi.get(`/api/organizations/${organization.slug}/invitations`));
+      const pending = await json<Array<{ email: string }>>(
+        await ownerApi.get(`/api/organizations/${organization.slug}/invitations`),
+      );
       expect(pending.map(({ email }) => email)).not.toContain(invitedEmail);
     } finally {
       await context.close();
@@ -1017,7 +1037,7 @@ test("keeps every primary authenticated screen accessible and responsive", async
   const screens = primaryScreens(issues.items[0]);
   await page.goto("/app");
   const hasInstanceAdministrationAccess =
-    (await page.getByRole("link", { name: "Instance administration" }).count()) > 0;
+    (await page.getByRole("link", { name: "Instance admin", exact: true }).count()) > 0;
   const filteredScreens = hasInstanceAdministrationAccess
     ? screens
     : screens.filter((screen) => screen.name !== "instance administration");
@@ -1091,7 +1111,7 @@ test("provides a usable mobile navigation without viewport overflow", async ({ p
 
   const screens = primaryScreens(issues.items[0]);
   const hasInstanceAdministrationAccess =
-    (await page.getByRole("link", { name: "Instance administration" }).count()) > 0;
+    (await page.getByRole("link", { name: "Instance admin", exact: true }).count()) > 0;
   const filteredScreens = hasInstanceAdministrationAccess
     ? screens
     : screens.filter((screen) => screen.name !== "instance administration");
@@ -1108,6 +1128,81 @@ test("provides a usable mobile navigation without viewport overflow", async ({ p
   await page.keyboard.press("Escape");
   await expect(navigationDialog).toBeHidden();
   await expect(page.getByRole("button", { name: "Open navigation" })).toBeFocused();
+});
+
+test("keeps browser-sensitive interactions working without changing data", async ({ page }) => {
+  await signIn(page);
+  await refreshOrganizationFromServer(page);
+  const api = page.context().request;
+  const projectsPath = `/api/organizations/${organization.slug}/projects`;
+  const projectCount = async () => (await json<Project[]>(await api.get(projectsPath))).length;
+  const projectsBefore = await projectCount();
+
+  await test.step("dialog closes on Escape and returns focus to its trigger", async () => {
+    await page.goto(`/orgs/${organization.slug}?tab=projects`);
+    const trigger = page.getByRole("button", { name: "New project", exact: true });
+    await trigger.click();
+    const dialog = page.getByRole("dialog", { name: "New project" });
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+    expect(await projectCount()).toBe(projectsBefore);
+  });
+
+  await test.step("Ctrl/Cmd+K opens the command palette", async () => {
+    await page.keyboard.press("ControlOrMeta+k");
+    const palette = page.getByRole("dialog", { name: "Command palette" });
+    await expect(palette).toBeVisible();
+    await expect(palette.getByRole("combobox", { name: "Search commands" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(palette).toBeHidden();
+  });
+
+  await test.step("copying the DSN confirms success", async () => {
+    await page.goto(`/orgs/${organization.slug}/projects/${projectSlug}?tab=keys`);
+    await page.getByRole("button", { name: "Copy DSN", exact: true }).first().click();
+    await expect(page.getByText("DSN copied", { exact: true })).toBeVisible();
+  });
+
+  await test.step("rendered times are valid dates", async () => {
+    const issues = await json<{ items: Issue[] }>(
+      await api.get(`${projectsPath}/${projectSlug}/issues`),
+    );
+    expect(issues.items[0]).toBeTruthy();
+    for (const url of [
+      "/app",
+      `/orgs/${organization.slug}?tab=projects`,
+      `/orgs/${organization.slug}/projects/${projectSlug}?tab=observability`,
+      `/orgs/${organization.slug}/projects/${projectSlug}/issues/${issues.items[0].id}`,
+      `/orgs/${organization.slug}?tab=audit`,
+    ]) {
+      await page.goto(url);
+      const main = page.locator("#main-content");
+      await expect(main).toBeVisible();
+      await expect(main.locator("[aria-busy='true']")).toHaveCount(0);
+      await page.waitForLoadState("networkidle");
+      await expect(main, url).not.toContainText("Invalid Date");
+    }
+  });
+
+  await test.step("instance users fit a 390px viewport", async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/admin?tab=users");
+    await expect(page.getByRole("tab", { name: "Users", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByRole("searchbox", { name: "Search users" })).toBeVisible();
+    await expect(page.getByText("You", { exact: true }).first()).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        ),
+      )
+      .toBeLessThanOrEqual(1);
+  });
 });
 
 test("authenticates through the real Keycloak OIDC authorization-code flow", async ({ page }) => {
@@ -1128,7 +1223,9 @@ test("authenticates through the real Keycloak OIDC authorization-code flow", asy
   await page.getByRole("button", { name: "Sign In", exact: true }).click();
 
   await expect(page).toHaveURL(/127\.0\.0\.1:55174/);
-  await expect(page.getByRole("heading", { name: "Organizations" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Overview", exact: true, level: 1 }),
+  ).toBeVisible();
   await refreshOrganizationFromServer(page);
   await expect(page.getByRole("link", { name: organization.name })).toBeVisible();
 

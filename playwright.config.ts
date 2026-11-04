@@ -7,6 +7,11 @@ const selectedBrowsers = (process.env.E2E_BROWSERS ?? "")
   .map((name) => name.trim())
   .filter(Boolean);
 
+// Tests that also run in Firefox and WebKit: rendering, navigation and interactions that differ
+// between engines. Everything else runs in Chromium only.
+const CROSS_BROWSER_TESTS =
+  /public authentication|primary authenticated|mobile navigation|informs instance administrators about updates|emailed invitations complete registration|browser-sensitive interactions/;
+
 export default defineConfig({
   testDir: "./e2e/web",
   fullyParallel: false,
@@ -33,17 +38,19 @@ export default defineConfig({
     {
       name: "firefox",
       dependencies: ["chromium"],
-      grep: /public authentication|primary authenticated|mobile navigation/,
+      grep: CROSS_BROWSER_TESTS,
       use: { ...devices["Desktop Firefox"] },
     },
     {
       name: "webkit",
       dependencies: ["chromium"],
-      grep: /public authentication|primary authenticated|mobile navigation/,
+      grep: CROSS_BROWSER_TESTS,
       use: { ...devices["Desktop Safari"] },
     },
   ].filter(
     (project) =>
-      selectedBrowsers.length === 0 || project.name === "chromium" || selectedBrowsers.includes(project.name),
+      selectedBrowsers.length === 0 ||
+      project.name === "chromium" ||
+      selectedBrowsers.includes(project.name),
   ),
 });
