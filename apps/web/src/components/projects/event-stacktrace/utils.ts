@@ -83,10 +83,14 @@ function toStackFrame(frame: PayloadRecord, resolvedFrame: ResolvedFrameDto | un
       : typeof frame.colno === "number"
         ? frame.colno
         : null,
+    // The SDK decides in_app on the bundled file; a source map that resolves into a library
+    // path knows better, so it overrides an explicit in_app.
     inApp:
-      typeof frame.in_app === "boolean"
-        ? frame.in_app
-        : !isLibraryFrame([filename, asString(frame.abs_path)], asString(frame.module)),
+      resolved?.filename && isLibraryFrame([resolved.filename], null)
+        ? false
+        : typeof frame.in_app === "boolean"
+          ? frame.in_app
+          : !isLibraryFrame([filename, asString(frame.abs_path)], asString(frame.module)),
     preContext: mapped ? (resolved.preContext ?? []) : asStringArray(frame.pre_context),
     contextLine: mapped
       ? (resolved.contextLine ?? null)

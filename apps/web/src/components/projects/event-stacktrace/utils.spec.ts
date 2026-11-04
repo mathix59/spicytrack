@@ -167,6 +167,34 @@ describe("extractExceptions", () => {
 
     expect(exception.frames.map((item) => item.inApp)).toEqual([false, false, true]);
   });
+
+  it("treats a bundled in_app frame that resolves into a library as library code", () => {
+    const [exception] = extractExceptions(
+      {
+        exception: {
+          values: [
+            {
+              stacktrace: {
+                frames: [
+                  frame("vendor.js", 1, { in_app: true }),
+                  frame("app.js", 2, { in_app: true }),
+                ],
+              },
+            },
+          ],
+        },
+      },
+      [
+        resolvedFrame({ filename: "node_modules/@sentry/core/fetch.js" }),
+        resolvedFrame({ filename: "src/load.ts" }),
+      ],
+    );
+
+    expect(exception.frames.map((item) => [item.filename, item.inApp])).toEqual([
+      ["src/load.ts", true],
+      ["node_modules/@sentry/core/fetch.js", false],
+    ]);
+  });
 });
 
 describe("isLibraryFrame", () => {

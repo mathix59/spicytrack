@@ -45,11 +45,21 @@ const FrameItem = memo(function FrameItem({
   const { directory, basename } = splitPath(frame.filename);
   const badgeLabel = frame.resolved ? resolutionLabel(frame.resolution) : null;
   const location = formatFrameLocation(frame);
+  // The row splits the path into flex items, which screen readers would read as separate words.
+  const accessibleName = [
+    frame.function ?? "<anonymous>",
+    location,
+    frame.inApp ? "app" : null,
+    badgeLabel,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <li className="border-b border-border last:border-b-0">
       <button
         aria-expanded={expanded}
+        aria-label={accessibleName}
         className={cn(
           "group flex w-full min-w-0 items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-accent/40 sm:items-center",
           expanded && "bg-accent/20",
