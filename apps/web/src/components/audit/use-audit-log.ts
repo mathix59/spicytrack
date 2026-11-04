@@ -6,6 +6,8 @@ import type { AuditEntryPageDto, AuditFacetsDto } from "@/generated/api";
 import { downloadApiFile } from "@/lib/download";
 import { getErrorMessage } from "@/lib/utils";
 
+import { auditActionLabel } from "./audit-labels";
+
 type AuditFilterState = {
   action: string;
   actorUserId: string;
@@ -25,7 +27,7 @@ type AuditQueryParams = {
   to?: string;
 };
 
-/** Where an audit log comes from: an organization, or the instance. */
+/** Where an audit log comes from: an organization, a project, or the instance. */
 type AuditLogSource = {
   queryKey: readonly unknown[];
   fetchPage: (params: AuditQueryParams & { cursor?: string }) => Promise<AuditEntryPageDto>;
@@ -70,7 +72,10 @@ function actionOptions(actions: string[]) {
   const prefixes = [...groups]
     .filter(([, count]) => count > 1)
     .map(([prefix]) => ({ value: `${prefix}.`, label: `${prefix}.*` }));
-  return [...prefixes, ...actions.map((action) => ({ value: action, label: action }))];
+  return [
+    ...prefixes,
+    ...actions.map((action) => ({ value: action, label: auditActionLabel(action) })),
+  ];
 }
 
 function useAuditLog(source: AuditLogSource) {

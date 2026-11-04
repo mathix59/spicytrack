@@ -5,6 +5,7 @@ import { QueryError } from "@/components/common/query-error";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { pluralize } from "@/lib/pluralize";
 
 import { ReleaseCommitsSection } from "@/components/commits/release-commits-section";
 
@@ -95,14 +96,14 @@ function ReleaseDetailCard({
     );
   }
 
-  const { release, issues } = releaseDetail;
+  const { release, issues, issuesTotal } = releaseDetail;
 
   return (
     <Card className="min-w-0 overflow-hidden" data-testid="release-detail-card">
       <CardHeader className="min-w-0">
         <CardTitle className="break-all">{release.version}</CardTitle>
         <CardDescription>
-          {release.eventCount} events · first seen {compactDate(release.firstSeenAt)}
+          {pluralize(release.eventCount, "event")} · first seen {compactDate(release.firstSeenAt)}
           <span className="hidden sm:inline"> · last seen {compactDate(release.lastSeenAt)}</span>
         </CardDescription>
       </CardHeader>
@@ -114,7 +115,14 @@ function ReleaseDetailCard({
           projectSlug={projectSlug}
           releaseVersion={release.version}
         />
-        <ReleaseIssuesSection issues={issues} onOpenIssue={onOpenIssue} />
+        <ReleaseIssuesSection
+          issues={issues}
+          onOpenIssue={onOpenIssue}
+          orgSlug={orgSlug}
+          projectSlug={projectSlug}
+          releaseVersion={release.version}
+          total={issuesTotal}
+        />
         <ReleaseCommitsSection
           orgSlug={orgSlug}
           projectSlug={projectSlug}

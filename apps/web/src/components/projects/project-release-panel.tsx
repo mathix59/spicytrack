@@ -7,7 +7,7 @@ function ProjectReleasePanel(props: ProjectReleasePanelProps) {
   const state = useProjectReleasePanel(props);
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+    <div className="grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[360px_minmax(0,1fr)]">
       <ReleaseListCard
         createError={state.createError}
         createOpen={state.createOpen}

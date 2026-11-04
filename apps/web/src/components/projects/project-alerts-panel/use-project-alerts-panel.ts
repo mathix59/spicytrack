@@ -8,12 +8,10 @@ import {
   getListProjectAlertsQueryKey,
   useCreateProjectAlert,
   useDeleteProjectAlert,
-  useListProjectAlertDeliveries,
   useListProjectAlerts,
   useRotateProjectAlertSigningSecret,
   useTestProjectAlert,
   useUpdateProjectAlert,
-  type AlertDeliveryDto,
   type AlertRuleDto,
 } from "@/generated/api";
 import { runAsyncFormAction } from "@/lib/form-submission";
@@ -21,9 +19,9 @@ import { invalidateQueryKeys } from "@/lib/query-utils";
 import { getErrorMessage } from "@/lib/utils";
 
 import type { DestinationType, ProjectAlertsPanelData, ProjectAlertsPanelProps } from "./types";
+import { useAlertDeliveries } from "./use-alert-deliveries";
 
 const EMPTY_RULES: AlertRuleDto[] = [];
-const EMPTY_DELIVERIES: AlertDeliveryDto[] = [];
 
 /**
  * Reads the trigger/threshold/cooldown/destination fields shared by create and edit forms.
@@ -64,17 +62,7 @@ function useProjectAlertsPanel({
   };
 
   const alertsQuery = useListProjectAlerts(orgSlug, projectSlug);
-  const deliveriesQuery = useListProjectAlertDeliveries(orgSlug, projectSlug, {
-    query: {
-      // Deliveries are sent by the worker; keep polling while some are still in flight.
-      refetchInterval: (query) =>
-        query.state.data?.data.some(
-          (delivery) => delivery.status === "pending" || delivery.status === "retrying",
-        )
-          ? 5_000
-          : false,
-    },
-  });
+  const deliveries = useAlertDeliveries(orgSlug, projectSlug);
 
   const invalidateAlerts = async () => {
     await invalidateQueryKeys(queryClient, [
@@ -166,17 +154,22 @@ function useProjectAlertsPanel({
 
   return {
     rules: alertsQuery.data?.data ?? EMPTY_RULES,
-    deliveries: deliveriesQuery.data?.data ?? EMPTY_DELIVERIES,
+    deliveries: deliveries.deliveries,
     rulesQuery: {
       isLoading: alertsQuery.isLoading,
       error: alertsQuery.error,
       retry: () => void alertsQuery.refetch(),
     },
     deliveriesQuery: {
-      isLoading: deliveriesQuery.isLoading,
-      error: deliveriesQuery.error,
-      retry: () => void deliveriesQuery.refetch(),
+      isLoading: deliveries.query.isPending,
+      error: deliveries.query.error,
+      retry: () => void deliveries.query.refetch(),
+      hasNextPage: deliveries.query.hasNextPage,
+      isFetchingNextPage: deliveries.query.isFetchingNextPage,
+      fetchNextPage: () => void deliveries.query.fetchNextPage(),
     },
+    deliveryStatusFilter: deliveries.statusFilter,
+    setDeliveryStatusFilter: deliveries.setStatusFilter,
     createError,
     createOpen,
     createDestinationType,

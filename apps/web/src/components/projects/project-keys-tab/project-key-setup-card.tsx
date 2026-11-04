@@ -9,6 +9,7 @@ import {
   getSdkTestSnippet,
   platformLabel,
 } from "@/components/projects/sdk-snippets-content";
+import { CollapsibleSection } from "@/components/common/collapsible-section";
 import { CopyableCode } from "@/components/projects/sdk-snippets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +47,116 @@ function SetupStep({
   );
 }
 
+function SetupPlatformSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (platform: string) => void;
+}) {
+  return (
+    <div className="w-full sm:w-44">
+      <Select
+        aria-label="SDK platform"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {PLATFORM_OPTIONS.filter((option) => SETUP_PLATFORMS.includes(option.value)).map(
+          (option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ),
+        )}
+      </Select>
+    </div>
+  );
+}
+
+/** DSN, install, init and test-event steps for one platform. */
+function SetupSteps({
+  dsn,
+  platform,
+  orgSlug,
+  projectSlug,
+  firstEvent,
+}: {
+  dsn: string;
+  platform: string;
+  orgSlug: string;
+  projectSlug: string;
+  firstEvent: FirstEventStatus;
+}) {
+  const language = getSdkLanguage(platform);
+  const label = platformLabel(platform);
+
+  return (
+    <ol className="grid gap-6">
+      <SetupStep index={1} title="Copy your DSN">
+        <CopyableCode label="DSN" value={dsn} />
+      </SetupStep>
+      <SetupStep index={2} title={`Install the ${label} SDK`}>
+        <CopyableCode label={`${label} install`} value={getSdkInstallSnippet(platform)} />
+      </SetupStep>
+      <SetupStep index={3} title="Initialize it as early as possible">
+        <CopyableCode
+          label={`${label} init`}
+          language={language}
+          value={getSdkSnippet(platform, dsn)}
+        />
+      </SetupStep>
+      <SetupStep index={4} title="Send a test event">
+        <TestEventButton orgSlug={orgSlug} projectSlug={projectSlug} />
+        <p className="text-xs text-muted-foreground">
+          Then confirm your SDK works by raising an error from your app:
+        </p>
+        <CopyableCode label="Test event" language={language} value={getSdkTestSnippet(platform)} />
+        <FirstEventIndicator
+          issuesHref={`/orgs/${orgSlug}/projects/${projectSlug}?tab=observability`}
+          status={firstEvent}
+        />
+      </SetupStep>
+    </ol>
+  );
+}
+
+/**
+ * The setup guide once events arrive: collapsed below the keys, for adding another SDK later.
+ */
+function ProjectKeySetupSection({
+  dsn,
+  orgSlug,
+  projectSlug,
+  firstEvent,
+  effectivePlatform,
+  onPlatformChange,
+}: {
+  dsn: string;
+  orgSlug: string;
+  projectSlug: string;
+  firstEvent: FirstEventStatus;
+  effectivePlatform: string;
+  onPlatformChange: (platform: string) => void;
+}) {
+  return (
+    <CollapsibleSection
+      bodyClassName="grid gap-4 p-4 sm:p-6"
+      defaultOpen={false}
+      summary="Snippets for adding SpicyTrack to another app or platform"
+      title="SDK setup"
+    >
+      <SetupPlatformSelect onChange={onPlatformChange} value={effectivePlatform} />
+      <SetupSteps
+        dsn={dsn}
+        firstEvent={firstEvent}
+        orgSlug={orgSlug}
+        platform={effectivePlatform}
+        projectSlug={projectSlug}
+      />
+    </CollapsibleSection>
+  );
+}
+
 function ProjectKeySetupCard({
   dsn,
   isLoading,
@@ -67,9 +178,6 @@ function ProjectKeySetupCard({
   onPlatformChange: (platform: string) => void;
   onCreateKey: () => void;
 }) {
-  const language = getSdkLanguage(effectivePlatform);
-  const label = platformLabel(effectivePlatform);
-
   return (
     <Card className="min-w-0">
       <CardHeader>
@@ -81,21 +189,7 @@ function ProjectKeySetupCard({
             </CardDescription>
           </div>
           {dsn ? (
-            <div className="w-full sm:w-44">
-              <Select
-                aria-label="SDK platform"
-                onChange={(event) => onPlatformChange(event.target.value)}
-                value={effectivePlatform}
-              >
-                {PLATFORM_OPTIONS.filter((option) => SETUP_PLATFORMS.includes(option.value)).map(
-                  (option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ),
-                )}
-              </Select>
-            </div>
+            <SetupPlatformSelect onChange={onPlatformChange} value={effectivePlatform} />
           ) : null}
         </div>
       </CardHeader>
@@ -123,43 +217,17 @@ function ProjectKeySetupCard({
             title="No ingest key yet"
           />
         ) : (
-          <ol className="grid gap-6">
-            <SetupStep index={1} title="Copy your DSN">
-              <CopyableCode label="DSN" value={dsn} />
-            </SetupStep>
-            <SetupStep index={2} title={`Install the ${label} SDK`}>
-              <CopyableCode
-                label={`${label} install`}
-                value={getSdkInstallSnippet(effectivePlatform)}
-              />
-            </SetupStep>
-            <SetupStep index={3} title="Initialize it as early as possible">
-              <CopyableCode
-                label={`${label} init`}
-                language={language}
-                value={getSdkSnippet(effectivePlatform, dsn)}
-              />
-            </SetupStep>
-            <SetupStep index={4} title="Send a test event">
-              <TestEventButton orgSlug={orgSlug} projectSlug={projectSlug} />
-              <p className="text-xs text-muted-foreground">
-                Then confirm your SDK works by raising an error from your app:
-              </p>
-              <CopyableCode
-                label="Test event"
-                language={language}
-                value={getSdkTestSnippet(effectivePlatform)}
-              />
-              <FirstEventIndicator
-                issuesHref={`/orgs/${orgSlug}/projects/${projectSlug}?tab=observability`}
-                status={firstEvent}
-              />
-            </SetupStep>
-          </ol>
+          <SetupSteps
+            dsn={dsn}
+            firstEvent={firstEvent}
+            orgSlug={orgSlug}
+            platform={effectivePlatform}
+            projectSlug={projectSlug}
+          />
         )}
       </CardContent>
     </Card>
   );
 }
 
-export { ProjectKeySetupCard };
+export { ProjectKeySetupCard, ProjectKeySetupSection };

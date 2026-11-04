@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { GitBranch, Plus } from "lucide-react";
 
 import type { ProjectReleaseDto, ReleaseHealthReleaseDto } from "@/generated/api";
@@ -19,9 +20,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SkeletonRows } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/pluralize";
+import { cn, formatLocalDateTime, formatRelativeTime } from "@/lib/utils";
 
 import { formatRate, healthVariant } from "./release-health-utils";
+import { sortReleasesByLastSeen, splitReleaseVersion } from "./utils";
 
 const HEALTH_DOT = {
   success: "bg-success",
@@ -29,6 +32,80 @@ const HEALTH_DOT = {
   danger: "bg-destructive",
   muted: "bg-border",
 } as const;
+
+function ReleaseListItem({
+  release,
+  health,
+  selected,
+  showHealth,
+  onSelect,
+}: {
+  release: ProjectReleaseDto;
+  health: ReleaseHealthReleaseDto | undefined;
+  selected: boolean;
+  showHealth: boolean;
+  onSelect: () => void;
+}) {
+  const { packageName, version } = splitReleaseVersion(release.version);
+  const crashFree = health?.crashFreeSessions ?? null;
+
+  return (
+    <li className="min-w-0">
+      <button
+        aria-current={selected ? "true" : undefined}
+        className={cn(
+          "grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0.5 rounded-md px-3 py-2 text-left transition-colors",
+          selected ? "bg-accent" : "hover:bg-accent/50",
+        )}
+        onClick={onSelect}
+        title={release.version}
+        type="button"
+      >
+        <GitBranch className="size-4 shrink-0 text-muted-foreground" />
+        <span className="flex min-w-0 items-baseline text-sm">
+          {packageName ? (
+            <span className="min-w-0 truncate text-muted-foreground">{packageName}</span>
+          ) : null}
+          <span className="max-w-full shrink-0 truncate font-semibold">{version}</span>
+        </span>
+        {showHealth ? (
+          <span className="flex items-center justify-end gap-1.5 text-xs tabular-nums text-muted-foreground">
+            {crashFree !== null && health ? (
+              <>
+                <span
+                  aria-hidden="true"
+                  className={cn("size-2 rounded-full", HEALTH_DOT[healthVariant(crashFree)])}
+                />
+                <span className="sr-only">Crash-free sessions, last 7 days: </span>
+                <span className="text-foreground">{formatRate(crashFree)}</span>
+              </>
+            ) : (
+              <>
+                <span className="sr-only">No sessions in the last 7 days</span>
+                <span aria-hidden="true">—</span>
+              </>
+            )}
+          </span>
+        ) : (
+          <span />
+        )}
+        <span className="col-start-2 col-end-4 truncate text-xs text-muted-foreground">
+          {pluralize(release.eventCount, "event")}
+          {release.lastSeenAt ? (
+            <>
+              {" "}
+              · last seen{" "}
+              <time dateTime={release.lastSeenAt} title={formatLocalDateTime(release.lastSeenAt)}>
+                {formatRelativeTime(release.lastSeenAt)}
+              </time>
+            </>
+          ) : null}
+          {health && health.sessions > 0 ? ` · ${pluralize(health.sessions, "session")}` : null}
+        </span>
+      </button>
+    </li>
+  );
+}
 
 function ReleaseListCard({
   releases,
@@ -57,6 +134,9 @@ function ReleaseListCard({
   onSelectRelease: (releaseVersion: string) => void;
   onCreateRelease: React.FormEventHandler<HTMLFormElement>;
 }) {
+  const sortedReleases = useMemo(() => sortReleasesByLastSeen(releases), [releases]);
+  const hasHealth = healthByVersion.size > 0;
+
   return (
     <Card className="min-w-0 overflow-hidden" data-testid="release-list-card">
       <CardHeader>
@@ -112,53 +192,24 @@ function ReleaseListCard({
             title="Ship your first release"
           />
         ) : (
-          <ul className="grid gap-1">
-            {releases.map((release) => {
-              const selected = selectedReleaseVersion === release.version;
-              const health = healthByVersion.get(release.version);
-              return (
-                <li className="min-w-0" key={release.id}>
-                  <button
-                    aria-current={selected ? "true" : undefined}
-                    className={cn(
-                      "flex w-full min-w-0 items-center justify-between gap-3 overflow-hidden rounded-md px-3 py-2 text-left transition-colors",
-                      selected ? "bg-accent" : "hover:bg-accent/50",
-                    )}
-                    onClick={() => onSelectRelease(release.version)}
-                    title={release.version}
-                    type="button"
-                  >
-                    <span className="flex min-w-0 flex-1 items-center gap-2">
-                      <GitBranch className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate text-sm font-medium">{release.version}</span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-                      {health?.crashFreeSessions != null ? (
-                        <span
-                          className="flex items-center gap-1 tabular-nums"
-                          title={`Crash-free sessions, last 7 days (${health.sessions.toLocaleString()} sessions)`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={cn(
-                              "size-2 rounded-full",
-                              HEALTH_DOT[healthVariant(health.crashFreeSessions)],
-                            )}
-                          />
-                          <span className="sr-only">Crash-free sessions </span>
-                          {formatRate(health.crashFreeSessions)}
-                          <span aria-hidden="true" className="ml-1">
-                            ·
-                          </span>
-                        </span>
-                      ) : null}
-                      {release.eventCount} events
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="grid gap-1">
+            <div className="flex items-center justify-between gap-3 px-3 pb-1 text-xs text-muted-foreground">
+              <span>Most recent first</span>
+              {hasHealth ? <span>Crash-free (7d)</span> : null}
+            </div>
+            <ul className="grid gap-1">
+              {sortedReleases.map((release) => (
+                <ReleaseListItem
+                  health={healthByVersion.get(release.version)}
+                  key={release.id}
+                  onSelect={() => onSelectRelease(release.version)}
+                  release={release}
+                  selected={selectedReleaseVersion === release.version}
+                  showHealth={hasHealth}
+                />
+              ))}
+            </ul>
+          </div>
         )}
       </CardContent>
     </Card>

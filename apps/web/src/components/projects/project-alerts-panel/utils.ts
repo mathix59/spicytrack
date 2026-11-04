@@ -1,7 +1,6 @@
 import { BellRing, Hash, Mail, Siren, Webhook } from "lucide-react";
 
 import type { AlertRuleDto } from "@/generated/api";
-import { formatLocalDateTime } from "@/lib/utils";
 
 import type { DestinationType, TriggerType } from "./types";
 
@@ -37,14 +36,6 @@ function ruleTriggerTypes(rule: AlertRuleDto): TriggerType[] {
   return values.filter((value): value is TriggerType =>
     TRIGGER_TYPES.some((trigger) => trigger.value === value),
   );
-}
-
-function compactDate(value: string | null | undefined) {
-  if (!value) {
-    return "never";
-  }
-
-  return formatLocalDateTime(value);
 }
 
 function formatWindow(minutes: number) {
@@ -139,7 +130,6 @@ export {
   BellRing,
   DESTINATION_TYPES,
   TRIGGER_TYPES,
-  compactDate,
   deliveryTitle,
   destinationLabel,
   destinationTargetHint,

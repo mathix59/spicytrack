@@ -11,6 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { formatRate, healthVariant } from "./release-health-utils";
 
+/** Same period as the crash-free rates in the release list, so the two numbers agree. */
+const DEFAULT_PERIOD: GetReleaseHealthPeriod = "7d";
+
 const PERIOD_OPTIONS = Object.values(GetReleaseHealthPeriod).map((value) => ({
   value,
   label: value,
@@ -38,7 +41,7 @@ function ReleaseHealthSection({
   /** Environments that reported sessions, for the filter. */
   environments: string[];
 }) {
-  const [period, setPeriod] = useState<GetReleaseHealthPeriod>("24h");
+  const [period, setPeriod] = useState<GetReleaseHealthPeriod>(DEFAULT_PERIOD);
   const [environment, setEnvironment] = useState("");
   const healthQuery = useGetReleaseHealth(orgSlug, projectSlug, releaseVersion, {
     period,
@@ -54,7 +57,7 @@ function ReleaseHealthSection({
         <h3 className="text-sm font-medium">Health</h3>
         {totals && totals.sessions > 0 ? (
           <Badge variant={healthVariant(totals.crashFreeSessions)}>
-            {formatRate(totals.crashFreeSessions)} crash-free
+            {formatRate(totals.crashFreeSessions)} crash-free ({period})
           </Badge>
         ) : null}
         <div className="ml-auto flex flex-wrap items-center gap-2">

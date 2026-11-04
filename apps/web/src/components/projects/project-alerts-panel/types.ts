@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 
-import type { AlertDeliveryDto, AlertRuleDto } from "@/generated/api";
+import type { AlertDeliveryListItemDto, AlertRuleDto } from "@/generated/api";
 
 type DestinationType = "webhook" | "email" | "slack" | "teams" | "discord" | "pagerduty";
 type TriggerType = "new_issue" | "regression" | "event_threshold" | "daily_digest";
@@ -11,11 +11,22 @@ type QueryState = {
   retry: () => void;
 };
 
+type DeliveryStatusFilter = "all" | "failed";
+
+type PagedQueryState = QueryState & {
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  fetchNextPage: () => void;
+};
+
 type ProjectAlertsPanelData = {
   rules: AlertRuleDto[];
-  deliveries: AlertDeliveryDto[];
+  /** The pages loaded so far, newest first. */
+  deliveries: AlertDeliveryListItemDto[];
   rulesQuery: QueryState;
-  deliveriesQuery: QueryState;
+  deliveriesQuery: PagedQueryState;
+  deliveryStatusFilter: DeliveryStatusFilter;
+  setDeliveryStatusFilter: (value: DeliveryStatusFilter) => void;
   createError: string | null;
   createOpen: boolean;
   createDestinationType: DestinationType;
@@ -42,4 +53,10 @@ type ProjectAlertsPanelProps = {
   projectSlug: string;
 };
 
-export type { DestinationType, ProjectAlertsPanelData, ProjectAlertsPanelProps, TriggerType };
+export type {
+  DeliveryStatusFilter,
+  DestinationType,
+  ProjectAlertsPanelData,
+  ProjectAlertsPanelProps,
+  TriggerType,
+};
