@@ -7,6 +7,7 @@ import {
   ScrollText,
   Search,
   Settings,
+  Shield,
   ShieldCheck,
   Users,
   UsersRound,
@@ -31,8 +32,13 @@ import { AppShellUserMenu } from "./app-shell-user-menu";
 function AppShellBrand() {
   return (
     <div className="flex items-center gap-2 border-b border-border px-4 py-4">
-      <img alt="" className="size-5" src="/logo.svg" />
-      <span className="text-sm font-semibold tracking-tight">SpicyTrack</span>
+      <Link
+        className="-m-1 flex items-center gap-2 rounded-md p-1 outline-none transition-colors hover:text-primary-accent focus-visible:ring-3 focus-visible:ring-ring/40"
+        to="/app"
+      >
+        <img alt="" className="size-5" src="/logo.svg" />
+        <span className="text-sm font-semibold tracking-tight">SpicyTrack</span>
+      </Link>
       <span className="ms-2 rounded-full border border-muted-foreground/30 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
         {APP_VERSION}
       </span>
@@ -143,6 +149,15 @@ function AppShellOrgNav({
   );
 }
 
+/** Sidebar footer entry to instance administration; rendered for super-admins only. */
+function AppShellAdminLink({ active }: { active: boolean }) {
+  return (
+    <div className="border-t border-border px-3 py-2">
+      <ShellLink active={active} icon={Shield} label="Instance admin" to="/admin" />
+    </div>
+  );
+}
+
 function AppShellProjectsNav({
   currentOrgSlug,
   projects,
@@ -213,6 +228,7 @@ function AppShellProjectsNav({
 }
 
 export {
+  AppShellAdminLink,
   AppShellBrand,
   AppShellOrgNav,
   AppShellOrgSwitcher,

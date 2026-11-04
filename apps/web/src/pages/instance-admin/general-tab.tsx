@@ -22,6 +22,18 @@ export function GeneralTab({
   const toggle = async (registrationsEnabled: boolean) => {
     try {
       await onSave({ registrationsEnabled });
+      toast.success(
+        registrationsEnabled ? "Public registration opened" : "Public registration closed",
+        {
+          description: registrationsEnabled
+            ? "Anyone can now create an account from the sign-in page."
+            : "Only invited users can create an account now.",
+          action: {
+            label: "Undo",
+            onClick: () => void toggle(!registrationsEnabled),
+          },
+        },
+      );
     } catch (error) {
       toast.error("Could not update registration access", {
         description: getErrorMessage(error),

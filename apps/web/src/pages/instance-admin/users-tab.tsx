@@ -1,5 +1,7 @@
 import { Search, Users } from "lucide-react";
 
+import { useGetMe } from "@/generated/api";
+
 import { QueryError } from "@/components/common/query-error";
 import { OrganizationSectionHeader } from "@/components/organizations/organization-section-header";
 import { Button } from "@/components/ui/button";
@@ -13,7 +15,8 @@ import { useInstanceUsers } from "./use-instance-users";
 
 export function UsersTab() {
   const state = useInstanceUsers();
-  const { usersQuery, users, total, page, pageSize, search } = state;
+  const currentUserId = useGetMe().data?.data.user.id;
+  const { usersQuery, users, total, superAdminCount, page, pageSize, search } = state;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   return (
@@ -55,9 +58,13 @@ export function UsersTab() {
             title="No users found"
           />
         ) : (
-          <ul aria-busy={usersQuery.isFetching} className="grid gap-2">
+          <ul aria-busy={usersQuery.isFetching} className="grid grid-cols-[minmax(0,1fr)] gap-2">
             {users.map((user) => (
               <InstanceUserRow
+                isCurrentUser={user.id === currentUserId}
+                isLastSuperAdmin={
+                  user.isSuperAdmin && superAdminCount !== undefined && superAdminCount <= 1
+                }
                 key={user.id}
                 onChangeRole={state.changeRole}
                 onDelete={state.deleteUser}

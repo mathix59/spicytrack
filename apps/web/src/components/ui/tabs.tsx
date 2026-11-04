@@ -21,10 +21,35 @@ function TabsList({
   );
 }
 
-function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+/**
+ * Radix focuses a trigger from script on mouse down, so browsers report :focus-visible after a
+ * click. The trigger is marked while focus came from a pointer, and the focus ring skips it.
+ */
+function TabsTrigger({
+  className,
+  onPointerDown,
+  onKeyDown,
+  onBlur,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
   const variant = React.useContext(TabsVariantContext);
   return (
-    <TabsPrimitive.Trigger className={cn(tabsTriggerVariants({ variant }), className)} {...props} />
+    <TabsPrimitive.Trigger
+      className={cn(tabsTriggerVariants({ variant }), className)}
+      onBlur={(event) => {
+        delete event.currentTarget.dataset.pointerFocus;
+        onBlur?.(event);
+      }}
+      onKeyDown={(event) => {
+        delete event.currentTarget.dataset.pointerFocus;
+        onKeyDown?.(event);
+      }}
+      onPointerDown={(event) => {
+        event.currentTarget.dataset.pointerFocus = "";
+        onPointerDown?.(event);
+      }}
+      {...props}
+    />
   );
 }
 

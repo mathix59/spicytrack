@@ -47,6 +47,17 @@ function testSmtpConnection(input: InstanceSettingsUpdate) {
   );
 }
 
+/** Sends an email with the saved SMTP settings to the signed-in administrator. */
+function sendSmtpTestEmail() {
+  return withReadableApiError(async () => {
+    const result = await orvalFetch<{ data: { success: boolean; to: string } }>(
+      "/instance-admin/smtp/test-email",
+      { method: "POST" },
+    );
+    return result.data;
+  });
+}
+
 function fetchInstanceUsers(search: string, page: number) {
   return withReadableApiError(async () => {
     const result = await orvalFetch<{ data: InstanceUsersPage }>("/instance-admin/users", {
@@ -103,6 +114,7 @@ export {
   fetchInstanceSettings,
   fetchInstanceUsers,
   instanceAdminKeys,
+  sendSmtpTestEmail,
   testSmtpConnection,
   updateInstanceSettings,
   updateInstanceUserRole,

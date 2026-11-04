@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +32,12 @@ export function DeleteUserDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const remove = async () => {
+  const confirmed = email === user.email;
+
+  const remove = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    // Enter submits the form too, so the exact-email gate is checked here as well.
+    if (!confirmed || pending) return;
     setPending(true);
     setError(null);
     try {
@@ -72,32 +77,29 @@ export function DeleteUserDialog({
             they are the only owner of an organization, transfer ownership first.
           </DialogDescription>
         </DialogHeader>
-        <Field label={`Type ${user.email} to confirm`}>
-          <Input
-            autoComplete="off"
-            disabled={pending}
-            onChange={(e) => setEmail(e.target.value)}
-            value={email}
-          />
-        </Field>
-        {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
-        <DialogFooter>
-          <Button disabled={pending} onClick={() => setOpen(false)} type="button" variant="ghost">
-            Cancel
-          </Button>
-          <Button
-            disabled={pending || email !== user.email}
-            onClick={() => void remove()}
-            type="button"
-            variant="destructive"
-          >
-            {pending ? "Deleting…" : "Delete permanently"}
-          </Button>
-        </DialogFooter>
+        <form className="grid gap-4" onSubmit={(event) => void remove(event)}>
+          <Field label={`Type ${user.email} to confirm`}>
+            <Input
+              autoComplete="off"
+              disabled={pending}
+              onChange={(e) => setEmail(e.target.value)}
+              value={email}
+            />
+          </Field>
+          {error ? (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+          <DialogFooter>
+            <Button disabled={pending} onClick={() => setOpen(false)} type="button" variant="ghost">
+              Cancel
+            </Button>
+            <Button disabled={pending || !confirmed} type="submit" variant="destructive">
+              {pending ? "Deleting…" : "Delete permanently"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,6 @@
 import { Menu, Search } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import type { MeResponseDto } from "@/generated/api";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { APP_VERSION } from "@/lib/app-version";
 
 import {
+  AppShellAdminLink,
   AppShellBrand,
   AppShellOrgNav,
   AppShellOrgSwitcher,
@@ -56,6 +57,7 @@ function AppShell({
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const mobileNavigationTriggerRef = useRef<HTMLButtonElement>(null);
   const palette = useCommandPalette();
+  const isSuperAdmin = Boolean((me.user as { isSuperAdmin?: boolean }).isSuperAdmin);
 
   // Close the mobile navigation on navigation. A pathname never contains "?", so the
   // concatenation identifies the (pathname, search) pair.
@@ -91,7 +93,8 @@ function AppShell({
         />
       </nav>
 
-      <AppUpdateNotice enabled={Boolean((me.user as { isSuperAdmin?: boolean }).isSuperAdmin)} />
+      <AppUpdateNotice enabled={isSuperAdmin} />
+      {isSuperAdmin ? <AppShellAdminLink active={location.pathname === "/admin"} /> : null}
       <AppShellUserMenu
         displayName={state.displayName}
         initials={state.initials}
@@ -121,8 +124,13 @@ function AppShell({
         >
           <Menu className="size-5" />
         </Button>
-        <img alt="" className="size-5" src="/logo.svg" />
-        <span className="truncate text-sm font-semibold tracking-tight">SpicyTrack</span>
+        <Link
+          className="flex min-w-0 items-center gap-3 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+          to="/app"
+        >
+          <img alt="" className="size-5" src="/logo.svg" />
+          <span className="truncate text-sm font-semibold tracking-tight">SpicyTrack</span>
+        </Link>
         <Button
           aria-label="Search"
           className="order-last ms-auto"

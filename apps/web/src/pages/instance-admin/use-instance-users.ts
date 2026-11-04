@@ -38,6 +38,8 @@ function useInstanceUsers() {
     usersQuery,
     users: data?.items ?? [],
     total: data?.total ?? 0,
+    /** Undefined until loaded (or from an API that does not report it). */
+    superAdminCount: data?.superAdminCount,
     page,
     pageSize: data?.pageSize ?? 20,
     search,

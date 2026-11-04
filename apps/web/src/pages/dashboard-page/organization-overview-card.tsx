@@ -1,4 +1,4 @@
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
@@ -8,13 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkline } from "@/components/ui/sparkline";
-import {
-  type OrganizationListItemDto,
-  type OrganizationOverviewProjectDto,
-  useGetOrganizationOverview,
-} from "@/generated/api";
-import { cn, formatRelativeTime } from "@/lib/utils";
+import { type OrganizationListItemDto, useGetOrganizationOverview } from "@/generated/api";
+import { cn } from "@/lib/utils";
+
+import { NeedsAttentionPanel } from "./needs-attention-panel";
+import { compareProjectActivity } from "./project-activity";
+import { ProjectOverviewRow } from "./project-overview-row";
+
+/** The dashboard lists the busiest projects; the organization page lists them all. */
+const DASHBOARD_PROJECT_LIMIT = 8;
 
 function Metric({
   label,
@@ -43,56 +45,11 @@ function Metric({
   );
 }
 
-function ProjectRow({
-  orgSlug,
-  project,
-}: {
-  orgSlug: string;
-  project: OrganizationOverviewProjectDto;
-}) {
-  const total = project.eventTrend14d.reduce((sum, count) => sum + count, 0);
-
-  return (
-    <li>
-      <Link
-        className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-lg px-3 py-2.5 transition-colors hover:bg-accent sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_5rem_5rem_1rem]"
-        to={`/orgs/${orgSlug}/projects/${project.slug}`}
-      >
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-medium">{project.name}</span>
-          <span className="block truncate text-xs text-muted-foreground">
-            {project.platform}
-            {project.lastEventAt ? ` · last event ${formatRelativeTime(project.lastEventAt)}` : ""}
-          </span>
-        </span>
-        <Sparkline
-          className="hidden h-7 sm:block"
-          label={`${total} events in the last 14 days`}
-          tone={total === 0 ? "muted" : "primary"}
-          values={project.eventTrend14d}
-          variant="area"
-        />
-        <span className="hidden text-right text-sm tabular-nums sm:block">
-          {project.eventCount24h.toLocaleString()}
-          <span className="block text-xs text-muted-foreground">24h</span>
-        </span>
-        <span className="text-right text-sm tabular-nums">
-          {project.openIssueCount.toLocaleString()}
-          <span className="block text-xs text-muted-foreground">open</span>
-        </span>
-        <ArrowRight
-          aria-hidden="true"
-          className="hidden size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:block"
-        />
-      </Link>
-    </li>
-  );
-}
-
 function OrganizationOverviewCard({ organization }: { organization: OrganizationListItemDto }) {
   const overviewQuery = useGetOrganizationOverview(organization.slug);
   const overview = overviewQuery.data?.data;
-  const projects = overview?.projects ?? [];
+  const projects = [...(overview?.projects ?? [])].sort(compareProjectActivity);
+  const visibleProjects = projects.slice(0, DASHBOARD_PROJECT_LIMIT);
   const orgPath = `/orgs/${organization.slug}`;
 
   return (
@@ -138,17 +95,18 @@ function OrganizationOverviewCard({ organization }: { organization: Organization
       {overview ? (
         <>
           <dl className="grid grid-cols-2 divide-border border-b border-border md:grid-cols-4 md:divide-x [&>div]:max-md:odd:border-r [&>div]:max-md:nth-[-n+2]:border-b">
+            <Metric label="Events · 24h" value={overview.eventCount24h} />
             <Metric
-              hint={`${overview.newIssueCount24h} new issues`}
-              label="Events · 24h"
-              value={overview.eventCount24h}
-            />
-            <Metric
-              hint={`${overview.resolvedIssueCount24h} resolved in 24h`}
+              hint={`${overview.newIssueCount24h.toLocaleString()} new · ${overview.resolvedIssueCount24h.toLocaleString()} resolved in 24h`}
               label="Open issues"
               value={overview.openIssueCount}
             />
-            <Metric label="Regressions" tone="warning" value={overview.regressedIssueCount} />
+            <Metric
+              hint="Resolved issues that came back"
+              label="Regressions"
+              tone="warning"
+              value={overview.regressedIssueCount}
+            />
             <Metric
               hint={`${overview.connectedProjectCount} receiving events`}
               label="Projects"
@@ -156,49 +114,32 @@ function OrganizationOverviewCard({ organization }: { organization: Organization
             />
           </dl>
 
-          <CardContent className="grid gap-6 pt-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <CardContent className="grid items-start gap-6 pt-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
             <EventVolumeChart counts={overview.eventTrend14d} label="Events · last 14 days" />
 
-            <section
-              aria-labelledby={`${organization.id}-regressions`}
-              className="grid content-start gap-2"
-            >
-              <h3
-                className="flex items-center gap-2 text-sm font-medium"
-                id={`${organization.id}-regressions`}
-              >
-                <RotateCcw aria-hidden="true" className="size-4 text-warning" />
-                Top regressions
-              </h3>
-              {overview.topRegressions.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
-                  No regressions. Nice.
-                </p>
-              ) : (
-                <ul className="grid">
-                  {overview.topRegressions.map((issue) => (
-                    <li key={issue.id}>
-                      <Link
-                        className="grid gap-0.5 rounded-md px-2 py-2 transition-colors hover:bg-accent"
-                        to={`${orgPath}/projects/${issue.projectSlug}/issues/${issue.id}`}
-                      >
-                        <span className="truncate text-sm">{issue.title}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {issue.projectSlug} · {issue.timesSeen.toLocaleString()} events ·{" "}
-                          {formatRelativeTime(issue.lastSeenAt)}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            <NeedsAttentionPanel
+              organizationId={organization.id}
+              orgPath={orgPath}
+              overview={overview}
+            />
           </CardContent>
 
           <CardContent className="grid gap-2 border-t border-border pt-4">
-            <h3 className="px-3 text-xs font-medium text-muted-foreground">Projects</h3>
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-xs font-medium text-muted-foreground">
+                {projects.length > DASHBOARD_PROJECT_LIMIT ? "Most active projects" : "Projects"}
+              </h3>
+              {projects.length > DASHBOARD_PROJECT_LIMIT ? (
+                <Link
+                  className="text-xs font-medium text-primary-accent hover:underline"
+                  to={`${orgPath}?tab=projects`}
+                >
+                  View all {projects.length} projects
+                </Link>
+              ) : null}
+            </div>
             {projects.length === 0 ? (
-              <p className="px-3 text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 No projects yet.{" "}
                 <Link className="font-medium text-primary-accent hover:underline" to={orgPath}>
                   Create one
@@ -206,8 +147,13 @@ function OrganizationOverviewCard({ organization }: { organization: Organization
               </p>
             ) : (
               <ul className="-mx-3 grid">
-                {projects.map((project) => (
-                  <ProjectRow key={project.id} orgSlug={organization.slug} project={project} />
+                {visibleProjects.map((project) => (
+                  <ProjectOverviewRow
+                    key={project.id}
+                    orgSlug={organization.slug}
+                    project={project}
+                    stats={project}
+                  />
                 ))}
               </ul>
             )}

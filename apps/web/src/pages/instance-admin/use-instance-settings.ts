@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 import {
   fetchInstanceSettings,
@@ -23,9 +22,9 @@ function useInstanceSettings() {
 
   const saveMutation = useMutation({
     mutationFn: updateInstanceSettings,
+    // Callers confirm with a toast that names what changed.
     onSuccess: (settings) => {
       queryClient.setQueryData(instanceAdminKeys.settings, settings);
-      toast.success("Settings saved.");
     },
   });
 

@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
-import { PlugZap, Save } from "lucide-react";
+import { MailCheck, PlugZap, Save } from "lucide-react";
 
+import { useGetMe } from "@/generated/api";
 import { OrganizationSectionHeader } from "@/components/organizations/organization-section-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -9,31 +10,30 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
 
-import { testSmtpConnection } from "./instance-admin-api";
+import { sendSmtpTestEmail, testSmtpConnection } from "./instance-admin-api";
 import type { InstanceSettings, InstanceSettingsUpdate } from "./types";
+import type { SmtpFormState } from "./use-smtp-form";
 
-type SmtpAction = "test" | "save";
+type SmtpAction = "test" | "email" | "save";
 
 export function SmtpTab({
   settings,
+  form,
   onSave,
 }: {
   settings: InstanceSettings;
+  form: SmtpFormState;
   onSave: (next: InstanceSettingsUpdate) => Promise<unknown>;
 }) {
-  const [value, setValue] = useState(settings);
-  const [pass, setPass] = useState("");
+  const { value, setValue, pass, setPass, isDirty } = form;
+  const adminEmail = useGetMe().data?.data.user.email;
   const [pendingAction, setPendingAction] = useState<SmtpAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
-  // Reset the form whenever fresh settings arrive (initial load or after saving).
-  const [syncedSettings, setSyncedSettings] = useState(settings);
-  if (syncedSettings !== settings) {
-    setSyncedSettings(settings);
-    setValue(settings);
-  }
+  const canSendTestEmail = Boolean(settings.smtpHost) && !isDirty;
 
   const run = async (action: SmtpAction) => {
     setPendingAction(action);
@@ -52,9 +52,13 @@ export function SmtpTab({
       if (action === "test") {
         await testSmtpConnection(input);
         setTestResult("SMTP connection successful.");
+      } else if (action === "email") {
+        const { to } = await sendSmtpTestEmail();
+        setTestResult(`Test email sent to ${to}. Check that inbox (and its spam folder).`);
       } else {
         await onSave(input);
         setPass("");
+        toast.success("SMTP settings saved.");
       }
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
@@ -117,7 +121,7 @@ export function SmtpTab({
                   })
                 }
               >
-                <option value="auto">Automatic (TLS on port 465)</option>
+                <option value="auto">Automatic (implicit TLS on 465, STARTTLS otherwise)</option>
                 <option value="true">Implicit TLS (usually port 465)</option>
                 <option value="false">STARTTLS when available (usually port 587)</option>
               </Select>
@@ -134,7 +138,9 @@ export function SmtpTab({
               />
             </Field>
             <Field
-              label={value.smtpPasswordConfigured ? "Password (leave blank to keep)" : "Password"}
+              label={
+                settings.smtpPasswordConfigured ? "Password (leave blank to keep)" : "Password"
+              }
             >
               <Input
                 autoComplete="new-password"
@@ -156,6 +162,50 @@ export function SmtpTab({
             </Field>
           </fieldset>
 
+          <div className="grid gap-3 rounded-lg border border-border bg-muted/20 p-4">
+            <div className="grid gap-1">
+              <p className="text-sm font-medium">Check delivery</p>
+              <p className="text-sm text-muted-foreground">
+                Test the connection with the values above without saving or sending anything, or
+                send a real email with the saved settings to{" "}
+                {adminEmail ? (
+                  <span className="font-medium text-foreground">{adminEmail}</span>
+                ) : (
+                  "you"
+                )}
+                .
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                disabled={pendingAction !== null}
+                onClick={() => void run("test")}
+                type="button"
+                variant="outline"
+              >
+                <PlugZap />
+                {pendingAction === "test" ? "Testing…" : "Test connection"}
+              </Button>
+              <Button
+                aria-describedby={canSendTestEmail ? undefined : "smtp-test-email-hint"}
+                disabled={pendingAction !== null || !canSendTestEmail}
+                onClick={() => void run("email")}
+                type="button"
+                variant="outline"
+              >
+                <MailCheck />
+                {pendingAction === "email" ? "Sending…" : "Send test email"}
+              </Button>
+            </div>
+            {canSendTestEmail ? null : (
+              <p className="text-xs text-muted-foreground" id="smtp-test-email-hint">
+                {settings.smtpHost
+                  ? "Save your changes first: the test email uses the saved settings."
+                  : "Save SMTP settings first to send a test email."}
+              </p>
+            )}
+          </div>
+
           {error ? (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -167,25 +217,28 @@ export function SmtpTab({
             </Alert>
           ) : null}
 
-          <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              Test the connection without saving settings or sending an email.
-            </p>
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-end">
+            {isDirty ? (
+              <p className="text-sm text-muted-foreground sm:mr-auto">You have unsaved changes.</p>
+            ) : null}
+            {isDirty ? (
               <Button
                 disabled={pendingAction !== null}
-                onClick={() => void run("test")}
+                onClick={() => {
+                  form.reset();
+                  setError(null);
+                  setTestResult(null);
+                }}
                 type="button"
-                variant="outline"
+                variant="ghost"
               >
-                <PlugZap />
-                {pendingAction === "test" ? "Testing…" : "Test connection"}
+                Discard changes
               </Button>
-              <Button disabled={pendingAction !== null} type="submit">
-                <Save />
-                {pendingAction === "save" ? "Saving…" : "Save SMTP settings"}
-              </Button>
-            </div>
+            ) : null}
+            <Button disabled={pendingAction !== null} type="submit">
+              <Save />
+              {pendingAction === "save" ? "Saving…" : "Save SMTP settings"}
+            </Button>
           </div>
         </form>
       </CardContent>

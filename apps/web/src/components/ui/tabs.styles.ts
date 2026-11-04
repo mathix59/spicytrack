@@ -19,14 +19,16 @@ const tabsListVariants = cva("flex items-center overflow-x-auto [scrollbar-width
 });
 
 const tabsTriggerVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium text-muted-foreground outline-none transition-[color,background-color,border-color,box-shadow] duration-150 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium text-muted-foreground outline-none transition-[color,background-color,border-color,box-shadow] duration-150 hover:text-foreground disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
+        // Keyboard focus only (never after a click, see TabsTrigger's data-pointer-focus): an
+        // inset ring that stays inside the scrolling list instead of being clipped by it.
         underline:
-          "-mb-px rounded-t-md border-b-2 border-transparent px-3 py-2.5 data-[state=active]:border-primary-accent data-[state=active]:text-foreground aria-[current=page]:border-primary-accent aria-[current=page]:text-foreground",
+          "-mb-px rounded-t-md border-b-2 border-transparent px-3 py-2.5 ring-inset ring-ring/50 [&:focus-visible:not([data-pointer-focus])]:text-foreground [&:focus-visible:not([data-pointer-focus])]:ring-2 data-[state=active]:border-primary-accent data-[state=active]:text-foreground aria-[current=page]:border-primary-accent aria-[current=page]:text-foreground",
         segmented:
-          "h-7 rounded-md px-3 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm aria-pressed:bg-card aria-pressed:text-foreground aria-pressed:shadow-sm",
+          "h-7 rounded-md px-3 ring-ring/40 [&:focus-visible:not([data-pointer-focus])]:ring-3 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm aria-pressed:bg-card aria-pressed:text-foreground aria-pressed:shadow-sm",
       },
     },
     defaultVariants: { variant: "segmented" },

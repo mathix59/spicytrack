@@ -1,6 +1,6 @@
-import { ArrowRight, Plus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Plus } from "lucide-react";
 
+import { useGetOrganizationOverview } from "@/generated/api";
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
 import { QueryError } from "@/components/common/query-error";
 import { PLATFORM_OPTIONS } from "@/lib/platforms";
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SkeletonRows } from "@/components/ui/skeleton";
 
+import { ProjectOverviewRow } from "../dashboard-page/project-overview-row";
 import type { OrganizationProjectsState } from "./types";
 
 function OrganizationProjectTab({
@@ -31,6 +32,12 @@ function OrganizationProjectTab({
   orgSlug: string;
   state: OrganizationProjectsState;
 }) {
+  // Same query (and cache) as the dashboard: 24h events, open issues and the 14-day trend.
+  const overviewQuery = useGetOrganizationOverview(orgSlug);
+  const statsByProjectId = new Map(
+    (overviewQuery.data?.data.projects ?? []).map((project) => [project.id, project]),
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -115,26 +122,16 @@ function OrganizationProjectTab({
             description="Create a project to get a DSN and start receiving events."
           />
         ) : (
-          <div className="grid gap-2">
+          <ul className="-mx-3 grid">
             {state.projects.map((project) => (
-              <Link
-                className="group flex items-center justify-between rounded-lg border border-border bg-muted/20 px-4 py-3 transition-colors hover:bg-muted/40"
+              <ProjectOverviewRow
                 key={project.id}
-                to={`/orgs/${orgSlug}/projects/${project.slug}`}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{project.name}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {project.platform} · {project.visibility}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="muted">{project.status}</Badge>
-                  <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </Link>
+                orgSlug={orgSlug}
+                project={project}
+                stats={statsByProjectId.get(project.id)}
+              />
             ))}
-          </div>
+          </ul>
         )}
       </CardContent>
     </Card>

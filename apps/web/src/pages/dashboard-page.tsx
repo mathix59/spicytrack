@@ -86,12 +86,12 @@ function DashboardPage() {
       <PageHeader
         eyebrow="Dashboard"
         icon={LayoutGrid}
-        title="Organizations"
+        title="Overview"
         actions={
           canCreateOrganization ? (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button variant="outline">
                   <Plus className="size-4" />
                   New organization
                 </Button>

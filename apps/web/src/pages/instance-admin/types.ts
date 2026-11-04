@@ -18,6 +18,13 @@ type InstanceUser = {
   isSuperAdmin: boolean;
 };
 
-type InstanceUsersPage = { items: InstanceUser[]; total: number; page: number; pageSize: number };
+type InstanceUsersPage = {
+  items: InstanceUser[];
+  total: number;
+  /** Every super-admin on the instance, whatever the search. */
+  superAdminCount?: number;
+  page: number;
+  pageSize: number;
+};
 
 export type { InstanceSettings, InstanceSettingsUpdate, InstanceUser, InstanceUsersPage };
