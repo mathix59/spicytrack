@@ -4,6 +4,7 @@ import type {
   ProjectReleaseDetailDto,
   ProjectReleaseDto,
   ReleaseArtifactDto,
+  ReleaseHealthReleaseDto,
 } from "@/generated/api";
 
 type ProjectReleasePanelProps = {
@@ -23,6 +24,10 @@ type ProjectReleasePanelData = {
   createError: string | null;
   uploadError: string | null;
   releaseDetail: ProjectReleaseDetailDto | undefined;
+  /** Last 7 days of release health, by version. */
+  healthByVersion: Map<string, ReleaseHealthReleaseDto>;
+  /** Environments that reported sessions. */
+  healthEnvironments: string[];
   releaseDetailLoading: boolean;
   releaseDetailError: unknown;
   retryReleaseDetail: () => void;

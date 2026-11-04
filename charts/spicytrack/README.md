@@ -36,7 +36,8 @@ kubectl -n spicytrack create secret generic spicytrack-api-ingest \
   --from-literal=STORAGE_SECRET_ACCESS_KEY='...' \
   --from-literal=STORAGE_BUCKET='spicytrack-artifacts' \
   --from-literal=INGEST_PROJECT_EVENTS_PER_HOUR='10000' \
-  --from-literal=INGEST_ORGANIZATION_EVENTS_PER_HOUR='50000'
+  --from-literal=INGEST_ORGANIZATION_EVENTS_PER_HOUR='50000' \
+  --from-literal=INGEST_PROJECT_SESSIONS_PER_HOUR='100000'
 
 kubectl -n spicytrack create secret generic spicytrack-worker-admin \
   --from-literal=DATABASE_URL='postgresql://...' \

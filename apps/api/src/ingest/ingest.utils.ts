@@ -12,42 +12,80 @@ import type { ParsedEventPayload } from "./ingest.types";
 
 export class InvalidEnvelopeError extends Error {}
 
+type ParsedEnvelope = {
+  event: Record<string, unknown> | null;
+  /** `session` item payloads (one SDK session update each). */
+  sessions: Record<string, unknown>[];
+  /** `sessions` item payloads (pre-aggregated counts from server SDKs). */
+  sessionAggregates: Record<string, unknown>[];
+};
+
+function parseObject(text: string) {
+  try {
+    const value: unknown = JSON.parse(text);
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Returns the envelope's event item, or null when it carries none (sessions, transactions…).
- * Throws InvalidEnvelopeError when the event item is not a JSON object.
+ * Splits an envelope into the items SpicyTrack stores: its first event, and its session
+ * updates. Items with a `length` header are read by length, the others up to the next newline.
+ * Throws InvalidEnvelopeError when the event item is not a JSON object; malformed session
+ * items are skipped.
  */
-function parseEnvelopeEvent(envelope: string) {
-  const lines = envelope.split("\n");
+function parseEnvelope(envelope: string): ParsedEnvelope {
+  const parsed: ParsedEnvelope = { event: null, sessions: [], sessionAggregates: [] };
+  const buffer = Buffer.from(envelope, "utf8");
+  const lineEnd = (from: number) => {
+    const index = buffer.indexOf(0x0a, from);
+    return index === -1 ? buffer.length : index;
+  };
 
-  for (let index = 1; index < lines.length; index += 1) {
-    const headerLine = lines[index];
-    if (!headerLine) {
-      continue;
-    }
+  let offset = lineEnd(0) + 1;
+  while (offset < buffer.length) {
+    const headerEnd = lineEnd(offset);
+    const itemHeader = parseObject(buffer.toString("utf8", offset, headerEnd));
+    offset = headerEnd + 1;
+    if (!itemHeader) continue;
 
-    let itemHeader: Record<string, unknown>;
-    try {
-      itemHeader = JSON.parse(headerLine) as Record<string, unknown>;
-    } catch {
-      continue;
-    }
+    const length = itemHeader.length;
+    const payloadEnd =
+      typeof length === "number" && Number.isSafeInteger(length) && length >= 0
+        ? Math.min(offset + length, buffer.length)
+        : lineEnd(offset);
+    const payloadText = buffer.toString("utf8", offset, payloadEnd);
+    offset = payloadEnd + 1;
 
-    const payloadLine = lines[index + 1];
-    if (itemHeader.type === "event" && payloadLine) {
+    if (itemHeader.type === "event") {
+      if (parsed.event) continue;
       let event: unknown;
       try {
-        event = JSON.parse(payloadLine);
+        event = JSON.parse(payloadText);
       } catch {
         throw new InvalidEnvelopeError("The envelope's event item is not valid JSON");
       }
       if (!event || typeof event !== "object" || Array.isArray(event)) {
         throw new InvalidEnvelopeError("The envelope's event item must be a JSON object");
       }
-      return event as Record<string, unknown>;
+      parsed.event = event as Record<string, unknown>;
+    } else if (itemHeader.type === "session" || itemHeader.type === "sessions") {
+      const item = parseObject(payloadText);
+      if (item) {
+        (itemHeader.type === "session" ? parsed.sessions : parsed.sessionAggregates).push(item);
+      }
     }
   }
 
-  return null;
+  return parsed;
+}
+
+/** Returns the envelope's event item, or null when it carries none (sessions, transactions…). */
+function parseEnvelopeEvent(envelope: string) {
+  return parseEnvelope(envelope).event;
 }
 
 function parseTimestamp(value: unknown) {
@@ -141,4 +179,5 @@ function parseEventPayload(payload: Record<string, unknown>): ParsedEventPayload
   };
 }
 
-export { parseEnvelopeEvent, parseEventPayload };
+export { parseEnvelope, parseEnvelopeEvent, parseEventPayload };
+export type { ParsedEnvelope };

@@ -26,6 +26,8 @@ const ORGANIZATION_TABLES = [
   schema.issues,
   schema.alertDeliveries,
   schema.alertRules,
+  // Its session states and the release health users go with it and the releases (cascade).
+  schema.releaseHealthBuckets,
   schema.releaseCommits,
   schema.releaseArtifacts,
   schema.releases,
@@ -100,7 +102,7 @@ export class OrganizationDeletionService {
               eq(schema.ingestRateCounters.scopeId, organizationId),
             ),
             and(
-              eq(schema.ingestRateCounters.scope, "project_hour"),
+              inArray(schema.ingestRateCounters.scope, ["project_hour", "project_sessions_hour"]),
               inArray(
                 schema.ingestRateCounters.scopeId,
                 tx

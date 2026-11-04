@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import {
   getListReleaseArtifactsQueryKey,
   useDeleteReleaseArtifact,
   useGetProjectRelease,
+  useGetProjectReleaseHealth,
   useListReleaseArtifacts,
   useUploadReleaseArtifact,
   useUpsertProjectRelease,
@@ -19,6 +20,7 @@ import { invalidateQueryKeys } from "@/lib/query-utils";
 import type { ProjectReleasePanelData, ProjectReleasePanelProps } from "./types";
 
 const EMPTY_ARTIFACTS: ReleaseArtifactDto[] = [];
+const EMPTY_ENVIRONMENTS: string[] = [];
 
 function useProjectReleasePanel({
   orgSlug,
@@ -44,6 +46,13 @@ function useProjectReleasePanel({
       enabled: selectedReleaseVersion.length > 0,
     },
   });
+
+  const healthQuery = useGetProjectReleaseHealth(orgSlug, projectSlug, { period: "7d" });
+  const health = healthQuery.data?.data;
+  const healthByVersion = useMemo(
+    () => new Map((health?.releases ?? []).map((release) => [release.version, release])),
+    [health],
+  );
 
   const invalidateArtifacts = async () => {
     await invalidateQueryKeys(queryClient, [
@@ -141,6 +150,8 @@ function useProjectReleasePanel({
     createError,
     uploadError,
     releaseDetail,
+    healthByVersion,
+    healthEnvironments: health?.environments ?? EMPTY_ENVIRONMENTS,
     releaseDetailLoading: releaseDetailQuery.isLoading,
     releaseDetailError: releaseDetailQuery.error,
     retryReleaseDetail: () => void releaseDetailQuery.refetch(),

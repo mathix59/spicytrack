@@ -60,6 +60,29 @@ describe("organization deletion persistence", () => {
       signingSecretCiphertext: "ciphertext",
       botTokenCiphertext: "ciphertext",
     });
+    const [release] = await db
+      .insert(schema.releases)
+      .values({ organizationId: orgId, projectId, version: "1.0.0" })
+      .returning({ id: schema.releases.id });
+    const [bucket] = await db
+      .insert(schema.releaseHealthBuckets)
+      .values({
+        organizationId: orgId,
+        projectId,
+        releaseId: release.id,
+        bucketStart: new Date(),
+        sessions: 1,
+      })
+      .returning({ id: schema.releaseHealthBuckets.id });
+    await db
+      .insert(schema.releaseHealthSessions)
+      .values({ projectId, sessionId: "s1", bucketId: bucket.id });
+    await db.insert(schema.releaseHealthUsers).values({
+      projectId,
+      releaseId: release.id,
+      day: "2026-01-01",
+      userHash: "hash",
+    });
     await db.insert(schema.mcpCredentials).values({
       id: credentialId,
       organizationId: orgId,
@@ -72,6 +95,7 @@ describe("organization deletion persistence", () => {
     await db.insert(schema.ingestRateCounters).values([
       { scope: "project_key_minute", scopeId: keyId, windowStartedAt: new Date(), count: 1 },
       { scope: "project_hour", scopeId: projectId, windowStartedAt: new Date(), count: 1 },
+      { scope: "project_sessions_hour", scopeId: projectId, windowStartedAt: new Date(), count: 1 },
       { scope: "organization_hour", scopeId: orgId, windowStartedAt: new Date(), count: 1 },
       { scope: "organization_hour", scopeId: otherOrgId, windowStartedAt: new Date(), count: 1 },
     ]);
@@ -99,6 +123,9 @@ describe("organization deletion persistence", () => {
     expect(await db.select().from(schema.ticketTrackers)).toHaveLength(0);
     expect(await db.select().from(schema.organizationSlackSettings)).toHaveLength(0);
     expect(await db.select().from(schema.mcpCredentialProjects)).toHaveLength(0);
+    expect(await db.select().from(schema.releaseHealthBuckets)).toHaveLength(0);
+    expect(await db.select().from(schema.releaseHealthSessions)).toHaveLength(0);
+    expect(await db.select().from(schema.releaseHealthUsers)).toHaveLength(0);
     expect(await db.select().from(schema.ingestRateCounters)).toMatchObject([
       { scopeId: otherOrgId },
     ]);

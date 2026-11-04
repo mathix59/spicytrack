@@ -2208,6 +2208,146 @@
         ]
       }
     },
+    "/organizations/{orgSlug}/projects/{projectSlug}/release-health": {
+      "get": {
+        "operationId": "getProjectReleaseHealth",
+        "parameters": [
+          {
+            "name": "period",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "24h",
+                "7d",
+                "14d",
+                "30d"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseHealthSummaryDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/organizations/{orgSlug}/projects/{projectSlug}/releases/{releaseVersion}/health": {
+      "get": {
+        "operationId": "getReleaseHealth",
+        "parameters": [
+          {
+            "name": "releaseVersion",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "24h",
+                "7d",
+                "14d",
+                "30d"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseHealthDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
     "/": {
       "get": {
         "operationId": "AppController_getHello",
@@ -8180,6 +8320,237 @@
             "nullable": true
           }
         }
+      },
+      "ReleaseHealthFiguresDto": {
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "number"
+          },
+          "healthy": {
+            "type": "number",
+            "description": "Sessions that ended without error, crash or abnormal exit."
+          },
+          "errored": {
+            "type": "number",
+            "description": "Sessions with handled errors, not counting crashed or abnormal ones."
+          },
+          "abnormal": {
+            "type": "number",
+            "description": "Sessions that ended without a clean exit (killed, timed out)."
+          },
+          "crashed": {
+            "type": "number"
+          },
+          "crashFreeSessions": {
+            "type": "number",
+            "nullable": true,
+            "description": "0–1, null without sessions."
+          },
+          "users": {
+            "type": "number",
+            "description": "Distinct users whose SDK reported a user id (did)."
+          },
+          "crashFreeUsers": {
+            "type": "number",
+            "nullable": true,
+            "description": "0–1, null without users."
+          }
+        },
+        "required": [
+          "sessions",
+          "healthy",
+          "errored",
+          "abnormal",
+          "crashed",
+          "crashFreeSessions",
+          "users",
+          "crashFreeUsers"
+        ]
+      },
+      "ReleaseHealthReleaseDto": {
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "number"
+          },
+          "healthy": {
+            "type": "number",
+            "description": "Sessions that ended without error, crash or abnormal exit."
+          },
+          "errored": {
+            "type": "number",
+            "description": "Sessions with handled errors, not counting crashed or abnormal ones."
+          },
+          "abnormal": {
+            "type": "number",
+            "description": "Sessions that ended without a clean exit (killed, timed out)."
+          },
+          "crashed": {
+            "type": "number"
+          },
+          "crashFreeSessions": {
+            "type": "number",
+            "nullable": true,
+            "description": "0–1, null without sessions."
+          },
+          "users": {
+            "type": "number",
+            "description": "Distinct users whose SDK reported a user id (did)."
+          },
+          "crashFreeUsers": {
+            "type": "number",
+            "nullable": true,
+            "description": "0–1, null without users."
+          },
+          "version": {
+            "type": "string"
+          },
+          "adoption": {
+            "type": "number",
+            "nullable": true,
+            "description": "Share of the period's sessions on this release, 0–1."
+          }
+        },
+        "required": [
+          "sessions",
+          "healthy",
+          "errored",
+          "abnormal",
+          "crashed",
+          "crashFreeSessions",
+          "users",
+          "crashFreeUsers",
+          "version",
+          "adoption"
+        ]
+      },
+      "ReleaseHealthSummaryDto": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "24h",
+              "7d",
+              "14d",
+              "30d"
+            ]
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "since": {
+            "type": "string"
+          },
+          "environments": {
+            "description": "Environments that reported sessions.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ReleaseHealthFiguresDto"
+          },
+          "releases": {
+            "description": "Busiest releases first, at most 50.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseHealthReleaseDto"
+            }
+          }
+        },
+        "required": [
+          "period",
+          "environment",
+          "since",
+          "environments",
+          "totals",
+          "releases"
+        ]
+      },
+      "ReleaseHealthPointDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string"
+          },
+          "sessions": {
+            "type": "number"
+          },
+          "errored": {
+            "type": "number"
+          },
+          "abnormal": {
+            "type": "number"
+          },
+          "crashed": {
+            "type": "number"
+          },
+          "crashFreeSessions": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "start",
+          "sessions",
+          "errored",
+          "abnormal",
+          "crashed",
+          "crashFreeSessions"
+        ]
+      },
+      "ReleaseHealthDetailDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "24h",
+              "7d",
+              "14d",
+              "30d"
+            ]
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          },
+          "since": {
+            "type": "string"
+          },
+          "interval": {
+            "type": "string",
+            "enum": [
+              "hour",
+              "day"
+            ]
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ReleaseHealthReleaseDto"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseHealthPointDto"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "period",
+          "environment",
+          "since",
+          "interval",
+          "totals",
+          "series"
+        ]
       },
       "HealthDto": {
         "type": "object",

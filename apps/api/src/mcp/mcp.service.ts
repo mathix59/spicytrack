@@ -35,6 +35,7 @@ import {
   releases,
 } from "../database/schema";
 import { IssuesService } from "../issues/issues.service";
+import { ReleaseHealthService } from "../release-health/release-health.service";
 import { ReleaseCommitsService } from "../release-commits/release-commits.service";
 import type { McpScope } from "./mcp.types";
 
@@ -102,6 +103,7 @@ export class McpService {
     private readonly autofixService: AutofixService,
     private readonly releaseCommitsService: ReleaseCommitsService,
     private readonly sourcemapResolverService: SourcemapResolverService,
+    private readonly releaseHealthService: ReleaseHealthService,
   ) {
     this.db = primaryDatabase(database);
   }
@@ -855,6 +857,36 @@ export class McpService {
               projectId,
               this.uuidArg(args, "issueId"),
             );
+          }),
+      });
+      add({
+        name: "get_release_health",
+        description:
+          "Get release health from SDK sessions: crash-free sessions and users, crashed, errored and abnormal sessions, and adoption. Without a release, compares the busiest releases; with one, adds an hourly (24h) or daily series.",
+        inputSchema: {
+          type: "object",
+          required: ["projectId"],
+          properties: {
+            projectId: { type: "string", format: "uuid" },
+            release: { type: "string", maxLength: 255 },
+            environment: { type: "string", maxLength: 128 },
+            period: { type: "string", enum: ["24h", "7d", "14d", "30d"] },
+          },
+          additionalProperties: false,
+        },
+        readOnly: true,
+        execute: (args) =>
+          run("get_release_health", args, async () => {
+            const projectId = this.uuidArg(args, "projectId");
+            await this.assertAllowedProject(credential, projectId);
+            const filters = {
+              period: this.optionalOneOfArg(args, "period", ["24h", "7d", "14d", "30d"]),
+              environment: this.optionalStringArg(args, "environment", 128),
+            };
+            const release = this.optionalStringArg(args, "release", 255);
+            return release
+              ? this.releaseHealthService.release(projectId, release, filters)
+              : this.releaseHealthService.summary(projectId, filters);
           }),
       });
     }

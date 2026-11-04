@@ -1,6 +1,6 @@
 import { GitBranch, Plus } from "lucide-react";
 
-import type { ProjectReleaseDto } from "@/generated/api";
+import type { ProjectReleaseDto, ReleaseHealthReleaseDto } from "@/generated/api";
 import { FormDialogActions } from "@/components/common/form-dialog-actions";
 import { QueryError } from "@/components/common/query-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,11 +21,21 @@ import { Input } from "@/components/ui/input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
+import { formatRate, healthVariant } from "./release-health-utils";
+
+const HEALTH_DOT = {
+  success: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-destructive",
+  muted: "bg-border",
+} as const;
+
 function ReleaseListCard({
   releases,
   isLoading,
   error,
   onRetry,
+  healthByVersion,
   selectedReleaseVersion,
   createOpen,
   createError,
@@ -38,6 +48,7 @@ function ReleaseListCard({
   isLoading: boolean;
   error: unknown;
   onRetry: () => void;
+  healthByVersion: Map<string, ReleaseHealthReleaseDto>;
   selectedReleaseVersion: string;
   createOpen: boolean;
   createError: string | null;
@@ -104,6 +115,7 @@ function ReleaseListCard({
           <ul className="grid gap-1">
             {releases.map((release) => {
               const selected = selectedReleaseVersion === release.version;
+              const health = healthByVersion.get(release.version);
               return (
                 <li className="min-w-0" key={release.id}>
                   <button
@@ -120,7 +132,26 @@ function ReleaseListCard({
                       <GitBranch className="size-4 shrink-0 text-muted-foreground" />
                       <span className="truncate text-sm font-medium">{release.version}</span>
                     </span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
+                    <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                      {health?.crashFreeSessions != null ? (
+                        <span
+                          className="flex items-center gap-1 tabular-nums"
+                          title={`Crash-free sessions, last 7 days (${health.sessions.toLocaleString()} sessions)`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "size-2 rounded-full",
+                              HEALTH_DOT[healthVariant(health.crashFreeSessions)],
+                            )}
+                          />
+                          <span className="sr-only">Crash-free sessions </span>
+                          {formatRate(health.crashFreeSessions)}
+                          <span aria-hidden="true" className="ml-1">
+                            ·
+                          </span>
+                        </span>
+                      ) : null}
                       {release.eventCount} events
                     </span>
                   </button>

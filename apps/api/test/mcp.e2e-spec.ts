@@ -535,6 +535,15 @@ describe("MCP server (e2e)", () => {
     expect(
       await call("list_suspect_commits", { projectId: allowedProjectId, issueId }),
     ).toMatchObject({ status: "unavailable", suspects: [] });
+    expect(
+      await call("get_release_health", { projectId: allowedProjectId, period: "7d" }),
+    ).toMatchObject({ period: "7d", totals: { sessions: 0, crashFreeSessions: null } });
+    expect(
+      await call("get_release_health", { projectId: allowedProjectId, release: "nope" }),
+    ).toEqual({ error: "Release not found" });
+    expect(await call("get_release_health", { projectId: blockedProjectId })).toHaveProperty(
+      "error",
+    );
 
     const audits = await db
       .select({ payload: auditLogs.payload, projectId: auditLogs.projectId })

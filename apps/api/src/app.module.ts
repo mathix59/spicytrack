@@ -3,6 +3,7 @@ import { ConfigModule } from "@nestjs/config";
 import { validateEnvironment } from "./common/environment";
 import { AlertsModule } from "./alerts/alerts.module";
 import { ArtifactsModule } from "./artifacts/artifacts.module";
+import { ReleaseHealthModule } from "./release-health/release-health.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { AutofixModule } from "./autofix/autofix.module";
@@ -35,6 +36,7 @@ import { TeamsModule } from "./teams/teams.module";
     DatabaseModule,
     AlertsModule,
     ArtifactsModule,
+    ReleaseHealthModule,
     AuditModule,
     RbacModule,
     SystemModule,

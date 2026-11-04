@@ -14,7 +14,11 @@ import {
   issues,
   jobs,
   projects,
+  releaseHealthBuckets,
+  releaseHealthSessions,
+  releaseHealthUsers,
 } from "../../database/schema";
+import { SESSION_MAX_AGE_MS } from "../../release-health/session-updates";
 
 const BATCH_SIZE = 500;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -62,6 +66,10 @@ export class RetentionCleanupHandler {
     await this.db
       .delete(alertIssueCooldowns)
       .where(lt(alertIssueCooldowns.lastTriggeredAt, new Date(now - MAX_ALERT_COOLDOWN_MS)));
+    // Sessions that old are refused at ingest, so their state is no longer needed.
+    await this.db
+      .delete(releaseHealthSessions)
+      .where(lt(releaseHealthSessions.updatedAt, new Date(now - SESSION_MAX_AGE_MS - DAY_MS)));
 
     const projectRows = await this.db
       .select({ id: projects.id, retentionDays: projects.retentionDays })
@@ -78,6 +86,23 @@ export class RetentionCleanupHandler {
         signal,
       );
       const deletedIssues = await this.deleteOrphanedIssues(project.id, cutoff);
+      await this.deleteInBatches(
+        releaseHealthBuckets,
+        releaseHealthBuckets.id,
+        and(
+          eq(releaseHealthBuckets.projectId, project.id),
+          lt(releaseHealthBuckets.bucketStart, cutoff),
+        )!,
+        signal,
+      );
+      await this.db
+        .delete(releaseHealthUsers)
+        .where(
+          and(
+            eq(releaseHealthUsers.projectId, project.id),
+            lt(releaseHealthUsers.day, cutoff.toISOString().slice(0, 10)),
+          ),
+        );
 
       if (deletedEvents > 0 || deletedIssues > 0) {
         this.logger.log(

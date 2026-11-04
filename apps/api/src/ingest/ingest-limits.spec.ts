@@ -11,10 +11,12 @@ describe("ingestLimits", () => {
     delete process.env.INGEST_MAX_EVENT_BYTES;
     delete process.env.INGEST_PROJECT_EVENTS_PER_HOUR;
     delete process.env.INGEST_ORGANIZATION_EVENTS_PER_HOUR;
+    delete process.env.INGEST_PROJECT_SESSIONS_PER_HOUR;
     expect(ingestLimits()).toEqual({
       maxEventBytes: 1_000_000,
       projectEventsPerHour: 10_000,
       organizationEventsPerHour: 50_000,
+      projectSessionsPerHour: 100_000,
     });
   });
 
@@ -22,10 +24,12 @@ describe("ingestLimits", () => {
     process.env.INGEST_MAX_EVENT_BYTES = "250000";
     process.env.INGEST_PROJECT_EVENTS_PER_HOUR = "1000";
     process.env.INGEST_ORGANIZATION_EVENTS_PER_HOUR = "5000";
+    process.env.INGEST_PROJECT_SESSIONS_PER_HOUR = "0";
     expect(ingestLimits()).toEqual({
       maxEventBytes: 250_000,
       projectEventsPerHour: 1_000,
       organizationEventsPerHour: 5_000,
+      projectSessionsPerHour: 0,
     });
     process.env.INGEST_MAX_EVENT_BYTES = "invalid";
     expect(() => ingestLimits()).toThrow("INGEST_MAX_EVENT_BYTES");

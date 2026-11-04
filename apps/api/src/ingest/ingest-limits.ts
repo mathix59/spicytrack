@@ -1,6 +1,7 @@
 const DEFAULT_MAX_EVENT_BYTES = 1_000_000;
 const DEFAULT_PROJECT_EVENTS_PER_HOUR = 10_000;
 const DEFAULT_ORGANIZATION_EVENTS_PER_HOUR = 50_000;
+const DEFAULT_PROJECT_SESSIONS_PER_HOUR = 100_000;
 
 function nonNegativeInteger(name: string, fallback: number): number {
   const value = Number(process.env[name] ?? fallback);
@@ -26,6 +27,11 @@ function ingestLimits() {
     organizationEventsPerHour: nonNegativeInteger(
       "INGEST_ORGANIZATION_EVENTS_PER_HOUR",
       DEFAULT_ORGANIZATION_EVENTS_PER_HOUR,
+    ),
+    /** Session updates and aggregate rows; past it, sessions are dropped without a 429. */
+    projectSessionsPerHour: nonNegativeInteger(
+      "INGEST_PROJECT_SESSIONS_PER_HOUR",
+      DEFAULT_PROJECT_SESSIONS_PER_HOUR,
     ),
   };
 }

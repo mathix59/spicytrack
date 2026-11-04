@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ReleaseCommitsSection } from "@/components/commits/release-commits-section";
 
 import { ReleaseArtifactsSection } from "./release-artifacts-section";
+import { ReleaseHealthSection } from "./release-health-section";
 import { ReleaseIssuesSection } from "./release-issues-section";
 import { compactDate } from "./utils";
 
@@ -27,6 +28,7 @@ function ReleaseDetailCard({
   orgSlug,
   projectSlug,
   hasReleases,
+  healthEnvironments,
   selectedReleaseVersion,
   releaseDetail,
   isLoading,
@@ -45,6 +47,7 @@ function ReleaseDetailCard({
   orgSlug: string;
   projectSlug: string;
   hasReleases: boolean;
+  healthEnvironments: string[];
   selectedReleaseVersion: string;
   releaseDetail: ProjectReleaseDetailDto | undefined;
   isLoading: boolean;
@@ -104,6 +107,13 @@ function ReleaseDetailCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6">
+        <ReleaseHealthSection
+          environments={healthEnvironments}
+          key={release.version}
+          orgSlug={orgSlug}
+          projectSlug={projectSlug}
+          releaseVersion={release.version}
+        />
         <ReleaseIssuesSection issues={issues} onOpenIssue={onOpenIssue} />
         <ReleaseCommitsSection
           orgSlug={orgSlug}

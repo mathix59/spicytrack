@@ -12,6 +12,7 @@ function ProjectReleasePanel(props: ProjectReleasePanelProps) {
         createError={state.createError}
         createOpen={state.createOpen}
         error={props.releasesError}
+        healthByVersion={state.healthByVersion}
         isCreatingRelease={state.isCreatingRelease}
         isLoading={props.releasesLoading}
         onCreateOpenChange={state.setCreateOpen}
@@ -27,6 +28,7 @@ function ProjectReleasePanel(props: ProjectReleasePanelProps) {
         artifactsLoading={state.artifactsLoading}
         error={state.releaseDetailError}
         hasReleases={props.releases.length > 0}
+        healthEnvironments={state.healthEnvironments}
         isLoading={props.releasesLoading || state.releaseDetailLoading}
         isUploadingArtifact={state.isUploadingArtifact}
         onDeleteArtifact={state.deleteArtifact}

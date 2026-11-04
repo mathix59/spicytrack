@@ -2,11 +2,13 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  date,
   index,
   integer,
   jsonb,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -440,6 +442,85 @@ export type ReleaseCommitFile = {
 };
 
 /** Commits between a release and the previous one, read from the connected repository. */
+/**
+ * Release health: sessions per release, environment and hour, by final outcome. Healthy
+ * sessions are `sessions - errored - abnormal - crashed`.
+ */
+export const releaseHealthBuckets = pgTable(
+  "release_health_buckets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    releaseId: uuid("release_id")
+      .notNull()
+      .references(() => releases.id, { onDelete: "cascade" }),
+    /** Environment name, "" when the SDK sent none. */
+    environment: varchar("environment", { length: 128 }).notNull().default(""),
+    bucketStart: timestamp("bucket_start", { withTimezone: true }).notNull(),
+    sessions: integer("sessions").notNull().default(0),
+    errored: integer("errored").notNull().default(0),
+    abnormal: integer("abnormal").notNull().default(0),
+    crashed: integer("crashed").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    bucketIdx: uniqueIndex("release_health_buckets_key_idx").on(
+      table.projectId,
+      table.releaseId,
+      table.environment,
+      table.bucketStart,
+    ),
+    projectTimeIdx: index("release_health_buckets_project_time_idx").on(
+      table.projectId,
+      table.bucketStart,
+    ),
+  }),
+);
+
+/** Distinct users per release, environment and day, for crash-free users. Ids are hashed. */
+export const releaseHealthUsers = pgTable(
+  "release_health_users",
+  {
+    projectId: uuid("project_id").notNull(),
+    releaseId: uuid("release_id")
+      .notNull()
+      .references(() => releases.id, { onDelete: "cascade" }),
+    environment: varchar("environment", { length: 128 }).notNull().default(""),
+    day: date("day", { mode: "string" }).notNull(),
+    userHash: varchar("user_hash", { length: 64 }).notNull(),
+    crashed: boolean("crashed").notNull().default(false),
+  },
+  (table) => ({
+    pk: primaryKey({
+      columns: [table.projectId, table.releaseId, table.environment, table.day, table.userHash],
+    }),
+    projectDayIdx: index("release_health_users_project_day_idx").on(table.projectId, table.day),
+  }),
+);
+
+/**
+ * Latest known outcome of each individual session (SDK `session` updates), so repeated updates
+ * move a session between outcomes instead of counting it twice. Pruned after a week.
+ */
+export const releaseHealthSessions = pgTable(
+  "release_health_sessions",
+  {
+    projectId: uuid("project_id").notNull(),
+    sessionId: varchar("session_id", { length: 64 }).notNull(),
+    bucketId: uuid("bucket_id")
+      .notNull()
+      .references(() => releaseHealthBuckets.id, { onDelete: "cascade" }),
+    /** 0 healthy, 1 errored, 2 abnormal, 3 crashed: an update only ever raises it. */
+    outcome: smallint("outcome").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.projectId, table.sessionId] }),
+    updatedIdx: index("release_health_sessions_updated_idx").on(table.updatedAt),
+  }),
+);
+
 export const releaseCommits = pgTable(
   "release_commits",
   {

@@ -4,6 +4,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   PayloadTooLargeException,
 } from "@nestjs/common";
@@ -22,6 +23,11 @@ import {
   releases,
 } from "../database/schema";
 
+import { ReleaseHealthIngestService } from "../release-health/release-health-ingest.service";
+import {
+  normalizeSessionAggregates,
+  normalizeSessionUpdate,
+} from "../release-health/session-updates";
 import { IngestResolversService } from "./ingest-resolvers.service";
 import {
   applyProjectPolicies,
@@ -31,7 +37,12 @@ import {
 import type { IngestContext, IngestProjectAccess } from "./ingest.types";
 import { ingestLimits } from "./ingest-limits";
 import { recordIngestOutcome } from "./ingest-metrics";
-import { InvalidEnvelopeError, parseEnvelopeEvent, parseEventPayload } from "./ingest.utils";
+import {
+  InvalidEnvelopeError,
+  type ParsedEnvelope,
+  parseEnvelope,
+  parseEventPayload,
+} from "./ingest.utils";
 import { PostIngestPublisherService } from "./post-ingest-publisher.service";
 
 type TransactionClient = Parameters<Parameters<DatabaseClient["transaction"]>[0]>[0];
@@ -68,10 +79,13 @@ export class IngestQuotaExceededException extends HttpException {
 
 @Injectable()
 export class IngestService {
+  private readonly logger = new Logger(IngestService.name);
+
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
     private readonly ingestResolvers: IngestResolversService,
     private readonly postIngestPublisher: PostIngestPublisherService,
+    private readonly releaseHealth: ReleaseHealthIngestService,
   ) {}
 
   async ingestStore(projectId: string, payload: Record<string, unknown>, sentryKey?: string) {
@@ -85,21 +99,109 @@ export class IngestService {
     this.assertPayloadSize(Buffer.byteLength(envelope));
     // Envelopes without an event and malformed ones are not stored, so they never reach the
     // quota check in persistEvent.
-    let payload: Record<string, unknown> | null;
+    let parsed: ParsedEnvelope;
     try {
-      payload = parseEnvelopeEvent(envelope);
+      parsed = parseEnvelope(envelope);
     } catch (error) {
       if (!(error instanceof InvalidEnvelopeError)) throw error;
       recordIngestOutcome("rejected", "invalid_payload");
       throw new BadRequestException(error.message);
     }
 
-    if (!payload) {
-      recordIngestOutcome("dropped", "unsupported_envelope_item");
-      return { accepted: true, dropped: true, reason: "unsupported_envelope_item" };
+    // The event goes first: when it is refused (quota), the SDK retries the whole envelope
+    // and its sessions must not have been counted yet.
+    const result = parsed.event
+      ? this.trackResult(await this.persistEvent(project, parsed.event))
+      : null;
+    const sessions = await this.recordSessions(project, parsed);
+
+    if (result) return result;
+    if (parsed.sessions.length > 0 || parsed.sessionAggregates.length > 0) {
+      return { accepted: true, sessions };
+    }
+    recordIngestOutcome("dropped", "unsupported_envelope_item");
+    return { accepted: true, dropped: true, reason: "unsupported_envelope_item" };
+  }
+
+  /** Counts the envelope's session items for release health; returns how many were kept. */
+  private async recordSessions(project: IngestProjectAccess, parsed: ParsedEnvelope) {
+    const now = new Date();
+    const updates = parsed.sessions.flatMap((item) => normalizeSessionUpdate(item, now) ?? []);
+    const aggregates = parsed.sessionAggregates.flatMap((item) =>
+      normalizeSessionAggregates(item, now),
+    );
+    const units = updates.length + aggregates.length;
+    const unusable = parsed.sessions.length - updates.length;
+    if (unusable > 0) recordIngestOutcome("dropped", "invalid_session");
+    if (units === 0) return 0;
+    if (!(await this.consumeSessionQuota(project, units))) {
+      recordIngestOutcome("dropped", "session_quota_exceeded");
+      return 0;
     }
 
-    return this.trackResult(await this.persistEvent(project, payload));
+    const releaseIds = new Map<string, string | null>();
+    const releaseId = async (releaseVersion: string) => {
+      if (!releaseIds.has(releaseVersion)) {
+        releaseIds.set(
+          releaseVersion,
+          await this.ingestResolvers.resolveReleaseId({
+            organizationId: project.organizationId,
+            projectId: project.id,
+            releaseVersion,
+            timestamp: now,
+          }),
+        );
+      }
+      return releaseIds.get(releaseVersion) ?? null;
+    };
+
+    let recorded = 0;
+    for (const item of [...updates, ...aggregates]) {
+      try {
+        const id = await releaseId(item.releaseVersion);
+        if (!id) continue;
+        const scope = {
+          organizationId: project.organizationId,
+          projectId: project.id,
+          releaseId: id,
+        };
+        if ("sessionId" in item) await this.releaseHealth.recordSessionUpdate(scope, item);
+        else await this.releaseHealth.recordAggregate(scope, item);
+        recorded += 1;
+      } catch (error) {
+        // Release health is secondary: losing a session beats failing the event with it.
+        this.logger.warn(
+          `Recording a session failed for project ${project.id}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    if (recorded > 0) recordIngestOutcome("accepted", "session");
+    return recorded;
+  }
+
+  /** A per-project hourly budget for session items, separate from the event quotas. */
+  private async consumeSessionQuota(project: IngestProjectAccess, units: number) {
+    const limit = ingestLimits().projectSessionsPerHour;
+    if (limit === 0) return true;
+    const windowStartedAt = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000);
+    const [counter] = await this.db
+      .insert(ingestRateCounters)
+      .values({
+        scope: "project_sessions_hour",
+        scopeId: project.id,
+        windowStartedAt,
+        count: units,
+      })
+      .onConflictDoUpdate({
+        target: [
+          ingestRateCounters.scope,
+          ingestRateCounters.scopeId,
+          ingestRateCounters.windowStartedAt,
+        ],
+        set: { count: sql`${ingestRateCounters.count} + ${units}`, updatedAt: new Date() },
+      })
+      .returning({ count: ingestRateCounters.count });
+    return counter.count <= limit;
   }
 
   /**

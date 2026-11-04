@@ -688,6 +688,112 @@ export class ReleaseCommitDto {
   filesTruncated!: boolean;
 }
 
+export class ReleaseHealthFiguresDto {
+  @ApiProperty()
+  sessions!: number;
+
+  @ApiProperty({ description: "Sessions that ended without error, crash or abnormal exit." })
+  healthy!: number;
+
+  @ApiProperty({
+    description: "Sessions with handled errors, not counting crashed or abnormal ones.",
+  })
+  errored!: number;
+
+  @ApiProperty({ description: "Sessions that ended without a clean exit (killed, timed out)." })
+  abnormal!: number;
+
+  @ApiProperty()
+  crashed!: number;
+
+  @ApiProperty({ type: Number, nullable: true, description: "0–1, null without sessions." })
+  crashFreeSessions!: number | null;
+
+  @ApiProperty({ description: "Distinct users whose SDK reported a user id (did)." })
+  users!: number;
+
+  @ApiProperty({ type: Number, nullable: true, description: "0–1, null without users." })
+  crashFreeUsers!: number | null;
+}
+
+export class ReleaseHealthReleaseDto extends ReleaseHealthFiguresDto {
+  @ApiProperty()
+  version!: string;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: "Share of the period's sessions on this release, 0–1.",
+  })
+  adoption!: number | null;
+}
+
+export class ReleaseHealthSummaryDto {
+  @ApiProperty({ enum: ["24h", "7d", "14d", "30d"] })
+  period!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  environment!: string | null;
+
+  @ApiProperty()
+  since!: string;
+
+  @ApiProperty({ type: [String], description: "Environments that reported sessions." })
+  environments!: string[];
+
+  @ApiProperty({ type: ReleaseHealthFiguresDto })
+  totals!: ReleaseHealthFiguresDto;
+
+  @ApiProperty({
+    type: [ReleaseHealthReleaseDto],
+    description: "Busiest releases first, at most 50.",
+  })
+  releases!: ReleaseHealthReleaseDto[];
+}
+
+export class ReleaseHealthPointDto {
+  @ApiProperty()
+  start!: string;
+
+  @ApiProperty()
+  sessions!: number;
+
+  @ApiProperty()
+  errored!: number;
+
+  @ApiProperty()
+  abnormal!: number;
+
+  @ApiProperty()
+  crashed!: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  crashFreeSessions!: number | null;
+}
+
+export class ReleaseHealthDetailDto {
+  @ApiProperty()
+  version!: string;
+
+  @ApiProperty({ enum: ["24h", "7d", "14d", "30d"] })
+  period!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  environment!: string | null;
+
+  @ApiProperty()
+  since!: string;
+
+  @ApiProperty({ enum: ["hour", "day"] })
+  interval!: string;
+
+  @ApiProperty({ type: ReleaseHealthReleaseDto })
+  totals!: Omit<ReleaseHealthReleaseDto, "version">;
+
+  @ApiProperty({ type: [ReleaseHealthPointDto] })
+  series!: ReleaseHealthPointDto[];
+}
+
 export class ReleaseCommitsDto {
   @ApiProperty({ type: String, nullable: true })
   commitSha!: string | null;

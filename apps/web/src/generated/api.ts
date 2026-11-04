@@ -718,6 +718,119 @@ export interface UpdateOrganizationGithubAppSettingsBodyDto {
   webhookSecret?: string | null;
 }
 
+export interface ReleaseHealthFiguresDto {
+  sessions: number;
+  /** Sessions that ended without error, crash or abnormal exit. */
+  healthy: number;
+  /** Sessions with handled errors, not counting crashed or abnormal ones. */
+  errored: number;
+  /** Sessions that ended without a clean exit (killed, timed out). */
+  abnormal: number;
+  crashed: number;
+  /**
+     * 0–1, null without sessions.
+     * @nullable
+     */
+  crashFreeSessions: number | null;
+  /** Distinct users whose SDK reported a user id (did). */
+  users: number;
+  /**
+     * 0–1, null without users.
+     * @nullable
+     */
+  crashFreeUsers: number | null;
+}
+
+export interface ReleaseHealthReleaseDto {
+  sessions: number;
+  /** Sessions that ended without error, crash or abnormal exit. */
+  healthy: number;
+  /** Sessions with handled errors, not counting crashed or abnormal ones. */
+  errored: number;
+  /** Sessions that ended without a clean exit (killed, timed out). */
+  abnormal: number;
+  crashed: number;
+  /**
+     * 0–1, null without sessions.
+     * @nullable
+     */
+  crashFreeSessions: number | null;
+  /** Distinct users whose SDK reported a user id (did). */
+  users: number;
+  /**
+     * 0–1, null without users.
+     * @nullable
+     */
+  crashFreeUsers: number | null;
+  version: string;
+  /**
+     * Share of the period's sessions on this release, 0–1.
+     * @nullable
+     */
+  adoption: number | null;
+}
+
+export type ReleaseHealthSummaryDtoPeriod = typeof ReleaseHealthSummaryDtoPeriod[keyof typeof ReleaseHealthSummaryDtoPeriod];
+
+
+export const ReleaseHealthSummaryDtoPeriod = {
+  '24h': '24h',
+  '7d': '7d',
+  '14d': '14d',
+  '30d': '30d',
+} as const;
+
+export interface ReleaseHealthSummaryDto {
+  period: ReleaseHealthSummaryDtoPeriod;
+  /** @nullable */
+  environment: string | null;
+  since: string;
+  /** Environments that reported sessions. */
+  environments: string[];
+  totals: ReleaseHealthFiguresDto;
+  /** Busiest releases first, at most 50. */
+  releases: ReleaseHealthReleaseDto[];
+}
+
+export interface ReleaseHealthPointDto {
+  start: string;
+  sessions: number;
+  errored: number;
+  abnormal: number;
+  crashed: number;
+  /** @nullable */
+  crashFreeSessions: number | null;
+}
+
+export type ReleaseHealthDetailDtoPeriod = typeof ReleaseHealthDetailDtoPeriod[keyof typeof ReleaseHealthDetailDtoPeriod];
+
+
+export const ReleaseHealthDetailDtoPeriod = {
+  '24h': '24h',
+  '7d': '7d',
+  '14d': '14d',
+  '30d': '30d',
+} as const;
+
+export type ReleaseHealthDetailDtoInterval = typeof ReleaseHealthDetailDtoInterval[keyof typeof ReleaseHealthDetailDtoInterval];
+
+
+export const ReleaseHealthDetailDtoInterval = {
+  hour: 'hour',
+  day: 'day',
+} as const;
+
+export interface ReleaseHealthDetailDto {
+  version: string;
+  period: ReleaseHealthDetailDtoPeriod;
+  /** @nullable */
+  environment: string | null;
+  since: string;
+  interval: ReleaseHealthDetailDtoInterval;
+  totals: ReleaseHealthReleaseDto;
+  series: ReleaseHealthPointDto[];
+}
+
 export type HealthDtoDependencies = {[key: string]: string};
 
 export type HealthDtoJobs = { [key: string]: unknown };
@@ -1839,6 +1952,36 @@ export type UploadReleaseArtifactParams = {
 export type UploadReleaseArtifactBody = {
   file?: Blob | File;
 };
+
+export type GetProjectReleaseHealthParams = {
+  period?: GetProjectReleaseHealthPeriod;
+  environment?: string;
+};
+
+export type GetProjectReleaseHealthPeriod = typeof GetProjectReleaseHealthPeriod[keyof typeof GetProjectReleaseHealthPeriod];
+
+
+export const GetProjectReleaseHealthPeriod = {
+  '24h': '24h',
+  '7d': '7d',
+  '14d': '14d',
+  '30d': '30d',
+} as const;
+
+export type GetReleaseHealthParams = {
+  period?: GetReleaseHealthPeriod;
+  environment?: string;
+};
+
+export type GetReleaseHealthPeriod = typeof GetReleaseHealthPeriod[keyof typeof GetReleaseHealthPeriod];
+
+
+export const GetReleaseHealthPeriod = {
+  '24h': '24h',
+  '7d': '7d',
+  '14d': '14d',
+  '30d': '30d',
+} as const;
 
 export type ListIssuesParams = {
   page?: number;
@@ -7087,6 +7230,274 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCompleteOrganizationGithubAppInstallationMutationOptions(options), queryClient);
     }
+
+export type getProjectReleaseHealthResponse200 = {
+  data: ReleaseHealthSummaryDto
+  status: 200
+}
+
+export type getProjectReleaseHealthResponseSuccess = (getProjectReleaseHealthResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getProjectReleaseHealthResponse = (getProjectReleaseHealthResponseSuccess)
+
+export const getGetProjectReleaseHealthUrl = (orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectReleaseHealthParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/release-health?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/release-health`
+}
+
+export const getProjectReleaseHealth = async (orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectReleaseHealthParams, options?: Parameters<typeof orvalFetch>[1]): Promise<getProjectReleaseHealthResponse> => {
+
+  return orvalFetch<getProjectReleaseHealthResponse>(getGetProjectReleaseHealthUrl(orgSlug,projectSlug,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectReleaseHealthQueryKey = (orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectReleaseHealthParams,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/release-health`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProjectReleaseHealthQueryOptions = <TData = Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectReleaseHealthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectReleaseHealthQueryKey(orgSlug,projectSlug,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectReleaseHealth>>> = ({ signal }) => getProjectReleaseHealth(orgSlug,projectSlug,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectReleaseHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectReleaseHealth>>>
+export type GetProjectReleaseHealthQueryError = ErrorType<unknown>
+
+
+export function useGetProjectReleaseHealth<TData = Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params: undefined |  GetProjectReleaseHealthParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectReleaseHealth>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectReleaseHealth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectReleaseHealth<TData = Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectReleaseHealthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectReleaseHealth>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectReleaseHealth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectReleaseHealth<TData = Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectReleaseHealthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetProjectReleaseHealth<TData = Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    params?: GetProjectReleaseHealthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectReleaseHealth>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProjectReleaseHealthQueryOptions(orgSlug,projectSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export type getReleaseHealthResponse200 = {
+  data: ReleaseHealthDetailDto
+  status: 200
+}
+
+export type getReleaseHealthResponseSuccess = (getReleaseHealthResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getReleaseHealthResponse = (getReleaseHealthResponseSuccess)
+
+export const getGetReleaseHealthUrl = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    params?: GetReleaseHealthParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/health?${stringifiedParams}` : `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/health`
+}
+
+export const getReleaseHealth = async (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    params?: GetReleaseHealthParams, options?: Parameters<typeof orvalFetch>[1]): Promise<getReleaseHealthResponse> => {
+
+  return orvalFetch<getReleaseHealthResponse>(getGetReleaseHealthUrl(orgSlug,projectSlug,releaseVersion,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReleaseHealthQueryKey = (orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    params?: GetReleaseHealthParams,) => {
+    return [
+    `/organizations/${orgSlug}/projects/${projectSlug}/releases/${releaseVersion}/health`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetReleaseHealthQueryOptions = <TData = Awaited<ReturnType<typeof getReleaseHealth>>, TError = ErrorType<unknown>>(orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    params?: GetReleaseHealthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReleaseHealth>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReleaseHealthQueryKey(orgSlug,projectSlug,releaseVersion,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReleaseHealth>>> = ({ signal }) => getReleaseHealth(orgSlug,projectSlug,releaseVersion,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: orgSlug !== null && orgSlug !== undefined && projectSlug !== null && projectSlug !== undefined && releaseVersion !== null && releaseVersion !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReleaseHealth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReleaseHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getReleaseHealth>>>
+export type GetReleaseHealthQueryError = ErrorType<unknown>
+
+
+export function useGetReleaseHealth<TData = Awaited<ReturnType<typeof getReleaseHealth>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    params: undefined |  GetReleaseHealthParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReleaseHealth>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReleaseHealth>>,
+          TError,
+          Awaited<ReturnType<typeof getReleaseHealth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReleaseHealth<TData = Awaited<ReturnType<typeof getReleaseHealth>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    params?: GetReleaseHealthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReleaseHealth>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReleaseHealth>>,
+          TError,
+          Awaited<ReturnType<typeof getReleaseHealth>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReleaseHealth<TData = Awaited<ReturnType<typeof getReleaseHealth>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    params?: GetReleaseHealthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReleaseHealth>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetReleaseHealth<TData = Awaited<ReturnType<typeof getReleaseHealth>>, TError = ErrorType<unknown>>(
+ orgSlug: string,
+    projectSlug: string,
+    releaseVersion: string,
+    params?: GetReleaseHealthParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReleaseHealth>>, TError, TData>>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetReleaseHealthQueryOptions(orgSlug,projectSlug,releaseVersion,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export type appControllerGetHelloResponse200 = {
   data: void

@@ -1,5 +1,5 @@
 import { boundGroupingKey, computeGroupingKey, computeLegacyGroupingKey } from "../common/grouping";
-import { InvalidEnvelopeError, parseEnvelopeEvent } from "./ingest.utils";
+import { InvalidEnvelopeError, parseEnvelope, parseEnvelopeEvent } from "./ingest.utils";
 
 const header = JSON.stringify({ event_id: "abc", dsn: "https://key@example.com/1" });
 
@@ -22,6 +22,33 @@ describe("parseEnvelopeEvent", () => {
 
     expect(() => parseEnvelopeEvent(invalid)).toThrow(InvalidEnvelopeError);
     expect(() => parseEnvelopeEvent(array)).toThrow("must be a JSON object");
+  });
+});
+
+describe("parseEnvelope", () => {
+  it("returns the event and every session item", () => {
+    const attachment = "line one\nline two";
+    const envelope = [
+      header,
+      JSON.stringify({ type: "session" }),
+      JSON.stringify({ sid: "a" }),
+      JSON.stringify({ type: "attachment", length: Buffer.byteLength(attachment) }),
+      attachment,
+      JSON.stringify({ type: "event" }),
+      JSON.stringify({ message: "x" }),
+      JSON.stringify({ type: "sessions" }),
+      JSON.stringify({ aggregates: [] }),
+      JSON.stringify({ type: "session" }),
+      "{broken",
+      JSON.stringify({ type: "session", length: Buffer.byteLength(JSON.stringify({ sid: "é" })) }),
+      JSON.stringify({ sid: "é" }),
+    ].join("\n");
+
+    expect(parseEnvelope(envelope)).toEqual({
+      event: { message: "x" },
+      sessions: [{ sid: "a" }, { sid: "é" }],
+      sessionAggregates: [{ aggregates: [] }],
+    });
   });
 });
 
