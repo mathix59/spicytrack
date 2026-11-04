@@ -8,6 +8,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 import { BackupCodes } from "./backup-codes";
+import { TotpQrCode } from "./totp-qr-code";
 import type { TwoFactorSetup } from "./use-two-factor";
 
 function groupSecret(secret: string) {
@@ -71,10 +72,15 @@ function TwoFactorSetupPanel({
       </Alert>
       <ol className="grid gap-3">
         <SetupStep
-          description="In your authenticator app, choose to add an account manually (sometimes called “Enter a setup key”), then paste this key. Pick “time-based” if asked."
+          description="Scan this QR code with your authenticator app, such as Google Authenticator, 1Password or Authy."
           step={1}
           title="Add SpicyTrack to your authenticator app"
         >
+          <TotpQrCode value={setup.totpUri} />
+          <p className="text-xs leading-5 text-muted-foreground">
+            Can't scan? Enter this key manually: choose to add an account manually (sometimes called
+            “Enter a setup key”), then paste it. Pick “time-based” if asked.
+          </p>
           {setup.secret ? (
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background p-3">
               <span className="sr-only">Setup key:</span>
