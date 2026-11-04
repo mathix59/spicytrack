@@ -52,9 +52,16 @@ describe("PermissionService authorization policy", () => {
         permission,
         allowed: service.hasPermission(role, permission as Permission),
       }).toEqual({ role, permission, allowed });
-      const assert = () => service.assertPermission(role, permission as Permission);
-      if (allowed) expect(assert).not.toThrow();
-      else expect(assert).toThrow(ForbiddenException);
+      let error: unknown;
+      try {
+        service.assertPermission(role, permission as Permission);
+      } catch (thrown) {
+        error = thrown;
+      }
+      expect({ permission, denied: error instanceof ForbiddenException }).toEqual({
+        permission,
+        denied: !allowed,
+      });
     }
   });
 

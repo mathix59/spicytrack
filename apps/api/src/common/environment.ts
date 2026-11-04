@@ -53,7 +53,9 @@ const URL_SETTINGS: Record<string, string[]> = {
 
 function text(environment: Environment, name: string): string | undefined {
   const value = environment[name];
-  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+    return undefined;
+  }
   const trimmed = String(value).trim();
   return trimmed === "" ? undefined : trimmed;
 }

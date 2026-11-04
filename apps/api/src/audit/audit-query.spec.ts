@@ -53,7 +53,9 @@ describe("audit pagination", () => {
   });
 
   it("rejects forged cursors and bad limits", () => {
-    expect(() => decodeAuditCursor(Buffer.from("x|y").toString("base64url"))).toThrow();
+    expect(() => decodeAuditCursor(Buffer.from("x|y").toString("base64url"))).toThrow(
+      BadRequestException,
+    );
     expect(() => parseAuditLimit("500")).toThrow(BadRequestException);
     expect(parseAuditLimit(undefined)).toBe(50);
   });

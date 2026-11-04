@@ -59,12 +59,12 @@ describe("Slack app interactions (e2e)", () => {
       );
     }
     if (path === "/users.info") {
-      const slackUser = new URLSearchParams(String(init?.body)).get("user") ?? "";
+      const slackUser = new URLSearchParams(init?.body as string).get("user") ?? "";
       const profile = slackUser === "U_STRANGER" ? {} : { email: email(slackUser).toUpperCase() };
       return Promise.resolve(new Response(JSON.stringify({ ok: true, user: { profile } })));
     }
     if (path === "/respond") {
-      responses.push(JSON.parse(String(init?.body)));
+      responses.push(JSON.parse(init?.body as string));
       return Promise.resolve(new Response("ok"));
     }
     return Promise.resolve(new Response("not found", { status: 404 }));

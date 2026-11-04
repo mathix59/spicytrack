@@ -14,7 +14,7 @@ jest.mock("../database/database.provider", () => ({
   createDatabasePool: () => ({ query: jest.fn() }),
 }));
 
-const query = betterAuthPool.query as jest.Mock;
+const { query } = betterAuthPool as unknown as { query: jest.Mock };
 const handler = (betterAuth as jest.Mock).mock.results[0].value.handler as jest.Mock;
 function signup(token?: string) {
   return new Request("http://localhost/api/better-auth/sign-up/email", {

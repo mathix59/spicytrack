@@ -37,7 +37,9 @@ describe("parseCreateTokenBody", () => {
 
   it("rejects missing scopes, bad organizations and long expiries", () => {
     expect(() => parseCreateTokenBody({ name: "CI" })).toThrow("scopes must list");
-    expect(() => parseCreateTokenBody({ name: "CI", scopes: ["root"] })).toThrow();
+    expect(() => parseCreateTokenBody({ name: "CI", scopes: ["root"] })).toThrow(
+      "scopes must be one of",
+    );
     expect(() =>
       parseCreateTokenBody({ name: "CI", scopes: ["read"], organizationId: "acme" }),
     ).toThrow("organizationId must be an organization ID");

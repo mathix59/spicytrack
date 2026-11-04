@@ -144,11 +144,13 @@ describe("manual SMTP connection test", () => {
   it("closes a stalled verification after 20 seconds without retries", async () => {
     verify.mockReturnValue(new Promise(() => {}));
     const { db } = database();
-    const result = expect(
-      new InstanceAdminService(db as never).testSmtp("admin", { smtpHost: "smtp.test" }),
-    ).rejects.toThrow("SMTP connection failed.");
+    const result = new InstanceAdminService(db as never)
+      .testSmtp("admin", { smtpHost: "smtp.test" })
+      .catch((error: unknown) => error);
     await jest.advanceTimersByTimeAsync(20_000);
-    await result;
+    expect(await result).toMatchObject({
+      message: expect.stringContaining("SMTP connection failed.") as unknown,
+    });
     await jest.advanceTimersByTimeAsync(60_000);
     expect(close).toHaveBeenCalledTimes(1);
     expect(verify).toHaveBeenCalledTimes(1);

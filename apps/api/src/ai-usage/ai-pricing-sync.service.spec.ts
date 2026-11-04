@@ -39,15 +39,14 @@ describe("AI pricing catalog synchronization", () => {
         })),
       })),
     } as unknown as DatabaseClient;
-    const jobsService = {
-      enqueue: jest.fn().mockResolvedValue(undefined),
-    } as unknown as JobsService;
+    const enqueue = jest.fn().mockResolvedValue(undefined);
+    const jobsService = { enqueue } as unknown as JobsService;
     jest.spyOn(global, "fetch").mockRejectedValue(new Error("catalog unavailable"));
 
     const service = new AiPricingSyncService(db, jobsService);
 
     await expect(service.sync()).rejects.toThrow("catalog unavailable");
-    expect(jobsService.enqueue).toHaveBeenCalledWith(
+    expect(enqueue).toHaveBeenCalledWith(
       "ai_pricing_sync",
       {},
       expect.any(Date),

@@ -75,7 +75,7 @@ export function auditedArguments(args: Record<string, unknown>) {
         if (typeof value === "number" || typeof value === "boolean" || value === null) {
           return [key, value];
         }
-        const json = JSON.stringify(value) ?? String(value);
+        const json = JSON.stringify(value) ?? typeof value;
         return [
           key,
           json.length > MAX_AUDITED_STRING ? `${json.slice(0, MAX_AUDITED_STRING)}…` : json,
