@@ -19,6 +19,7 @@ import {
   projects,
   users,
 } from "../src/database/schema";
+import { IngestQuotasService } from "../src/ingest/ingest-quotas.service";
 import { IngestService } from "../src/ingest/ingest.service";
 import { IngestModule } from "../src/ingest/ingest.module";
 import { IssuesService } from "../src/issues/issues.service";
@@ -28,6 +29,7 @@ import { JobsWorkerModule } from "../src/jobs/jobs-worker.module";
 describe("Ingestion security and concurrency (e2e)", () => {
   let db: DatabaseClient;
   let ingest: IngestService;
+  let quotas: IngestQuotasService;
   let issuesService: IssuesService;
   let retention: RetentionCleanupHandler;
   let close: () => Promise<void>;
@@ -58,6 +60,7 @@ describe("Ingestion security and concurrency (e2e)", () => {
     close = () => module.close();
     db = module.get(DATABASE);
     ingest = module.get(IngestService);
+    quotas = module.get(IngestQuotasService);
     issuesService = module.get(IssuesService);
     retention = module.get(RetentionCleanupHandler);
 
@@ -220,6 +223,52 @@ describe("Ingestion security and concurrency (e2e)", () => {
     expect(responses.filter(({ status }) => status === "fulfilled")).toHaveLength(2);
     const rejection = responses.find(({ status }) => status === "rejected");
     expect(rejection).toMatchObject({ status: "rejected", reason: { status: 429 } });
+  });
+
+  it("enforces the hourly project quota from counts kept in memory", async () => {
+    const counter = async () => {
+      await quotas.flush();
+      const [row] = await db
+        .select({ count: ingestRateCounters.count })
+        .from(ingestRateCounters)
+        .where(
+          and(
+            eq(ingestRateCounters.scope, "project_hour"),
+            eq(ingestRateCounters.scopeId, primaryProjectId),
+            eq(
+              ingestRateCounters.windowStartedAt,
+              new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000),
+            ),
+          ),
+        );
+      return row?.count ?? 0;
+    };
+    const previous = process.env.INGEST_PROJECT_EVENTS_PER_HOUR;
+    const start = await counter();
+    process.env.INGEST_PROJECT_EVENTS_PER_HOUR = String(start + 2);
+    try {
+      const responses = [];
+      for (let index = 0; index < 4; index += 1) {
+        responses.push(
+          await ingest
+            .ingestStore(
+              String(primaryPublicId),
+              event(randomUUID().replaceAll("-", "")),
+              primaryKey,
+            )
+            .then(
+              () => 200,
+              (error: { status?: number }) => error.status,
+            ),
+        );
+      }
+      expect(responses).toEqual([200, 200, 429, 429]);
+      // Refused events are not counted, and the accepted ones reach the table on flush.
+      expect(await counter()).toBe(start + 2);
+    } finally {
+      if (previous === undefined) delete process.env.INGEST_PROJECT_EVENTS_PER_HOUR;
+      else process.env.INGEST_PROJECT_EVENTS_PER_HOUR = previous;
+    }
   });
 
   it("queues post-ingest jobs per new issue, and per issue and window for threshold rules", async () => {

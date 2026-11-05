@@ -146,6 +146,9 @@ export async function bootstrapHttpApplication(
   options: HttpBootstrapOptions,
 ): Promise<void> {
   const app = await createHttpApplication(rootModule, options);
+  // On SIGTERM (a rolling deploy, docker stop), finish in-flight requests and write the ingest
+  // quota counters still in memory before the database pools close.
+  app.enableShutdownHooks(["SIGTERM", "SIGINT"]);
 
   await app.register(cookie);
 

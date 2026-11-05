@@ -3,7 +3,8 @@ import { ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } fro
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { EndpointAccess } from "../auth/endpoint-access.decorator";
 import { IngestAcceptedDto, SentryEventBodyDto } from "../openapi/contracts";
-import { IngestQuotaExceededException, IngestService } from "./ingest.service";
+import { IngestQuotaExceededException } from "./ingest-quotas.service";
+import { IngestService } from "./ingest.service";
 
 /** Adds the rate-limit headers SDKs use to back off when a quota rejects the event. */
 async function withRateLimitHeaders<T>(reply: FastifyReply, ingest: () => Promise<T>) {

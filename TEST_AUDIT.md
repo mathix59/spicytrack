@@ -87,7 +87,7 @@ Paths below are relative to `apps/api/test/`.
 | `auth-flow.e2e-spec.ts` | Extend: real authentication, Mailpit, password reset/session revocation, PAT lifecycle and invitation signup. |
 | `endpoint-authentication.e2e-spec.ts` | Refine: anonymous requests on actual registered endpoints. |
 | `github-app-settings.e2e-spec.ts` | Keep: persistence, secret masking, manifest state, installation/repository synchronization and tenant-bound webhook signatures. Management guards/provider HTTP are mocked; it is not an authorization matrix or live GitHub certification. |
-| `ingest-security.e2e-spec.ts` | Keep: project/key binding, concurrent deduplication, atomic quotas, merge locking, payload limits and rate-counter retention. |
+| `ingest-security.e2e-spec.ts` | Keep: project/key binding, concurrent deduplication, the exact key quota and in-memory hourly quotas, merge locking, payload limits and rate-counter retention. |
 | `mcp.e2e-spec.ts` | Keep and fix cleanup: real protocol negotiation, credential/scope/project constraints, write confirmation, rotation, expiration and distributed quota. Administrative guards are mocked, MCP credential enforcement is real. |
 | `oidc-flow.e2e-spec.ts` | Keep: local HTTP provider discovery/callback, auto-join and existing-account linking. Complements real Keycloak coverage with controlled provider responses. |
 | `organization-deletion.e2e-spec.ts` | Keep: owner authorization and selective persisted deletion in an isolated migrated schema. |

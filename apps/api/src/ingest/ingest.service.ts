@@ -1,7 +1,5 @@
 import {
   BadRequestException,
-  HttpException,
-  HttpStatus,
   Inject,
   Injectable,
   Logger,
@@ -14,21 +12,14 @@ import { GROUPING_VERSION } from "../common/grouping";
 import { isUniqueViolation } from "../common/postgres-errors";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
-import {
-  alertRules,
-  events,
-  ingestRateCounters,
-  issues,
-  projectKeys,
-  projects,
-  releases,
-} from "../database/schema";
+import { alertRules, events, issues, projectKeys, projects, releases } from "../database/schema";
 
 import { ReleaseHealthIngestService } from "../release-health/release-health-ingest.service";
 import {
   normalizeSessionAggregates,
   normalizeSessionUpdate,
 } from "../release-health/session-updates";
+import { IngestQuotasService } from "./ingest-quotas.service";
 import { IngestResolversService } from "./ingest-resolvers.service";
 import { IssueCountsService } from "./issue-counts.service";
 import {
@@ -49,36 +40,6 @@ import { PostIngestPublisherService } from "./post-ingest-publisher.service";
 
 type TransactionClient = Parameters<Parameters<DatabaseClient["transaction"]>[0]>[0];
 
-const SENTRY_QUOTA_SCOPES: Record<string, string> = {
-  project_key_minute: "key",
-  project_hour: "project",
-  organization_hour: "organization",
-};
-
-export class IngestQuotaExceededException extends HttpException {
-  constructor(
-    scope: string,
-    /** Seconds until the quota window resets. */
-    readonly retryAfterSeconds: number,
-  ) {
-    super(`Ingestion quota exceeded: ${scope}`, HttpStatus.TOO_MANY_REQUESTS);
-    this.sentryScope = SENTRY_QUOTA_SCOPES[scope] ?? "project";
-  }
-
-  readonly sentryScope: string;
-
-  /**
-   * Headers Sentry SDKs read to pause sending until the window resets: Retry-After, and
-   * X-Sentry-Rate-Limits as `<seconds>:<categories, empty = all>:<scope>:<reason>`.
-   */
-  get headers(): Record<string, string> {
-    return {
-      "Retry-After": String(this.retryAfterSeconds),
-      "X-Sentry-Rate-Limits": `${this.retryAfterSeconds}::${this.sentryScope}:quota_exceeded`,
-    };
-  }
-}
-
 @Injectable()
 export class IngestService {
   private readonly logger = new Logger(IngestService.name);
@@ -89,6 +50,7 @@ export class IngestService {
     private readonly postIngestPublisher: PostIngestPublisherService,
     private readonly releaseHealth: ReleaseHealthIngestService,
     private readonly issueCounts: IssueCountsService,
+    private readonly ingestQuotas: IngestQuotasService,
   ) {}
 
   async ingestStore(projectId: string, payload: Record<string, unknown>, sentryKey?: string) {
@@ -137,7 +99,7 @@ export class IngestService {
     const unusable = parsed.sessions.length - updates.length;
     if (unusable > 0) recordIngestOutcome("dropped", "invalid_session");
     if (units === 0) return 0;
-    if (!(await this.consumeSessionQuota(project, units))) {
+    if (!(await this.ingestQuotas.consumeSessions(project, units))) {
       recordIngestOutcome("dropped", "session_quota_exceeded");
       return 0;
     }
@@ -182,31 +144,6 @@ export class IngestService {
     return recorded;
   }
 
-  /** A per-project hourly budget for session items, separate from the event quotas. */
-  private async consumeSessionQuota(project: IngestProjectAccess, units: number) {
-    const limit = ingestLimits().projectSessionsPerHour;
-    if (limit === 0) return true;
-    const windowStartedAt = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000);
-    const [counter] = await this.db
-      .insert(ingestRateCounters)
-      .values({
-        scope: "project_sessions_hour",
-        scopeId: project.id,
-        windowStartedAt,
-        count: units,
-      })
-      .onConflictDoUpdate({
-        target: [
-          ingestRateCounters.scope,
-          ingestRateCounters.scopeId,
-          ingestRateCounters.windowStartedAt,
-        ],
-        set: { count: sql`${ingestRateCounters.count} + ${units}`, updatedAt: new Date() },
-      })
-      .returning({ count: ingestRateCounters.count });
-    return counter.count <= limit;
-  }
-
   /**
    * Sends an event through the whole pipeline with the project's first active key, as an SDK
    * would. It does not count as the project's first event, so onboarding keeps waiting for
@@ -238,75 +175,6 @@ export class IngestService {
   private trackResult<T extends { dropped?: boolean; reason?: string }>(result: T): T {
     recordIngestOutcome(result.dropped ? "dropped" : "accepted", result.reason ?? "stored");
     return result;
-  }
-
-  private async consumeQuotas(project: IngestProjectAccess): Promise<void> {
-    const limits = ingestLimits();
-    const quotas = [
-      {
-        scope: "project_key_minute",
-        scopeId: project.projectKeyId,
-        limit: project.keyRateLimitPerMinute ?? 0,
-        windowMs: 60_000,
-      },
-      {
-        scope: "project_hour",
-        scopeId: project.id,
-        limit: limits.projectEventsPerHour,
-        windowMs: 3_600_000,
-      },
-      {
-        scope: "organization_hour",
-        scopeId: project.organizationId,
-        limit: limits.organizationEventsPerHour,
-        windowMs: 3_600_000,
-      },
-    ].filter((quota) => quota.limit > 0);
-    if (quotas.length === 0) return;
-
-    try {
-      await this.db.transaction(async (tx) => {
-        // Every event of a project updates the same counter rows: not waiting for the WAL flush
-        // shortens how long they stay locked. A crash can only forget a few counted events.
-        await tx.execute(sql`set local synchronous_commit = off`);
-        for (const quota of quotas) {
-          const now = Date.now();
-          const windowStartedAt = new Date(Math.floor(now / quota.windowMs) * quota.windowMs);
-          const [counter] = await tx
-            .insert(ingestRateCounters)
-            .values({
-              scope: quota.scope,
-              scopeId: quota.scopeId,
-              windowStartedAt,
-              count: 1,
-            })
-            .onConflictDoUpdate({
-              target: [
-                ingestRateCounters.scope,
-                ingestRateCounters.scopeId,
-                ingestRateCounters.windowStartedAt,
-              ],
-              set: {
-                count: sql`${ingestRateCounters.count} + 1`,
-                updatedAt: new Date(),
-              },
-            })
-            .returning({ count: ingestRateCounters.count });
-          if (counter.count > quota.limit) {
-            const resetsAt = windowStartedAt.getTime() + quota.windowMs;
-            throw new IngestQuotaExceededException(
-              quota.scope,
-              Math.max(1, Math.ceil((resetsAt - now) / 1000)),
-            );
-          }
-        }
-      });
-    } catch (error) {
-      if (error instanceof IngestQuotaExceededException) {
-        recordIngestOutcome("rejected", "quota_exceeded");
-      }
-      throw error;
-    }
   }
 
   private async assertProjectAccess(
@@ -380,7 +248,7 @@ export class IngestService {
 
     // Counted only now: events dropped by inbound rules and SDK retries of a stored event do not
     // use up the quota.
-    await this.consumeQuotas(project);
+    await this.ingestQuotas.consumeEvent(project);
     const context = await this.buildIngestContext(project, parsedPayload);
 
     const result = await this.db.transaction(async (tx) => {

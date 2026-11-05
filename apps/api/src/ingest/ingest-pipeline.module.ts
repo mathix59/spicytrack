@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { JobsModule } from "../jobs/jobs.module";
 import { ReleaseHealthIngestService } from "../release-health/release-health-ingest.service";
+import { IngestQuotasService } from "./ingest-quotas.service";
 import { IngestResolversService } from "./ingest-resolvers.service";
 import { IngestService } from "./ingest.service";
 import { IssueCountsService } from "./issue-counts.service";
@@ -11,6 +12,7 @@ import { PostIngestPublisherService } from "./post-ingest-publisher.service";
   imports: [JobsModule],
   providers: [
     IngestService,
+    IngestQuotasService,
     IngestResolversService,
     IssueCountsService,
     PostIngestPublisherService,

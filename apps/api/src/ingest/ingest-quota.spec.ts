@@ -1,4 +1,4 @@
-import { IngestQuotaExceededException } from "./ingest.service";
+import { IngestQuotaExceededException } from "./ingest-quotas.service";
 
 describe("IngestQuotaExceededException", () => {
   it("tells SDKs when and for which scope to back off", () => {
