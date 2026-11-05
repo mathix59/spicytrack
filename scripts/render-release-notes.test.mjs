@@ -54,3 +54,24 @@ test("releaseVersionFromArgs accepts pnpm's argument separator", () => {
   assert.equal(releaseVersionFromArgs(["--", "1.2.0"]), "1.2.0");
   assert.equal(releaseVersionFromArgs(["1.2.0"]), "1.2.0");
 });
+
+test("extractVersionSection keeps a prerelease apart from its stable version", () => {
+  const changelog = `## 1.2.0-beta.1
+
+### Patch Changes
+
+- Fix a beta regression.
+
+## 1.2.0-beta.0
+
+### Minor Changes
+
+- Add the beta feature.
+`;
+
+  assert.equal(
+    extractVersionSection(changelog, "1.2.0-beta.0"),
+    "### Minor Changes\n\n- Add the beta feature.",
+  );
+  assert.equal(extractVersionSection(changelog, "1.2.0"), null);
+});

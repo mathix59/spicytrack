@@ -27,6 +27,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Prereleases are cut from the beta branch (beta-release.yml). Merging beta into main
+      # without leaving pre mode would version main as a beta; after `changeset pre exit` the
+      # file stays with mode "exit" until this workflow versions the stable release.
+      - name: Refuse prerelease mode on main
+        run: |
+          if [ -f .changeset/pre.json ] && [ "$(jq -r .mode .changeset/pre.json)" = pre ]; then
+            echo "::error::main is in prerelease mode. Run 'pnpm changeset:pre:exit' on beta before merging it into main."
+            exit 1
+          fi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
 

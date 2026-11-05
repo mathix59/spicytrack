@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - beta
   pull_request:
   workflow_dispatch:
 
@@ -12,8 +13,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Decides which expensive suites a pull request needs. Pushes to main and manual runs
-  # always execute everything.
+  # Decides which expensive suites a pull request needs. Pushes to main or beta and manual
+  # runs always execute everything.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -254,7 +255,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Pull requests only run Chromium; Firefox and WebKit smoke tests run on main.
+      # Pull requests only run Chromium; Firefox and WebKit smoke tests run on main and beta.
       - name: Install Playwright browsers
         env:
           BROWSERS: ${{ github.event_name == 'pull_request' && 'chromium' || 'chromium firefox webkit' }}

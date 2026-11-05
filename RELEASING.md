@@ -69,43 +69,80 @@ docker buildx imagetools inspect ghcr.io/mathix59/spicytrack-api-worker-admin:<v
 docker buildx imagetools inspect ghcr.io/mathix59/spicytrack-web:<version>
 ```
 
-## Pre-releases
+## Beta releases
 
-Changesets pre-release mode is repository-wide. Enter or exit it in a dedicated PR.
+Betas are cut from a long-lived `beta` branch, so `main` keeps producing stable releases:
 
-### Enter alpha
-
-```bash
-pnpm changeset:pre:enter:alpha
+```text
+develop ──> beta (1.2.0-beta.0, 1.2.0-beta.1, ...) ──> main (1.2.0)
 ```
 
-### Enter beta
+### Open a beta cycle
+
+From an up-to-date `develop`, with the changesets of the coming release committed:
 
 ```bash
+git switch -c beta origin/develop
 pnpm changeset:pre:enter:beta
+git add .changeset/pre.json
+git commit -m "chore(release): enter beta prerelease mode"
+git push -u origin beta
 ```
 
-### Enter rc
+`.changeset/pre.json` only ever lives on `beta`: the stable release workflow refuses to run on
+`main` while it is present.
+
+### Cut a beta
+
+1. Merge or push the changes into `beta`, each with its changeset. CI runs on every push to `beta`,
+   with the full browser and SDK matrices.
+2. Once CI is green on the branch head, run the **Beta Release** workflow on `beta` (Actions → Beta
+   Release → Run workflow, or `gh workflow run beta-release.yml --ref beta`). It refuses to run
+   without a green CI run for that commit or without a new changeset, then:
+   - versions `api` and `web` to the next `1.2.0-beta.N` and commits the changelog to `beta`;
+   - tags `v1.2.0-beta.N` and publishes it as a GitHub pre-release;
+   - publishes the images as `1.2.0-beta.N`, `v1.2.0-beta.N` and `beta`.
+
+The root package, Helm chart and OpenAPI versions are only aligned for stable releases.
+
+### Test a beta
+
+A beta image never replaces `latest`, `1` or `1.2`, so installations that follow those tags keep
+the stable release. On a test instance, pin the beta in the compose `.env`:
 
 ```bash
-pnpm changeset:pre:enter:rc
+VERSION=1.2.0-beta.0   # or VERSION=beta to follow the newest beta
 ```
 
-This creates `.changeset/pre.json`. Commit it and merge it to `main`.
-
-From that point, release PRs will produce versions like:
-
-- `1.2.0-alpha.0`
-- `1.2.0-beta.0`
-- `1.2.0-rc.0`
-
-When ready to go back to stable releases:
+With Helm, deploy the beta by digest like any release:
 
 ```bash
+docker buildx imagetools inspect ghcr.io/mathix59/spicytrack-api-web:1.2.0-beta.0
+```
+
+Upgrade from a copy of production data, back up first, and time the migrations: they are what
+the release notes' maintenance window is based on. Then run the smoke test against the instance:
+
+```bash
+SPICYTRACK_API_URL=https://<instance>/api SPICYTRACK_DSN=<project DSN> \
+  node scripts/preproduction-smoke.mjs
+```
+
+### Release the stable version
+
+```bash
+git switch beta
 pnpm changeset:pre:exit
+git commit -am "chore(release): exit beta prerelease mode"
+git push
 ```
 
-Commit the updated `.changeset/pre.json` state and merge it.
+Then open a pull request from `beta` to `main`. After it merges, the normal flow above creates the
+release PR for `1.2.0` with the changelog of the whole beta cycle. Bring `main` back into `develop`
+afterwards.
+
+Alpha or rc cycles work the same way with `pnpm changeset:pre:enter:alpha` or
+`pnpm changeset:pre:enter:rc`; their images are published under the `alpha` or `rc` channel tag.
 
 ## Useful commands
 
@@ -127,4 +164,5 @@ pnpm release:tag:push
 - Changesets versions `api` and `web`; the root package, Helm chart, and OpenAPI metadata must be
   kept aligned as part of the release commit.
 - The release PR is the place where you review the exact version bump and changelog output before tagging.
-- Docker `latest` is only published for stable tags like `v1.2.3`, not for `-alpha`, `-beta`, or `-rc`.
+- Docker `latest`, major and minor tags are only published for stable versions like `v1.2.3`;
+  prereleases get their exact version and their channel (`alpha`, `beta` or `rc`).

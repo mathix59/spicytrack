@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version to publish (e.g. 1.0.8 or v1.0.8). Defaults to latest workspace version."
+        description: "Release version to publish (e.g. 1.0.8, v1.0.8 or 1.2.0-beta.1). Defaults to the workspace version of the selected branch."
         required: false
         default: ""
         type: string
@@ -52,6 +52,19 @@ jobs:
           echo "version_no_v=${VERSION_NO_V}" >> "$GITHUB_OUTPUT"
           echo "major=${MAJOR}" >> "$GITHUB_OUTPUT"
           echo "minor=${MINOR}" >> "$GITHUB_OUTPUT"
+          # A prerelease (1.2.0-beta.1) is published under its own version and its channel
+          # (beta), never under latest, 1 or 1.2 that installations follow.
+          case "$VERSION_NO_V" in
+            *-*)
+              CHANNEL="${VERSION_NO_V#*-}"
+              echo "prerelease=true" >> "$GITHUB_OUTPUT"
+              echo "channel=${CHANNEL%%.*}" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "prerelease=false" >> "$GITHUB_OUTPUT"
+              echo "channel=" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -79,10 +92,11 @@ jobs:
           tags: |
             type=raw,value=${{ steps.release.outputs.version }}
             type=raw,value=${{ steps.release.outputs.version_no_v }}
-            type=raw,value=${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}
-            type=raw,value=${{ steps.release.outputs.major }}
+            type=raw,value=${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }},enable=${{ steps.release.outputs.prerelease == 'false' }}
+            type=raw,value=${{ steps.release.outputs.major }},enable=${{ steps.release.outputs.prerelease == 'false' }}
+            type=raw,value=${{ steps.release.outputs.channel }},enable=${{ steps.release.outputs.prerelease == 'true' }}
             type=sha
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ steps.release.outputs.prerelease == 'false' }}
 
       - name: Build and push
         id: build
@@ -143,6 +157,19 @@ jobs:
           echo "version_no_v=${VERSION_NO_V}" >> "$GITHUB_OUTPUT"
           echo "major=${MAJOR}" >> "$GITHUB_OUTPUT"
           echo "minor=${MINOR}" >> "$GITHUB_OUTPUT"
+          # A prerelease (1.2.0-beta.1) is published under its own version and its channel
+          # (beta), never under latest, 1 or 1.2 that installations follow.
+          case "$VERSION_NO_V" in
+            *-*)
+              CHANNEL="${VERSION_NO_V#*-}"
+              echo "prerelease=true" >> "$GITHUB_OUTPUT"
+              echo "channel=${CHANNEL%%.*}" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "prerelease=false" >> "$GITHUB_OUTPUT"
+              echo "channel=" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -170,10 +197,11 @@ jobs:
           tags: |
             type=raw,value=${{ steps.release.outputs.version }}
             type=raw,value=${{ steps.release.outputs.version_no_v }}
-            type=raw,value=${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}
-            type=raw,value=${{ steps.release.outputs.major }}
+            type=raw,value=${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }},enable=${{ steps.release.outputs.prerelease == 'false' }}
+            type=raw,value=${{ steps.release.outputs.major }},enable=${{ steps.release.outputs.prerelease == 'false' }}
+            type=raw,value=${{ steps.release.outputs.channel }},enable=${{ steps.release.outputs.prerelease == 'true' }}
             type=sha
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ steps.release.outputs.prerelease == 'false' }}
 
       - name: Build and push
         id: build
