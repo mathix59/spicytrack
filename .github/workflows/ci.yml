@@ -5,16 +5,19 @@ on:
     branches:
       - main
       - beta
+      - develop
   pull_request:
   workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # A newer push to develop supersedes the previous run, like a pull request update.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/develop') }}
 
 jobs:
-  # Decides which expensive suites a pull request needs. Pushes to main or beta and manual
-  # runs always execute everything.
+  # Decides which expensive suites a pull request or a push to develop needs, from what changed
+  # since its base or the previous push. Pushes to main or beta and manual runs always execute
+  # everything.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -31,15 +34,25 @@ jobs:
         id: filter
         env:
           EVENT: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REF: ${{ github.ref }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
         run: |
-          if [ "${EVENT}" != pull_request ]; then
+          everything() {
             echo "k3s=true" >> "$GITHUB_OUTPUT"
             echo "sdk=true" >> "$GITHUB_OUTPUT"
             exit 0
+          }
+          if [ "${EVENT}" = pull_request ]; then
+            changed="$(git diff --name-only "${PR_BASE_SHA}...${PR_HEAD_SHA}")"
+          elif [ "${EVENT}" = push ] && [ "${REF}" = refs/heads/develop ]; then
+            # A new branch or a force push leaves no usable previous commit: run everything.
+            git cat-file -e "${PUSH_BEFORE_SHA}^{commit}" 2>/dev/null || everything
+            changed="$(git diff --name-only "${PUSH_BEFORE_SHA}" "${GITHUB_SHA}")"
+          else
+            everything
           fi
-          changed="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")"
           matches() { printf '%s\n' "${changed}" | grep -Eq "$1" && echo true || echo false; }
           echo "k3s=$(matches '^(charts/|e2e/k3s/|scripts/k3s-e2e\.sh|apps/(api|web)/Dockerfile|pnpm-lock\.yaml)')" >> "$GITHUB_OUTPUT"
           echo "sdk=$(matches '^(apps/api/src/(ingest|artifacts)/|e2e/sdk-matrix/|scripts/run-e2e-stack\.mjs|docker-compose\.e2e\.yml|pnpm-lock\.yaml)')" >> "$GITHUB_OUTPUT"
@@ -178,8 +191,8 @@ jobs:
       fail-fast: false
       matrix:
         target: [api-web, api-ingest, api-worker-admin, web]
-        # arm64 is emulated with QEMU and slow: only build it outside pull requests.
-        platform: ${{ fromJSON(github.event_name == 'pull_request' && '["linux/amd64"]' || '["linux/amd64","linux/arm64"]') }}
+        # arm64 is emulated with QEMU and slow: only build it on main, beta and manual runs.
+        platform: ${{ fromJSON((github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')) && '["linux/amd64"]' || '["linux/amd64","linux/arm64"]') }}
 
     steps:
       - name: Checkout
@@ -255,17 +268,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Pull requests only run Chromium; Firefox and WebKit smoke tests run on main and beta.
+      # Pull requests and develop only run Chromium; Firefox and WebKit smoke tests run on main
+      # and beta.
       - name: Install Playwright browsers
         env:
-          BROWSERS: ${{ github.event_name == 'pull_request' && 'chromium' || 'chromium firefox webkit' }}
+          BROWSERS: ${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')) && 'chromium' || 'chromium firefox webkit' }}
         run: pnpm exec playwright install --with-deps ${BROWSERS}
 
-      # The nine-SDK matrix is skipped on pull requests unless ingestion, artifacts or the
-      # matrix itself changed.
+      # The nine-SDK matrix is skipped on pull requests and develop unless ingestion, artifacts
+      # or the matrix itself changed.
       - name: Run isolated end-to-end suite
         env:
-          E2E_BROWSERS: ${{ github.event_name == 'pull_request' && 'chromium' || '' }}
+          E2E_BROWSERS: ${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')) && 'chromium' || '' }}
           E2E_SKIP_SDK_MATRIX: ${{ needs.changes.outputs.sdk == 'true' && 'false' || 'true' }}
         run: pnpm test:e2e
 
