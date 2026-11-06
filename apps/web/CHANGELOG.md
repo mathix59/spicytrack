@@ -1,3 +1,7 @@
+## 1.2.0-beta.1
+
+No changes in this release.
+
 ## 1.2.0-beta.0
 
 ### Minor Changes
