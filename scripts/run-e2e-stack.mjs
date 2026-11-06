@@ -348,6 +348,26 @@ function serviceIsRunning(service) {
   return Boolean(captureDockerCompose("ps", "--status", "running", "--quiet", service));
 }
 
+/** True when every service runs; otherwise reports how each stopped one ended. */
+function apiServicesRunning(outage) {
+  const stopped = ["api-web", "api-worker-admin"].filter((service) => !serviceIsRunning(service));
+  for (const service of stopped) {
+    const id = captureDockerCompose("ps", "--all", "--quiet", service);
+    const state = id
+      ? spawnSync(
+          "docker",
+          ["inspect", "--format", "exit={{.State.ExitCode}} oom={{.State.OOMKilled}} {{.State.Status}}", id],
+          { encoding: "utf8" },
+        ).stdout.trim()
+      : "no container";
+    console.error(`[resilience] ${service} exited during the ${outage} outage: ${state}`);
+    // Prefixed with the runner's tag so CI annotations keep these lines.
+    const logs = captureDockerCompose("logs", "--no-color", "--no-log-prefix", "--tail", "25", service);
+    for (const line of (logs ?? "").split("\n")) console.error(`[resilience] ${service}: ${line.slice(0, 400)}`);
+  }
+  return stopped.length === 0;
+}
+
 async function runDependencyRecovery() {
   console.log("[resilience] validating PostgreSQL failure and recovery");
   if (!dockerCompose("stop", "postgres")) return false;
@@ -362,10 +382,7 @@ async function runDependencyRecovery() {
 
   // Cover both the 5-second slow-job lane and the 30-second regular-job lane.
   await delay(31_000);
-  if (!serviceIsRunning("api-web") || !serviceIsRunning("api-worker-admin")) {
-    console.error("[resilience] an API process exited during the database outage");
-    return false;
-  }
+  if (!apiServicesRunning("database")) return false;
 
   if (!dockerCompose("start", "postgres")) return false;
   if (
@@ -387,10 +404,7 @@ async function runDependencyRecovery() {
   ) {
     return false;
   }
-  if (!serviceIsRunning("api-web") || !serviceIsRunning("api-worker-admin")) {
-    console.error("[resilience] an API process exited during the storage outage");
-    return false;
-  }
+  if (!apiServicesRunning("storage")) return false;
 
   if (!dockerCompose("start", "rustfs")) return false;
   return waitForReadiness(
