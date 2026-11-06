@@ -1,14 +1,14 @@
 {
   "name": "spicytrack",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.2.0",
   "license": "FSL-1.1-Apache-2.0",
   "packageManager": "pnpm@11.21.0",
   "scripts": {
     "build": "pnpm -r build",
     "changeset": "changeset",
     "changeset:status": "changeset status --verbose",
-    "changeset:version": "changeset version",
+    "changeset:version": "changeset version && node scripts/sync-release-version.mjs",
     "changeset:pre:enter:alpha": "changeset pre enter alpha",
     "changeset:pre:enter:beta": "changeset pre enter beta",
     "changeset:pre:enter:rc": "changeset pre enter rc",

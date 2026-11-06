@@ -168,8 +168,9 @@ pnpm release:tag:push
 ## Notes
 
 - Changelogs are generated automatically by Changesets in each versioned package.
-- Changesets versions `api` and `web`; the root package, Helm chart, and OpenAPI metadata must be
-  kept aligned as part of the release commit.
+- Changesets versions `api` and `web`; `pnpm changeset:version` then copies that version to the
+  root package, the Helm chart, the OpenAPI metadata and `.env.paas.example`
+  (`scripts/sync-release-version.mjs`). CI fails when they drift apart.
 - The release PR is the place where you review the exact version bump and changelog output before tagging.
 - Docker `latest`, major and minor tags are only published for stable versions like `v1.2.3`;
   prereleases get their exact version and their channel (`alpha`, `beta` or `rc`).

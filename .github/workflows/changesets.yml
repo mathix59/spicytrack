@@ -76,6 +76,7 @@ jobs:
             echo "Release tag ${VERSION} already exists; skipping."
           else
             pnpm release:tag:push
+            echo "created=true" >> "$GITHUB_OUTPUT"
           fi
 
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -99,8 +100,10 @@ jobs:
             fi
           done
 
+      # Only a newly tagged release is published: later pushes to main must not rebuild and
+      # overwrite the images of a version that is already out.
       - name: Publish release images
-        if: ${{ steps.changesets.outputs.hasChangesets == 'false' }}
+        if: ${{ steps.changesets.outputs.hasChangesets == 'false' && steps.release.outputs.created == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.release.outputs.version }}

@@ -105,6 +105,7 @@ jobs:
         run: |
           node --check scripts/preproduction-smoke.mjs
           node --check scripts/load-ingest.mjs
+          node scripts/sync-release-version.mjs --check
           pnpm test:release-notes
           node scripts/render-release-notes.mjs "$(node -p "require('./apps/api/package.json').version")" >/tmp/release-notes.md
 

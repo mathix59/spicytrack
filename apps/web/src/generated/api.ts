@@ -3,7 +3,7 @@
  * Do not edit manually.
  * SpicyTrack API
  * SpicyTrack product and ingest API
- * OpenAPI spec version: 1.0.2
+ * OpenAPI spec version: 1.2.0
  */
 import {
   useMutation,

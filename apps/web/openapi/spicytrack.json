@@ -7194,7 +7194,7 @@
   "info": {
     "title": "SpicyTrack API",
     "description": "SpicyTrack product and ingest API",
-    "version": "1.0.2",
+    "version": "1.2.0",
     "contact": {}
   },
   "tags": [],
