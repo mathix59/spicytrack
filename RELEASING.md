@@ -130,6 +130,11 @@ SPICYTRACK_API_URL=https://<instance>/api SPICYTRACK_DSN=<project DSN> \
   node scripts/preproduction-smoke.mjs
 ```
 
+The public proxy does not serve `/api/metrics`. To check metrics too, set
+`SPICYTRACK_METRICS_URL` to an address that reaches the API directly, such as
+`http://<api-web host>:3000/api/metrics` from inside the cluster or Compose network, and
+`SPICYTRACK_METRICS_TOKEN` to the instance's `METRICS_TOKEN` when it has one.
+
 ### Release the stable version
 
 ```bash
