@@ -1,3 +1,28 @@
+## 1.2.0-beta.0
+
+### Minor Changes
+
+- e16e960: Redesign the web app with light and dark themes, a command palette, a reworked issue inbox and issue detail (stack traces with original source context, library frames, an event pager), event trends and charts, project tabs, organization settings, and an SDK onboarding wizard that waits for the first event and can send test events.
+  
+  Triage issues faster: structured issue search, tag breakdowns and affected users, resolve in the next release, a merge picker, keyboard navigation and bulk selection. Grouping v2 keeps issues stable across deploys and variable messages; existing issues are adopted on their next event.
+  
+  Connect the tools around the errors: alerts delivered through retried jobs with rich Slack and Discord messages, PagerDuty and signed webhooks; an interactive Slack app to resolve, ignore and assign; GitHub, Linear and Jira tickets created from issues; release commits and suspect commits; sessions and release health; an MCP server; and Autofix, which runs a root-cause analysis and can open a CI-gated pull request within an AI budget.
+  
+  Administer the instance safely: an organization audit log (and per-project and instance logs) with filters and export, scoped personal access tokens with an organization restriction and an expiry, organization renaming, a QR code in the two-factor setup, roles with descriptions and member counts, and an SMTP test email from the instance settings.
+  
+  Scale ingestion on Postgres alone: events partitioned by week so retention drops whole weeks, batched issue counters, coalesced alert jobs, hourly quotas counted in memory, quota responses that tell SDKs when to retry, structured JSON logs, and worker health probes and metrics.
+- e16e960: Upgrade notes:
+  
+  - Back up the database first. The migrations attach the events table to a weekly partitioned table in one transaction (about 8 seconds per million events, measured locally), and ingestion waits during that time; plan a maintenance window on large instances. With Helm, the migration hook timeout must cover it (see the chart README).
+  - In production, every service now refuses to start without a valid configuration: `SECRETS_ENCRYPTION_KEY` (32 bytes) and `BETTER_AUTH_SECRET` are required, and invalid URLs, numbers or `AI_PRICING_JSON` are reported at startup.
+  - Behind Coolify or Dokploy, the PaaS compose file trusts two proxy hops (`TRUST_PROXY=2`) so audit logs record the client address; the Helm chart sets it from the ingress setting.
+  - Existing personal access tokens keep their full access; new tokens choose a scope and expire after 90 days by default.
+  - Hourly ingestion quotas are approximate when several ingest replicas run: a window can overshoot by about one second of traffic per replica. Per-key limits stay exact.
+
+### Patch Changes
+
+- e334fd9: Upgrade dependencies to their latest releases, including NestJS 12 and better-auth 1.7. SSO sign-in now uses the standard social sign-in flow; the historical `/oauth2/callback/:id` redirect URI keeps working, and OIDC providers must expose a JWKS so ID tokens can be verified.
+
 ## 1.1.8
 
 ### Patch Changes
