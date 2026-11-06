@@ -1,6 +1,9 @@
 const apiUrl = requiredUrl("SPICYTRACK_API_URL");
 const timeoutMs = positiveInteger("SPICYTRACK_SMOKE_TIMEOUT_MS", 10_000);
 const dsn = process.env.SPICYTRACK_DSN?.trim();
+// The public web proxy hides /api/metrics, so metrics are only checked against a direct API URL.
+const metricsUrl = process.env.SPICYTRACK_METRICS_URL?.trim();
+const metricsToken = process.env.SPICYTRACK_METRICS_TOKEN?.trim();
 const checks = [];
 
 await checkJson("liveness", new URL("health/live", withTrailingSlash(apiUrl)), (payload) => {
@@ -24,9 +27,12 @@ await checkJson(
     }
   },
 );
-await checkText("prometheus metrics", new URL("metrics", withTrailingSlash(apiUrl)), (body) => {
-  if (!body.includes("spicytrack_process_uptime_seconds")) throw new Error("metric missing");
-});
+if (metricsUrl) {
+  const headers = metricsToken ? { authorization: `Bearer ${metricsToken}` } : {};
+  await checkText("prometheus metrics", new URL(metricsUrl), headers, (body) => {
+    if (!body.includes("spicytrack_process_uptime_seconds")) throw new Error("metric missing");
+  });
+}
 
 if (dsn) await checkIngestion(dsn);
 
@@ -41,9 +47,9 @@ async function checkJson(name, url, validate) {
   checks.push({ name, status: "ok", durationMs: roundedDuration(startedAt) });
 }
 
-async function checkText(name, url, validate) {
+async function checkText(name, url, headers, validate) {
   const startedAt = performance.now();
-  const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  const response = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
   if (!response.ok) throw new Error(`${name} returned HTTP ${response.status}`);
   validate(await response.text());
   checks.push({ name, status: "ok", durationMs: roundedDuration(startedAt) });

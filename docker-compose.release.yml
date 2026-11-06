@@ -152,6 +152,7 @@ services:
       STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set in .env}
       STORAGE_BUCKET: ${STORAGE_BUCKET:-spicytrack-artifacts}
       STORAGE_FORCE_PATH_STYLE: "true"
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set in .env}
       SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:?set in .env}
       AUTOFIX_WORKDIR: ${AUTOFIX_WORKDIR:-/tmp/spicytrack-autofix}
       CODEBASE_MEMORY_MCP_BIN: ${CODEBASE_MEMORY_MCP_BIN:-codebase-memory-mcp}
