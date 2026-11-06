@@ -457,7 +457,11 @@ try {
   ) {
     dockerCompose("logs", "--no-color");
   } else {
-    run("pnpm", ["--filter", "api", "test:e2e", "--runInBand"], {
+    // On GitHub Actions, failed tests are also reported as annotations.
+    const reporters = process.env.GITHUB_ACTIONS
+      ? ["--reporters=default", "--reporters=github-actions"]
+      : [];
+    run("pnpm", ["--filter", "api", "test:e2e", "--runInBand", ...reporters], {
       env: {
         DATABASE_URL: "postgresql://spicytrack:spicytrack@127.0.0.1:55433/spicytrack",
         E2E_DATABASE_URL: "postgresql://spicytrack:spicytrack@127.0.0.1:55433/spicytrack",

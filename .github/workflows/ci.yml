@@ -239,11 +239,24 @@ jobs:
 
       # Fails on high or critical vulnerabilities that already have a fix, in the OS packages and
       # the Node.js dependencies shipped in the image.
+      # Findings are also reported as an annotation: unlike job logs, annotations of a public
+      # repository can be read without signing in.
       - name: Scan image
         if: matrix.platform == 'linux/amd64'
+        env:
+          IMAGE: spicytrack-${{ matrix.target }}:ci
         run: |
+          status=0
           trivy image --no-progress --ignore-unfixed --severity HIGH,CRITICAL \
-            --scanners vuln --exit-code 1 "spicytrack-${{ matrix.target }}:ci"
+            --scanners vuln --exit-code 1 --format json --output trivy.json "${IMAGE}" || status=$?
+          jq -r '[.Results[]? | .Target as $target | .Vulnerabilities[]?
+            | "\(.Severity) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) in \($target)"]
+            | unique | .[]' trivy.json > findings.txt
+          if [ -s findings.txt ]; then
+            cat findings.txt
+            echo "::error title=Image scan (${IMAGE})::$(head -n 80 findings.txt | awk 'BEGIN { ORS = "%0A" } { gsub(/%/, "%25"); print }')"
+          fi
+          exit "${status}"
 
   end-to-end:
     runs-on: ubuntu-latest
@@ -282,7 +295,20 @@ jobs:
         env:
           E2E_BROWSERS: ${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')) && 'chromium' || '' }}
           E2E_SKIP_SDK_MATRIX: ${{ needs.changes.outputs.sdk == 'true' && 'false' || 'true' }}
-        run: pnpm test:e2e
+        # On failure, the runner's own error lines (not the services' logs dumped after them)
+        # are also reported as an annotation, readable without signing in.
+        run: |
+          set -o pipefail
+          status=0
+          pnpm test:e2e 2>&1 | tee e2e.log || status=$?
+          if [ "${status}" != 0 ]; then
+            sed 's/\x1b\[[0-9;]*m//g' e2e.log \
+              | grep -vE '^[[:alnum:]_.-]+[[:space:]]+\| ' \
+              | grep -E '\[(resilience|sdk-matrix|load)\]|✘|Error|FAIL|failed|unhealthy|exited|Timed? ?out|Expected|Received' \
+              | tail -n 60 > e2e-errors.txt || true
+            echo "::error title=End-to-end suite (exit ${status})::$(awk 'BEGIN { ORS = "%0A" } { gsub(/%/, "%25"); print }' e2e-errors.txt)"
+          fi
+          exit "${status}"
 
       - name: Upload browser diagnostics
         if: failure()
