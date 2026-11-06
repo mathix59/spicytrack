@@ -27,7 +27,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Prereleases are cut from the beta branch (beta-release.yml). Merging beta into main
+      # Prereleases are cut from the beta branch (the beta-release job in ci.yml). Merging beta into main
       # without leaving pre mode would version main as a beta; after `changeset pre exit` the
       # file stays with mode "exit" until this workflow versions the stable release.
       - name: Refuse prerelease mode on main
