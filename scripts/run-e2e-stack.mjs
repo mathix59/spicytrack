@@ -23,6 +23,24 @@ function dockerCompose(...args) {
   return run("docker", [...compose, ...args]);
 }
 
+/** Runs one of the e2e/*.sql checks against the stack's database. */
+function verifySql(file) {
+  return dockerCompose(
+    "exec",
+    "--no-TTY",
+    "postgres",
+    "psql",
+    "-U",
+    "spicytrack",
+    "-d",
+    "spicytrack",
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-f",
+    file,
+  );
+}
+
 function captureDockerCompose(...args) {
   const result = spawnSync("docker", [...compose, ...args], {
     cwd: process.cwd(),
@@ -409,26 +427,13 @@ try {
     dockerCompose("logs", "--no-color");
   } else if (!runIngestLoad()) {
     dockerCompose("logs", "--no-color");
-  } else if (!skipSdkMatrix && !(await runSdkMatrix())) {
+  } else if (!skipSdkMatrix && !((await runSdkMatrix()) && verifySql("/e2e/verify-sdk-matrix.sql"))) {
     dockerCompose("logs", "--no-color");
     process.exitCode = 1;
   } else if (sdkMatrixOnly) {
     console.log("[sdk-matrix] focused real-SDK validation passed");
   } else if (
-    !dockerCompose(
-      "exec",
-      "--no-TTY",
-      "postgres",
-      "psql",
-      "-U",
-      "spicytrack",
-      "-d",
-      "spicytrack",
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-f",
-      "/e2e/verify-keycloak.sql",
-    )
+    !verifySql("/e2e/verify-keycloak.sql")
   ) {
     dockerCompose("logs", "--no-color");
   } else if (!(await runDependencyRecovery())) {

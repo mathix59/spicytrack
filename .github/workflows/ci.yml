@@ -212,7 +212,8 @@ jobs:
         with:
           context: .
           file: ${{ matrix.target == 'web' && 'apps/web/Dockerfile' || 'apps/api/Dockerfile' }}
-          target: ${{ matrix.target == 'web' && '' || matrix.target }}
+          # `cond && '' || x` always yields x: an empty string is falsy in expressions.
+          target: ${{ matrix.target != 'web' && matrix.target || '' }}
           platforms: ${{ matrix.platform }}
           push: false
           load: ${{ matrix.platform == 'linux/amd64' }}

@@ -33,7 +33,14 @@ RUN case "$TARGETARCH" in \
 FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-RUN apk add --no-cache git
+# The services only run `node`: the package managers bundled with the base image are removed so
+# their own dependencies are not shipped (and scanned). Alpine packages are brought up to date
+# because the base image is rebuilt less often than security fixes land.
+RUN apk upgrade --no-cache \
+    && apk add --no-cache git \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-* \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn \
+      /usr/local/bin/yarnpkg
 COPY --from=runtime-deps /app/node_modules ./node_modules
 COPY --from=runtime-deps /app/package.json ./package.json
 COPY --from=runtime-deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
