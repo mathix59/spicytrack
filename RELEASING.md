@@ -94,14 +94,16 @@ git push -u origin beta
 
 ### Cut a beta
 
-1. Merge or push the changes into `beta`, each with its changeset. CI runs on every push to `beta`,
-   with the full browser and SDK matrices.
-2. Once CI is green on the branch head, run the **Beta Release** workflow on `beta` (Actions → Beta
-   Release → Run workflow, or `gh workflow run beta-release.yml --ref beta`). It refuses to run
-   without a green CI run for that commit or without a new changeset, then:
-   - versions `api` and `web` to the next `1.2.0-beta.N` and commits the changelog to `beta`;
-   - tags `v1.2.0-beta.N` and publishes it as a GitHub pre-release;
-   - publishes the images as `1.2.0-beta.N`, `v1.2.0-beta.N` and `beta`.
+Merge `develop` (or push changes, each with its changeset) into `beta`. CI runs on every push to
+`beta` with the full browser and SDK matrices. When it is green and the push brings changesets
+that no beta has shipped yet, its last job, `beta-release`, cuts the next beta:
+
+- versions `api` and `web` to the next `1.2.0-beta.N` and commits the changelog to `beta`;
+- tags `v1.2.0-beta.N` and publishes it as a GitHub pre-release;
+- publishes the images as `1.2.0-beta.N`, `v1.2.0-beta.N` and `beta`.
+
+A push without a new changeset, or after `changeset pre exit`, cuts nothing. Pull the version
+commit before pushing to `beta` again.
 
 The root package, Helm chart and OpenAPI versions are only aligned for stable releases.
 
