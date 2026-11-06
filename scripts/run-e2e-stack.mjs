@@ -118,11 +118,22 @@ async function authenticatedApiClient() {
     .filter(Boolean)
     .map((value) => value.split(";", 1)[0])
     .join("; ");
-  return (path, options = {}) =>
+  const request = (path, options = {}) =>
     fetch(`http://127.0.0.1:55174/api${path}`, {
       ...options,
       headers: { ...options.headers, cookie, origin: "http://127.0.0.1:55174" },
     });
+  // A server closes the connection after an early answer such as a 413, without reading the
+  // rest of the body. A request that reuses that kept-alive connection fails before reaching
+  // the server, so it is sent once more.
+  return async (path, options = {}) => {
+    try {
+      return await request(path, options);
+    } catch (error) {
+      if (error?.cause?.code !== "UND_ERR_SOCKET") throw error;
+      return request(path, options);
+    }
+  };
 }
 
 async function uploadSdkArtifact(api, release, filename, localPath) {

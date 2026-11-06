@@ -12,8 +12,11 @@ overrides:
   markdown-it@14: ^14.3.3
   # Same API, patched minimatch: @fastify/static only globs its own root with fixed patterns.
   '@fastify/static>glob': ^14.0.3
-  # drizzle-kit's legacy loader only transforms code, which esbuild 0.25 does the same way.
-  '@esbuild-kit/core-utils>esbuild': ^0.25.12
+  # drizzle-kit ships in the API image for migrations and only uses esbuild to load the config
+  # and schema. The esbuild 0.25 binaries are built with a Go release that has known
+  # vulnerabilities, which the image scan reports.
+  'drizzle-kit>esbuild': ^0.28.2
+  '@esbuild-kit/core-utils>esbuild': ^0.28.2
 
 allowBuilds:
   '@parcel/watcher': false
