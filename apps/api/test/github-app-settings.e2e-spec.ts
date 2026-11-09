@@ -1,7 +1,7 @@
 import { createHmac, randomUUID } from "node:crypto";
 import { Test, TestingModule } from "@nestjs/testing";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { AppModule } from "../src/app.module";
 import { AuthGuard } from "../src/auth/auth.guard";
 import { IntegrationsService } from "../src/integrations/integrations.service";
@@ -14,6 +14,7 @@ import {
   organizationGithubAppRepositories,
   organizationGithubAppSettings,
   organizations,
+  repoConnections,
 } from "../src/database/schema";
 import { OrganizationContextGuard } from "../src/rbac/organization-context.guard";
 import { PermissionGuard } from "../src/rbac/permission.guard";
@@ -126,6 +127,7 @@ describe("GitHub App settings (e2e)", () => {
   afterAll(async () => {
     if (db) {
       await db.delete(auditLogs).where(eq(auditLogs.organizationId, organizationId));
+      await db.delete(repoConnections).where(eq(repoConnections.organizationId, organizationId));
       await db
         .delete(organizationGithubAppRepositories)
         .where(eq(organizationGithubAppRepositories.organizationId, organizationId));
@@ -437,6 +439,101 @@ describe("GitHub App settings (e2e)", () => {
       .from(organizationGithubAppRepositories)
       .where(eq(organizationGithubAppRepositories.organizationId, organizationId));
     expect(repositories).toHaveLength(1);
+  });
+
+  it("disconnects GitHub and the project repositories that relied on the App", async () => {
+    await db
+      .delete(organizationGithubAppSettings)
+      .where(
+        inArray(organizationGithubAppSettings.organizationId, [
+          organizationId,
+          otherOrganizationId,
+        ]),
+      );
+    const settings = {
+      mode: "cloud",
+      appSlug: "spicytrack-app",
+      appId: "123456",
+      installationId: "555",
+      installationAccountLogin: "acme",
+      privateKeyCiphertext: encryptSecret("private-key"),
+      webhookSecretCiphertext: encryptSecret("webhook-secret"),
+    };
+    await db.insert(organizationGithubAppSettings).values([
+      { organizationId, ...settings },
+      { organizationId: otherOrganizationId, ...settings },
+    ]);
+    await db.insert(organizationGithubAppRepositories).values({
+      organizationId,
+      installationId: "555",
+      githubRepositoryId: 42,
+      fullName: "acme/shop",
+      defaultBranch: "main",
+    });
+    const appProject = randomUUID();
+    const tokenProject = randomUUID();
+    const gitlabProject = randomUUID();
+    const connection = { organizationId, provider: "github", repoIdentifier: "acme/shop" };
+    await db.insert(repoConnections).values([
+      { ...connection, projectId: appProject },
+      { ...connection, projectId: tokenProject, tokenCiphertext: encryptSecret("ghp_token") },
+      {
+        ...connection,
+        projectId: gitlabProject,
+        provider: "gitlab",
+        tokenCiphertext: encryptSecret("glpat"),
+      },
+    ]);
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: `/api/organizations/${organizationSlug}/settings/github-app`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ success: true });
+    const settingsAfter = await app.inject({
+      method: "GET",
+      url: `/api/organizations/${organizationSlug}/settings/github-app`,
+    });
+    expect(settingsAfter.json()).toEqual(
+      expect.objectContaining({ appId: null, installationId: null, privateKeySet: false }),
+    );
+    expect(
+      await db
+        .select()
+        .from(organizationGithubAppRepositories)
+        .where(eq(organizationGithubAppRepositories.organizationId, organizationId)),
+    ).toHaveLength(0);
+    const remaining = await db
+      .select({ projectId: repoConnections.projectId })
+      .from(repoConnections)
+      .where(eq(repoConnections.organizationId, organizationId));
+    expect(remaining.map((row) => row.projectId).sort()).toEqual(
+      [tokenProject, gitlabProject].sort(),
+    );
+    expect(
+      await db
+        .select()
+        .from(organizationGithubAppSettings)
+        .where(eq(organizationGithubAppSettings.organizationId, otherOrganizationId)),
+    ).toHaveLength(1);
+
+    const audit = await db
+      .select()
+      .from(auditLogs)
+      .where(eq(auditLogs.organizationId, organizationId));
+    const entry = audit.find((row) => row.action === "org.github_app_settings.deleted");
+    expect(entry?.payload).toEqual(
+      expect.objectContaining({ appSlug: "spicytrack-app", disconnectedProjects: 1 }),
+    );
+    expect(JSON.stringify(entry)).not.toContain("webhook-secret");
+
+    const again = await app.inject({
+      method: "DELETE",
+      url: `/api/organizations/${organizationSlug}/settings/github-app`,
+    });
+    expect(again.statusCode).toBe(200);
   });
 });
 

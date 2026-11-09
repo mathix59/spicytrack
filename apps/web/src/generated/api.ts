@@ -7417,6 +7417,86 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getUpdateOrganizationGithubAppSettingsMutationOptions(options), queryClient);
     }
 
+export type deleteOrganizationGithubAppSettingsResponse200 = {
+  data: SuccessDto
+  status: 200
+}
+
+export type deleteOrganizationGithubAppSettingsResponseSuccess = (deleteOrganizationGithubAppSettingsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteOrganizationGithubAppSettingsResponse = (deleteOrganizationGithubAppSettingsResponseSuccess)
+
+export const getDeleteOrganizationGithubAppSettingsUrl = (orgSlug: string,) => {
+
+
+
+
+  return `/organizations/${orgSlug}/settings/github-app`
+}
+
+export const deleteOrganizationGithubAppSettings = async (orgSlug: string, options?: Parameters<typeof orvalFetch>[1]): Promise<deleteOrganizationGithubAppSettingsResponse> => {
+
+  return orvalFetch<deleteOrganizationGithubAppSettingsResponse>(getDeleteOrganizationGithubAppSettingsUrl(orgSlug),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteOrganizationGithubAppSettingsMutationKey = () => ['deleteOrganizationGithubAppSettings'] as const;
+
+export const getDeleteOrganizationGithubAppSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationGithubAppSettings>>, TError,DeleteOrganizationGithubAppSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationGithubAppSettings>>, TError,DeleteOrganizationGithubAppSettingsMutationVariables, TContext> => {
+
+const mutationKey = getDeleteOrganizationGithubAppSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOrganizationGithubAppSettings>>, DeleteOrganizationGithubAppSettingsMutationVariables> = (props) => {
+          const {orgSlug} = props ?? {};
+
+          return  deleteOrganizationGithubAppSettings(orgSlug,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteOrganizationGithubAppSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOrganizationGithubAppSettings>>>
+
+    export type DeleteOrganizationGithubAppSettingsMutationError = ErrorType<unknown>
+    export type DeleteOrganizationGithubAppSettingsMutationVariables = {orgSlug: string}
+
+    export const useDeleteOrganizationGithubAppSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOrganizationGithubAppSettings>>, TError,DeleteOrganizationGithubAppSettingsMutationVariables, TContext>, request?: SecondParameter<typeof orvalFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteOrganizationGithubAppSettings>>,
+        TError,
+        DeleteOrganizationGithubAppSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteOrganizationGithubAppSettingsMutationOptions(options), queryClient);
+    }
+
 export type getOrganizationGithubAppInstallUrlResponse200 = {
   data: GithubAppInstallUrlDto
   status: 200

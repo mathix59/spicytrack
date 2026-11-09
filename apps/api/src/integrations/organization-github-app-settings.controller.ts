@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Post, Put, UseGuards } from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiBody,
@@ -27,6 +27,7 @@ import {
   GithubAppInstallUrlDto,
   GithubAppRepositoryDto,
   OrganizationGithubAppSettingsDto,
+  SuccessDto,
   UpdateOrganizationGithubAppSettingsBodyDto,
 } from "../openapi/contracts";
 import { OrganizationContextGuard } from "../rbac/organization-context.guard";
@@ -175,6 +176,21 @@ export class OrganizationGithubAppSettingsController {
         body.privateKey === undefined ? undefined : optionalNullableString(body.privateKey),
       webhookSecret:
         body.webhookSecret === undefined ? undefined : optionalNullableString(body.webhookSecret),
+    });
+  }
+
+  @Delete()
+  @ApiOperation({ operationId: "deleteOrganizationGithubAppSettings" })
+  @ApiOkResponse({ type: SuccessDto })
+  @RequirePermissions("org.settings.manage")
+  @UseGuards(PermissionGuard)
+  async remove(
+    @CurrentOrganization() organization: OrganizationRecord,
+    @CurrentUser() user: UserRecord,
+  ) {
+    return this.integrationsService.deleteOrgGithubAppSettings({
+      organizationId: organization.id,
+      actorUserId: user.id,
     });
   }
 }

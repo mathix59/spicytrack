@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SkeletonRows } from "@/components/ui/skeleton";
 
+import { OrgGithubAppDisconnect } from "./org-github-app-disconnect";
 import { OrgGithubAppEnterpriseForm } from "./org-github-app-enterprise-form";
 import { asOptionalString, submitGithubManifest } from "./org-github-app-utils";
 
@@ -37,6 +38,10 @@ function OrgGithubAppCard({ orgSlug, canManage }: { orgSlug: string; canManage: 
   });
   const settings = settingsQuery.data?.data;
   const connected = Boolean(settings?.appId && settings.privateKeySet && settings.installationId);
+  // Anything saved, even an App that was never installed, can be disconnected.
+  const configured = Boolean(
+    settings?.appId || settings?.installationId || settings?.privateKeySet,
+  );
 
   // Switch to enterprise whenever the saved mode becomes enterprise; a manual choice sticks
   // until the saved mode changes again.
@@ -146,12 +151,16 @@ function OrgGithubAppCard({ orgSlug, canManage }: { orgSlug: string; canManage: 
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : null}
-        {connected ? (
-          <Alert variant="success">
-            <CheckCircle2 className="size-4" />
-            <AlertDescription>
-              Connected to {asOptionalString(settings?.installationAccountLogin) || "GitHub"} via{" "}
-              {settings?.appSlug}.
+        {configured ? (
+          <Alert variant={connected ? "success" : "default"}>
+            {connected ? <CheckCircle2 className="size-4" /> : null}
+            <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+              <span>
+                {connected
+                  ? `Connected to ${asOptionalString(settings?.installationAccountLogin) || "GitHub"} via ${settings?.appSlug}.`
+                  : "A GitHub App is set up but not installed yet."}
+              </span>
+              <OrgGithubAppDisconnect onDisconnected={invalidate} orgSlug={orgSlug} />
             </AlertDescription>
           </Alert>
         ) : null}

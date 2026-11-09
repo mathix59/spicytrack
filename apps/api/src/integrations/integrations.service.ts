@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { createHmac, createSign, timingSafeEqual } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { AuditService } from "../audit/audit.service";
 import { decryptSecret, encryptSecret } from "../common/secrets";
 import { DATABASE } from "../database/database.provider";
@@ -622,6 +622,53 @@ export class IntegrationsService {
     });
 
     return this.getOrgGithubAppSettings(input.organizationId);
+  }
+
+  /**
+   * Forgets the organization's GitHub App: its credentials, installation and repositories, and the
+   * project repo connections that relied on it. Connections with their own token keep working.
+   * The App itself stays on GitHub until someone deletes it there.
+   */
+  async deleteOrgGithubAppSettings(input: { organizationId: string; actorUserId: string }) {
+    const result = await this.db.transaction(async (tx) => {
+      const [settings] = await tx
+        .delete(organizationGithubAppSettings)
+        .where(eq(organizationGithubAppSettings.organizationId, input.organizationId))
+        .returning();
+      if (!settings) return null;
+      await tx
+        .delete(organizationGithubAppRepositories)
+        .where(eq(organizationGithubAppRepositories.organizationId, input.organizationId));
+      const connections = await tx
+        .delete(repoConnections)
+        .where(
+          and(
+            eq(repoConnections.organizationId, input.organizationId),
+            eq(repoConnections.provider, "github"),
+            isNull(repoConnections.tokenCiphertext),
+          ),
+        )
+        .returning({ projectId: repoConnections.projectId });
+      return { settings, disconnectedProjects: connections.length };
+    });
+
+    if (result) {
+      await this.auditService.record({
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId,
+        action: "org.github_app_settings.deleted",
+        targetType: "organization_github_app_settings",
+        payload: {
+          mode: result.settings.mode,
+          appSlug: result.settings.appSlug,
+          appId: result.settings.appId,
+          installationAccountLogin: result.settings.installationAccountLogin,
+          disconnectedProjects: result.disconnectedProjects,
+        },
+      });
+    }
+
+    return { success: true };
   }
 
   async getOrgGithubAppInstallUrl(organizationId: string) {

@@ -2312,6 +2312,40 @@
         "tags": [
           "organizations"
         ]
+      },
+      "delete": {
+        "operationId": "deleteOrganizationGithubAppSettings",
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "",
+        "tags": [
+          "organizations"
+        ]
       }
     },
     "/organizations/{orgSlug}/settings/github-app/install-url": {

@@ -47,6 +47,7 @@ const ACTION_LABELS: Record<string, string> = {
   "org.ai_pricing_overrides.updated": "Updated AI pricing overrides",
   "org.ai_settings.updated": "Updated AI settings",
   "org.github_app_settings.updated": "Updated GitHub App settings",
+  "org.github_app_settings.deleted": "Disconnected GitHub",
   "organization.invitation.created": "Invited member",
   "organization.invitation.revoked": "Revoked invitation",
   "organization.member.removed": "Removed member",
