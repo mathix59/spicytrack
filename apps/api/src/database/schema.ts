@@ -569,6 +569,28 @@ export const releaseArtifacts = pgTable(
   }),
 );
 
+/**
+ * Stack frames already resolved against a release's source maps, ProGuard or Dart symbols, so an
+ * event opens without downloading and parsing them again. Keyed by a fingerprint of the release's
+ * artifacts and of the raw frame: rows for an older set of artifacts are never read, and uploads or
+ * deletions clear the release's rows.
+ */
+export const resolvedStackFrames = pgTable(
+  "resolved_stack_frames",
+  {
+    releaseId: uuid("release_id")
+      .notNull()
+      .references(() => releases.id, { onDelete: "cascade" }),
+    artifactsFingerprint: varchar("artifacts_fingerprint", { length: 32 }).notNull(),
+    frameKey: varchar("frame_key", { length: 32 }).notNull(),
+    frame: jsonb("frame").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.releaseId, table.artifactsFingerprint, table.frameKey] }),
+  }),
+);
+
 export const alertRules = pgTable(
   "alert_rules",
   {

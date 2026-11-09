@@ -26,6 +26,29 @@ function artifact(name: string, storageKey = name) {
   };
 }
 
+/** In-memory stand-in for the resolved_stack_frames table, round-tripping frames through JSON. */
+function memoryFrameStore() {
+  const rows = new Map<string, string>();
+  const rowKey = (releaseId: string, fingerprint: string, key: string) =>
+    `${releaseId}|${fingerprint}|${key}`;
+  return {
+    rows,
+    get: jest.fn(async (releaseId: string, fingerprint: string, keys: string[]) => {
+      const found = new Map<string, unknown>();
+      for (const key of keys) {
+        const row = rows.get(rowKey(releaseId, fingerprint, key));
+        if (row) found.set(key, JSON.parse(row));
+      }
+      return found;
+    }),
+    save: jest.fn(async (releaseId: string, fingerprint: string, frames: Map<string, object>) => {
+      for (const [key, frame] of frames) {
+        rows.set(rowKey(releaseId, fingerprint, key), JSON.stringify(frame));
+      }
+    }),
+  };
+}
+
 function serviceWith(artifacts: ReturnType<typeof artifact>[], objects: Record<string, Buffer>) {
   const orderBy = jest.fn().mockResolvedValue(artifacts);
   const where = jest.fn().mockReturnValue({ orderBy });
@@ -38,7 +61,7 @@ function serviceWith(artifacts: ReturnType<typeof artifact>[], objects: Record<s
       return object;
     }),
   };
-  return new SourcemapResolverService(db as never, storage as never);
+  return new SourcemapResolverService(db as never, storage as never, memoryFrameStore() as never);
 }
 
 describe("SourcemapResolverService", () => {
@@ -358,10 +381,11 @@ describe("SourcemapResolverService", () => {
     );
   });
 
-  describe("caching", () => {
+  describe("stored frames", () => {
     function cachedService(
       initial: ReturnType<typeof artifact>[],
       objects: Record<string, Buffer>,
+      store = memoryFrameStore(),
     ) {
       let artifacts = initial;
       const orderBy = jest.fn(async () => artifacts);
@@ -373,8 +397,17 @@ describe("SourcemapResolverService", () => {
         if (!object) throw new Error(`missing object ${key}`);
         return object;
       });
-      const service = new SourcemapResolverService(db as never, { getObject } as never);
-      return { service, getObject, setArtifacts: (next: typeof artifacts) => (artifacts = next) };
+      const service = new SourcemapResolverService(
+        db as never,
+        { getObject } as never,
+        store as never,
+      );
+      return {
+        service,
+        getObject,
+        store,
+        setArtifacts: (next: typeof artifacts) => (artifacts = next),
+      };
     }
     const frame = {
       filename: "https://cdn.example.test/app.js",
@@ -458,16 +491,28 @@ describe("SourcemapResolverService", () => {
       expect(getObject).toHaveBeenCalledTimes(1);
     });
 
-    it("returns copies, so a caller cannot alter the cached frames", async () => {
-      const { service } = cachedService([artifact("~/app.js"), artifact("~/app.js.map", "map")], {
-        map: sourceMap,
-      });
+    it("still resolves frames when the stored frames cannot be read or written", async () => {
+      const store = memoryFrameStore();
+      store.get.mockRejectedValue(new Error("database unavailable"));
+      store.save.mockRejectedValue(new Error("database unavailable"));
+      const { service } = cachedService(
+        [artifact("~/app.js"), artifact("~/app.js.map", "map")],
+        { map: sourceMap },
+        store,
+      );
 
-      const [first] = await resolve(service);
-      first.filename = "changed";
+      await expect(resolve(service)).resolves.toEqual([
+        expect.objectContaining({ filename: "../src/checkout.ts", diagnostic: "resolved" }),
+      ]);
+    });
 
-      const [second] = await resolve(service);
-      expect(second.filename).toBe("../src/checkout.ts");
+    it("stores nothing for releases without artifacts", async () => {
+      const { service, store } = cachedService([], {});
+
+      await resolve(service);
+
+      expect(store.get).not.toHaveBeenCalled();
+      expect(store.save).not.toHaveBeenCalled();
     });
   });
 });

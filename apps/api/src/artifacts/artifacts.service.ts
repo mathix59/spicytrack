@@ -7,6 +7,7 @@ import { releaseArtifacts, releases } from "../database/schema";
 import { ReleaseCommitsService } from "../release-commits/release-commits.service";
 import { STORAGE_SERVICE } from "../storage/storage.service";
 import type { StorageService } from "../storage/storage.service";
+import { ResolvedFrameStore } from "./resolved-frame-store";
 
 @Injectable()
 export class ArtifactsService {
@@ -16,6 +17,7 @@ export class ArtifactsService {
     @Inject(DATABASE) private readonly db: DatabaseClient,
     @Inject(STORAGE_SERVICE) private readonly storageService: StorageService,
     private readonly releaseCommitsService: ReleaseCommitsService,
+    private readonly frameStore: ResolvedFrameStore,
   ) {}
 
   async upsertRelease(input: {
@@ -111,6 +113,7 @@ export class ArtifactsService {
         throw new NotFoundException("Artifact not found");
       }
       await this.deleteObjectBestEffort(existing.storageKey);
+      await this.clearResolvedFrames(release.id);
 
       return this.toArtifactDto(updated);
     }
@@ -138,6 +141,7 @@ export class ArtifactsService {
       await this.deleteObjectBestEffort(storageKey);
       throw new Error("Artifact metadata was not created");
     }
+    await this.clearResolvedFrames(release.id);
 
     return this.toArtifactDto(artifact);
   }
@@ -181,8 +185,25 @@ export class ArtifactsService {
     }
 
     await this.deleteObjectBestEffort(artifact.storageKey);
+    await this.clearResolvedFrames(release.id);
 
     return { success: true };
+  }
+
+  /**
+   * Frames resolved with the previous artifacts are never read again (their fingerprint no longer
+   * matches): free them. Best effort, since a leftover row is harmless.
+   */
+  private async clearResolvedFrames(releaseId: string): Promise<void> {
+    try {
+      await this.frameStore.clearRelease(releaseId);
+    } catch (error) {
+      this.logger.warn(
+        `Could not clear resolved frames of release ${releaseId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private async deleteObjectBestEffort(storageKey: string): Promise<void> {

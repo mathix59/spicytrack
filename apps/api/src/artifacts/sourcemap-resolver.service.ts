@@ -1,13 +1,14 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { originalPositionFor, sourceContentFor, TraceMap } from "@jridgewell/trace-mapping";
 import path from "node:path";
 import { DATABASE } from "../database/database.provider";
 import type { DatabaseClient } from "../database/database.provider";
-import { releaseArtifacts } from "../database/schema";
+import { events, releaseArtifacts } from "../database/schema";
+import { redactEventPayload } from "../common/event-payload-redaction";
 import { STORAGE_SERVICE } from "../storage/storage.service";
 import type { StorageService } from "../storage/storage.service";
-import type { RawStackFrame } from "../common/grouping";
+import { getAllFrames, type RawStackFrame } from "../common/grouping";
 import {
   parseDartObfuscationMap,
   parseProguardMap,
@@ -16,9 +17,10 @@ import {
 } from "./managed-symbol-maps";
 import {
   artifactsFingerprint,
+  frameKey,
   mapWithConcurrency,
-  ResolvedFrameCache,
-} from "./resolved-frame-cache";
+  ResolvedFrameStore,
+} from "./resolved-frame-store";
 
 export type FrameResolution = "sourcemap" | "proguard" | "dart_obfuscation" | "original";
 
@@ -54,12 +56,10 @@ type Artifact = typeof releaseArtifacts.$inferSelect;
 const PROGUARD_ARTIFACT_RE = /(?:^|\/)(?:mapping\.txt|proguard(?:-mapping)?\.txt)$/i;
 const DART_MAP_ARTIFACT_RE = /(?:^|\/)(?:dart-)?obfuscation(?:-map)?\.json$/i;
 
-// About 1 KB per resolved frame with its source context: a few megabytes at most.
-const RESOLVED_FRAME_CACHE_SIZE = 10_000;
 // Source maps downloaded at once for one event: bounds memory, since a parsed map is ~4x its size.
 const SOURCE_MAP_CONCURRENCY = 4;
 // Storage or parsing failures can be transient: retry them on the next request.
-const UNCACHED_DIAGNOSTICS = new Set<ResolvedFrame["diagnostic"]>([
+const UNSTORED_DIAGNOSTICS = new Set<ResolvedFrame["diagnostic"]>([
   "resolution_error",
   "invalid_sourcemap",
 ]);
@@ -162,6 +162,10 @@ function findArtifact(value: string, artifacts: IndexedArtifact[]): Artifact | n
   return basenameMatches.length === 1 ? basenameMatches[0].artifact : null;
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function lastSourceMappingUrl(source: string): string | null {
   let reference: string | null = null;
   SOURCE_MAPPING_URL_RE.lastIndex = 0;
@@ -202,14 +206,43 @@ function canonicalSourcePath(value: string): string {
 @Injectable()
 export class SourcemapResolverService {
   private readonly logger = new Logger(SourcemapResolverService.name);
-  private readonly resolvedFrames = new ResolvedFrameCache<ResolvedFrame>(
-    RESOLVED_FRAME_CACHE_SIZE,
-  );
 
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
     @Inject(STORAGE_SERVICE) private readonly storageService: StorageService,
+    private readonly frameStore: ResolvedFrameStore,
   ) {}
+
+  /**
+   * Resolves and stores an event's frames ahead of its first view, from the worker. Skips the
+   * payload read when the release has no artifacts, the common case.
+   */
+  async prepareEventFrames(projectId: string, eventId: string): Promise<void> {
+    const [event] = await this.db
+      .select({ releaseId: events.releaseId, sdkName: events.sdkName, platform: events.platform })
+      .from(events)
+      .where(and(eq(events.projectId, projectId), eq(events.id, eventId)))
+      .limit(1);
+    if (!event?.releaseId) return;
+    const [artifact] = await this.db
+      .select({ id: releaseArtifacts.id })
+      .from(releaseArtifacts)
+      .where(eq(releaseArtifacts.releaseId, event.releaseId))
+      .limit(1);
+    if (!artifact) return;
+
+    const [payload] = await this.db
+      .select({ rawPayload: events.rawPayload })
+      .from(events)
+      .where(and(eq(events.projectId, projectId), eq(events.id, eventId)))
+      .limit(1);
+    if (!payload) return;
+    // Same frames as the event views read, so the stored keys match theirs.
+    await this.resolveFrames({
+      ...event,
+      frames: getAllFrames(redactEventPayload(payload.rawPayload as Record<string, unknown>)),
+    });
+  }
 
   async resolveFrames(input: {
     releaseId: string | null;
@@ -237,20 +270,44 @@ export class SourcemapResolverService {
         : input.frames.map((frame) => this.toOriginal(frame));
     }
 
-    const keyPrefix = `${input.releaseId}|${artifactsFingerprint(artifacts)}|${family}|`;
-    const keys = input.frames.map((frame) => keyPrefix + JSON.stringify(frame));
-    const cached = keys.map((key) => this.resolvedFrames.get(key));
-    const missing = input.frames.filter((_, index) => cached[index] === undefined);
-    if (missing.length === 0) return cached.map((frame) => ({ ...frame! }));
+    const releaseId = input.releaseId;
+    const fingerprint = artifactsFingerprint(artifacts);
+    const keys = input.frames.map((frame) => frameKey(family, frame));
+    const stored = await this.storedFrames(releaseId, fingerprint, keys);
+    const missing = input.frames.filter((_, index) => !stored.has(keys[index]));
+    if (missing.length === 0) return keys.map((key) => stored.get(key)!);
 
     const fresh = await this.resolveUncached(missing, artifacts, family);
+    const toStore = new Map<string, ResolvedFrame>();
     let freshIndex = 0;
-    return cached.map((hit, index) => {
-      if (hit) return { ...hit };
+    const result = keys.map((key) => {
+      const hit = stored.get(key);
+      if (hit) return hit;
       const frame = fresh[freshIndex++];
-      if (!UNCACHED_DIAGNOSTICS.has(frame.diagnostic)) this.resolvedFrames.set(keys[index], frame);
-      return { ...frame };
+      if (!UNSTORED_DIAGNOSTICS.has(frame.diagnostic)) toStore.set(key, frame);
+      return frame;
     });
+    await this.storeFrames(releaseId, fingerprint, toStore);
+    return result;
+  }
+
+  // The stored frames only spare work: a database hiccup must not fail the event view.
+  private async storedFrames(releaseId: string, fingerprint: string, keys: string[]) {
+    try {
+      return await this.frameStore.get<ResolvedFrame>(releaseId, fingerprint, keys);
+    } catch (error) {
+      this.logger.warn(`Could not read resolved frames: ${errorMessage(error)}`);
+      return new Map<string, ResolvedFrame>();
+    }
+  }
+
+  private async storeFrames(releaseId: string, fingerprint: string, frames: Map<string, object>) {
+    if (frames.size === 0) return;
+    try {
+      await this.frameStore.save(releaseId, fingerprint, frames);
+    } catch (error) {
+      this.logger.warn(`Could not store resolved frames: ${errorMessage(error)}`);
+    }
   }
 
   private async resolveUncached(

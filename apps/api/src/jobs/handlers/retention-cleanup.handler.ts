@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { and, eq, inArray, lt, notExists, type SQL } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, notExists, or, type SQL } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { DATABASE } from "../../database/database.provider";
 import type { DatabaseClient } from "../../database/database.provider";
@@ -17,6 +17,8 @@ import {
   releaseHealthBuckets,
   releaseHealthSessions,
   releaseHealthUsers,
+  releases,
+  resolvedStackFrames,
 } from "../../database/schema";
 import { SESSION_MAX_AGE_MS } from "../../release-health/session-updates";
 import { EventPartitionsService } from "./event-partitions";
@@ -25,6 +27,8 @@ const BATCH_SIZE = 500;
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Longest cooldown a rule accepts; an older cooldown row behaves exactly like a missing one. */
 const MAX_ALERT_COOLDOWN_MS = 7 * DAY_MS;
+/** Stored stack frames of a release no event reached for this long; a later view resolves again. */
+const RESOLVED_FRAMES_IDLE_DAYS = 30;
 
 type RetentionSettings = {
   succeededJobsDays: number;
@@ -118,6 +122,8 @@ export class RetentionCleanupHandler {
       }
     }
 
+    await this.pruneResolvedFrames();
+
     // Operational history that otherwise grows without bound.
     const removed = {
       jobs:
@@ -158,6 +164,25 @@ export class RetentionCleanupHandler {
         `Retention cleanup removed ${removed.jobs} jobs, ${removed.alertDeliveries} alert deliveries, ${removed.auditLogs} audit logs`,
       );
     }
+  }
+
+  /** Every release stores its own frames: without this, each deploy would add rows for good. */
+  async pruneResolvedFrames(): Promise<void> {
+    const cutoff = new Date(Date.now() - RESOLVED_FRAMES_IDLE_DAYS * DAY_MS);
+    await this.db.delete(resolvedStackFrames).where(
+      inArray(
+        resolvedStackFrames.releaseId,
+        this.db
+          .select({ id: releases.id })
+          .from(releases)
+          .where(
+            or(
+              lt(releases.lastSeenAt, cutoff),
+              and(isNull(releases.lastSeenAt), lt(releases.createdAt, cutoff)),
+            ),
+          ),
+      ),
+    );
   }
 
   /** Deletes in small batches so no single statement holds locks on many rows. */

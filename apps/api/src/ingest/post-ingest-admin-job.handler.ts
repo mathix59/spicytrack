@@ -1,5 +1,6 @@
-import { Injectable, type OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { AlertsService } from "../alerts/alerts.service";
+import { SourcemapResolverService } from "../artifacts/sourcemap-resolver.service";
 import { AutofixService } from "../autofix/autofix.service";
 import { Job } from "../jobs/jobs.service";
 import { JobsRunnerService } from "../jobs/jobs-runner.service";
@@ -8,11 +9,14 @@ import { POST_INGEST_ADMIN_JOB_TYPE, type PostIngestAdminJobPayload } from "./po
 
 @Injectable()
 export class PostIngestAdminJobHandler implements OnModuleInit {
+  private readonly logger = new Logger(PostIngestAdminJobHandler.name);
+
   constructor(
     private readonly jobsRunnerService: JobsRunnerService,
     private readonly alertsService: AlertsService,
     private readonly autofixService: AutofixService,
     private readonly issueCounts: IssueCountsService,
+    private readonly sourcemapResolver: SourcemapResolverService,
   ) {}
 
   onModuleInit(): void {
@@ -60,6 +64,18 @@ export class PostIngestAdminJobHandler implements OnModuleInit {
       } catch {
         // Autofix must never break the post-ingest worker.
       }
+    }
+
+    // Last, so alerts never wait on it: source-maps the event now, and the issue opens instantly
+    // even for a new issue or a new release. The view resolves the frames itself if this fails.
+    try {
+      await this.sourcemapResolver.prepareEventFrames(payload.projectId, payload.eventId);
+    } catch (error) {
+      this.logger.warn(
+        `Could not prepare stack frames of event ${payload.eventId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 }

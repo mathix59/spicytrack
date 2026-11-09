@@ -8,12 +8,18 @@ import { RbacModule } from "../rbac/rbac.module";
 import { StorageModule } from "../storage/storage.module";
 import { ArtifactsController } from "./artifacts.controller";
 import { ArtifactsService } from "./artifacts.service";
+import { ResolvedFrameStore } from "./resolved-frame-store";
 import { SourcemapResolverService } from "./sourcemap-resolver.service";
 
 @Module({
   imports: [IntegrationsModule, JobsModule, RbacModule, ProjectsModule, StorageModule],
   controllers: [ArtifactsController, ReleaseCommitsController],
-  providers: [ArtifactsService, SourcemapResolverService, ReleaseCommitsService],
+  providers: [
+    ArtifactsService,
+    ResolvedFrameStore,
+    SourcemapResolverService,
+    ReleaseCommitsService,
+  ],
   exports: [SourcemapResolverService, ReleaseCommitsService],
 })
 export class ArtifactsModule {}
