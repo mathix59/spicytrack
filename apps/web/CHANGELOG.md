@@ -1,3 +1,9 @@
+## 1.2.2
+
+### Patch Changes
+
+- 6565d76: Disconnect GitHub from the organization settings. SpicyTrack forgets the GitHub App credentials, its installation and repositories, and the project repositories linked through the App; repositories connected with a personal token keep working. The action is recorded in the audit log, and the App itself stays on GitHub until you delete it there.
+
 ## 1.2.1
 
 No changes in this release.
