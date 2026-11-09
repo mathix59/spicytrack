@@ -357,4 +357,117 @@ describe("SourcemapResolverService", () => {
       }),
     );
   });
+
+  describe("caching", () => {
+    function cachedService(
+      initial: ReturnType<typeof artifact>[],
+      objects: Record<string, Buffer>,
+    ) {
+      let artifacts = initial;
+      const orderBy = jest.fn(async () => artifacts);
+      const db = {
+        select: jest.fn(() => ({ from: () => ({ where: () => ({ orderBy }) }) })),
+      };
+      const getObject = jest.fn(async (key: string) => {
+        const object = objects[key];
+        if (!object) throw new Error(`missing object ${key}`);
+        return object;
+      });
+      const service = new SourcemapResolverService(db as never, { getObject } as never);
+      return { service, getObject, setArtifacts: (next: typeof artifacts) => (artifacts = next) };
+    }
+    const frame = {
+      filename: "https://cdn.example.test/app.js",
+      function: "a",
+      lineno: 1,
+      colno: 0,
+    };
+    const resolve = (service: SourcemapResolverService, frames = [frame]) =>
+      service.resolveFrames({
+        releaseId: "release-id",
+        sdkName: "sentry.javascript.nextjs",
+        frames,
+      });
+
+    it("serves frames already resolved for the release without downloading the map again", async () => {
+      const { service, getObject } = cachedService(
+        [artifact("~/app.js"), artifact("~/app.js.map", "map")],
+        { map: sourceMap },
+      );
+
+      const first = await resolve(service);
+      const second = await resolve(service);
+
+      expect(second).toEqual(first);
+      expect(second[0]).toEqual(expect.objectContaining({ diagnostic: "resolved" }));
+      expect(getObject).toHaveBeenCalledTimes(1);
+    });
+
+    it("resolves again once the release's artifacts change", async () => {
+      const previousMap = Buffer.from(
+        sourceMap.toString("utf8").replace("../src/checkout.ts", "../src/previous.ts"),
+      );
+      const { service, setArtifacts } = cachedService([artifact("~/app.js.map", "previous")], {
+        previous: previousMap,
+        map: sourceMap,
+      });
+
+      await expect(resolve(service)).resolves.toEqual([
+        expect.objectContaining({ filename: "../src/previous.ts" }),
+      ]);
+      // Re-uploading a map under the same name stores it under a new key.
+      setArtifacts([artifact("~/app.js.map", "map")]);
+
+      await expect(resolve(service)).resolves.toEqual([
+        expect.objectContaining({ filename: "../src/checkout.ts" }),
+      ]);
+    });
+
+    it("retries frames whose source map could not be read", async () => {
+      const objects: Record<string, Buffer> = {};
+      const { service, getObject } = cachedService(
+        [artifact("~/app.js"), artifact("~/app.js.map", "map")],
+        objects,
+      );
+
+      await expect(resolve(service)).resolves.toEqual([
+        expect.objectContaining({ diagnostic: "invalid_sourcemap" }),
+      ]);
+      objects.map = sourceMap;
+
+      await expect(resolve(service)).resolves.toEqual([
+        expect.objectContaining({ diagnostic: "resolved" }),
+      ]);
+      expect(getObject).toHaveBeenCalledTimes(2);
+    });
+
+    it("downloads each source map once for frames of the same chunk", async () => {
+      const { service, getObject } = cachedService(
+        [artifact("~/app.js"), artifact("~/app.js.map", "map")],
+        { map: sourceMap },
+      );
+      const frames = Array.from({ length: 12 }, (_, index) => ({
+        ...frame,
+        function: `f${index}`,
+      }));
+
+      const resolved = await resolve(service, frames);
+
+      expect(resolved).toHaveLength(12);
+      expect(resolved.map((item) => item.function)).toEqual(Array(12).fill("checkout"));
+      expect(getObject).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns copies, so a caller cannot alter the cached frames", async () => {
+      const { service } = cachedService([artifact("~/app.js"), artifact("~/app.js.map", "map")], {
+        map: sourceMap,
+      });
+
+      const [first] = await resolve(service);
+      first.filename = "changed";
+
+      const [second] = await resolve(service);
+      expect(second.filename).toBe("../src/checkout.ts");
+    });
+  });
 });

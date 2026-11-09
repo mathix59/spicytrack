@@ -14,6 +14,11 @@ import {
   resolveDartFrame,
   resolveProguardFrame,
 } from "./managed-symbol-maps";
+import {
+  artifactsFingerprint,
+  mapWithConcurrency,
+  ResolvedFrameCache,
+} from "./resolved-frame-cache";
 
 export type FrameResolution = "sourcemap" | "proguard" | "dart_obfuscation" | "original";
 
@@ -48,6 +53,27 @@ type Artifact = typeof releaseArtifacts.$inferSelect;
 
 const PROGUARD_ARTIFACT_RE = /(?:^|\/)(?:mapping\.txt|proguard(?:-mapping)?\.txt)$/i;
 const DART_MAP_ARTIFACT_RE = /(?:^|\/)(?:dart-)?obfuscation(?:-map)?\.json$/i;
+
+// About 1 KB per resolved frame with its source context: a few megabytes at most.
+const RESOLVED_FRAME_CACHE_SIZE = 10_000;
+// Source maps downloaded at once for one event: bounds memory, since a parsed map is ~4x its size.
+const SOURCE_MAP_CONCURRENCY = 4;
+// Storage or parsing failures can be transient: retry them on the next request.
+const UNCACHED_DIAGNOSTICS = new Set<ResolvedFrame["diagnostic"]>([
+  "resolution_error",
+  "invalid_sourcemap",
+]);
+
+interface IndexedArtifact {
+  artifact: Artifact;
+  candidates: string[];
+  basename: string;
+}
+
+interface RequestCaches {
+  traceMaps: Map<string, Promise<TraceMap | null>>;
+  sourceMapReferences: Map<string, Promise<string | null>>;
+}
 
 function sdkFamily(input: { sdkName?: string | null; platform?: string | null }) {
   const sdkName = input.sdkName?.toLowerCase() ?? "";
@@ -106,29 +132,34 @@ function artifactPathCandidates(value: string): string[] {
   return [...candidates];
 }
 
-function findArtifact(value: string, artifacts: Artifact[]): Artifact | null {
-  const targets = artifactPathCandidates(value);
-  const exact = artifacts.filter((artifact) => {
-    const artifactCandidates = artifactPathCandidates(artifact.name);
-    return artifactCandidates.some((candidate) => targets.includes(candidate));
-  });
-  if (exact.length === 1) return exact[0];
+// Path candidates are computed once per request: Next.js releases often hold hundreds of artifacts.
+function indexArtifacts(artifacts: Artifact[]): IndexedArtifact[] {
+  return artifacts.map((artifact) => ({
+    artifact,
+    candidates: artifactPathCandidates(artifact.name),
+    basename: path.posix.basename(canonicalArtifactPath(artifact.name)),
+  }));
+}
 
-  const suffix = artifacts.filter((artifact) => {
-    const artifactCandidates = artifactPathCandidates(artifact.name);
-    return artifactCandidates.some((artifactPath) =>
+function findArtifact(value: string, artifacts: IndexedArtifact[]): Artifact | null {
+  const targets = artifactPathCandidates(value);
+  const exact = artifacts.filter(({ candidates }) =>
+    candidates.some((candidate) => targets.includes(candidate)),
+  );
+  if (exact.length === 1) return exact[0].artifact;
+
+  const suffix = artifacts.filter(({ candidates }) =>
+    candidates.some((artifactPath) =>
       targets.some(
         (target) => artifactPath.endsWith(`/${target}`) || target.endsWith(`/${artifactPath}`),
       ),
-    );
-  });
-  if (suffix.length === 1) return suffix[0];
+    ),
+  );
+  if (suffix.length === 1) return suffix[0].artifact;
 
   const basenames = new Set(targets.map((target) => path.posix.basename(target)));
-  const basenameMatches = artifacts.filter((artifact) =>
-    basenames.has(path.posix.basename(canonicalArtifactPath(artifact.name))),
-  );
-  return basenameMatches.length === 1 ? basenameMatches[0] : null;
+  const basenameMatches = artifacts.filter(({ basename }) => basenames.has(basename));
+  return basenameMatches.length === 1 ? basenameMatches[0].artifact : null;
 }
 
 function lastSourceMappingUrl(source: string): string | null {
@@ -171,6 +202,9 @@ function canonicalSourcePath(value: string): string {
 @Injectable()
 export class SourcemapResolverService {
   private readonly logger = new Logger(SourcemapResolverService.name);
+  private readonly resolvedFrames = new ResolvedFrameCache<ResolvedFrame>(
+    RESOLVED_FRAME_CACHE_SIZE,
+  );
 
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
@@ -203,18 +237,39 @@ export class SourcemapResolverService {
         : input.frames.map((frame) => this.toOriginal(frame));
     }
 
+    const keyPrefix = `${input.releaseId}|${artifactsFingerprint(artifacts)}|${family}|`;
+    const keys = input.frames.map((frame) => keyPrefix + JSON.stringify(frame));
+    const cached = keys.map((key) => this.resolvedFrames.get(key));
+    const missing = input.frames.filter((_, index) => cached[index] === undefined);
+    if (missing.length === 0) return cached.map((frame) => ({ ...frame! }));
+
+    const fresh = await this.resolveUncached(missing, artifacts, family);
+    let freshIndex = 0;
+    return cached.map((hit, index) => {
+      if (hit) return { ...hit };
+      const frame = fresh[freshIndex++];
+      if (!UNCACHED_DIAGNOSTICS.has(frame.diagnostic)) this.resolvedFrames.set(keys[index], frame);
+      return { ...frame };
+    });
+  }
+
+  private async resolveUncached(
+    frames: RawStackFrame[],
+    artifacts: Artifact[],
+    family: ReturnType<typeof sdkFamily>,
+  ): Promise<ResolvedFrame[]> {
     const proguardArtifact = artifacts.find((artifact) =>
       PROGUARD_ARTIFACT_RE.test(canonicalArtifactPath(artifact.name)),
     );
     if (family === "java" && proguardArtifact) {
-      return this.resolveProguardFrames(input.frames, proguardArtifact);
+      return this.resolveProguardFrames(frames, proguardArtifact);
     }
 
     const dartMapArtifact = artifacts.find((artifact) =>
       DART_MAP_ARTIFACT_RE.test(canonicalArtifactPath(artifact.name)),
     );
     if (family === "dart" && dartMapArtifact) {
-      return this.resolveDartFrames(input.frames, dartMapArtifact);
+      return this.resolveDartFrames(frames, dartMapArtifact);
     }
 
     const hasSourceMap = artifacts.some((artifact) =>
@@ -225,16 +280,14 @@ export class SourcemapResolverService {
       family !== "unknown" &&
       !((family === "javascript" || family === "readable") && hasSourceMap)
     ) {
-      return input.frames.map((frame) => this.toOriginal(frame));
+      return frames.map((frame) => this.toOriginal(frame));
     }
 
-    const traceMapCache = new Map<string, TraceMap | null>();
-
-    const results: ResolvedFrame[] = [];
-    for (const frame of input.frames) {
-      results.push(await this.resolveFrame(frame, artifacts, traceMapCache));
-    }
-    return results;
+    const indexed = indexArtifacts(artifacts);
+    const caches: RequestCaches = { traceMaps: new Map(), sourceMapReferences: new Map() };
+    return mapWithConcurrency(frames, SOURCE_MAP_CONCURRENCY, (frame) =>
+      this.resolveFrame(frame, indexed, caches),
+    );
   }
 
   private toUnresolved(
@@ -267,8 +320,8 @@ export class SourcemapResolverService {
 
   private async resolveFrame(
     frame: RawStackFrame,
-    artifacts: Artifact[],
-    traceMapCache: Map<string, TraceMap | null>,
+    artifacts: IndexedArtifact[],
+    caches: RequestCaches,
   ): Promise<ResolvedFrame> {
     const framePath = frame.absPath ?? frame.filename;
     const unresolved = (diagnostic: Exclude<ResolvedFrame["diagnostic"], "resolved">) =>
@@ -278,20 +331,21 @@ export class SourcemapResolverService {
 
     try {
       const jsArtifact = findArtifact(framePath, artifacts);
-      const mapResult = await this.findMapArtifact(framePath, jsArtifact, artifacts);
+      const mapResult = await this.findMapArtifact(framePath, jsArtifact, artifacts, caches);
       if (!mapResult.artifact && !mapResult.inlineTraceMap) {
         return unresolved(mapResult.diagnostic);
       }
 
       let traceMap = mapResult.inlineTraceMap;
       if (!traceMap && mapResult.artifact) {
-        const cachedTraceMap = traceMapCache.get(mapResult.artifact.storageKey);
-        if (cachedTraceMap === undefined) {
-          traceMap = await this.loadTraceMap(mapResult.artifact.storageKey);
-          traceMapCache.set(mapResult.artifact.storageKey, traceMap);
-        } else {
-          traceMap = cachedTraceMap;
+        const { storageKey } = mapResult.artifact;
+        // Frames of the same chunk resolve concurrently: share one download and parse.
+        let pending = caches.traceMaps.get(storageKey);
+        if (!pending) {
+          pending = this.loadTraceMap(storageKey);
+          caches.traceMaps.set(storageKey, pending);
         }
+        traceMap = await pending;
       }
 
       if (!traceMap) return unresolved("invalid_sourcemap");
@@ -390,7 +444,8 @@ export class SourcemapResolverService {
   private async findMapArtifact(
     framePath: string,
     jsArtifact: Artifact | null,
-    artifacts: Artifact[],
+    artifacts: IndexedArtifact[],
+    caches: RequestCaches,
   ): Promise<{
     artifact: Artifact | null;
     inlineTraceMap: TraceMap | null;
@@ -404,9 +459,12 @@ export class SourcemapResolverService {
       return { artifact: null, inlineTraceMap: null, diagnostic: "artifact_not_found" };
     }
 
-    const jsBytes = await this.storageService.getObject(jsArtifact.storageKey);
-    const tail = jsBytes.subarray(Math.max(0, jsBytes.length - 4096)).toString("utf8");
-    const reference = lastSourceMappingUrl(tail);
+    let pendingReference = caches.sourceMapReferences.get(jsArtifact.storageKey);
+    if (!pendingReference) {
+      pendingReference = this.loadSourceMapReference(jsArtifact.storageKey);
+      caches.sourceMapReferences.set(jsArtifact.storageKey, pendingReference);
+    }
+    const reference = await pendingReference;
     if (!reference) {
       return { artifact: null, inlineTraceMap: null, diagnostic: "sourcemap_not_found" };
     }
@@ -429,6 +487,13 @@ export class SourcemapResolverService {
       inlineTraceMap: null,
       diagnostic: "sourcemap_not_found",
     };
+  }
+
+  private async loadSourceMapReference(storageKey: string): Promise<string | null> {
+    const jsBytes = await this.storageService.getObject(storageKey);
+    return lastSourceMappingUrl(
+      jsBytes.subarray(Math.max(0, jsBytes.length - 4096)).toString("utf8"),
+    );
   }
 
   private async loadTraceMap(storageKey: string): Promise<TraceMap | null> {
